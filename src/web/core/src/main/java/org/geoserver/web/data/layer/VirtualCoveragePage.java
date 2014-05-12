@@ -6,6 +6,7 @@ package org.geoserver.web.data.layer;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,7 +14,6 @@ import java.util.logging.Level;
 
 import org.apache.wicket.PageParameters;
 import org.apache.wicket.ajax.AjaxRequestTarget;
-import org.apache.wicket.markup.html.form.CheckBox;
 import org.apache.wicket.markup.html.form.Form;
 import org.apache.wicket.markup.html.form.SubmitLink;
 import org.apache.wicket.markup.html.form.TextField;
@@ -21,17 +21,16 @@ import org.apache.wicket.markup.html.link.Link;
 import org.apache.wicket.model.CompoundPropertyModel;
 import org.apache.wicket.validation.IValidatable;
 import org.apache.wicket.validation.validator.AbstractValidator;
+import org.geoserver.catalog.CatalogBuilder;
 import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.CoverageStoreInfo;
-import org.geoserver.catalog.DataStoreInfo;
-import org.geoserver.catalog.FeatureTypeInfo;
+import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.VirtualCoverage;
 import org.geoserver.web.ComponentAuthorizer;
 import org.geoserver.web.GeoServerSecuredPage;
+import org.geoserver.web.data.resource.ResourceConfigurationPage;
 import org.geoserver.web.wicket.GeoServerAjaxFormLink;
-import org.geoserver.web.wicket.GeoServerTablePanel;
 import org.geoserver.web.wicket.ParamResourceModel;
-import org.geotools.jdbc.VirtualTable;
 
 /**
  * Base page for VirtualCoverage creation/editing
@@ -476,16 +475,28 @@ public class VirtualCoveragePage extends GeoServerSecuredPage {
     protected void onSave() {
         try {
             VirtualCoverage virtualCoverage = buildVirtualCoverage();
+            CoverageStoreInfo coverageStoreInfo = getCatalog().getCoverageStore(storeId);
+            
 //            DataStoreInfo dsInfo = getCatalog().getStore(storeId, DataStoreInfo.class);
 //            JDBCDataStore ds = (JDBCDataStore) dsInfo.getDataStore(null);
 //            ds.addVirtualTable(vt);
 //
-//            CatalogBuilder builder = new CatalogBuilder(getCatalog());
+            List<String> coverageNames =  virtualCoverage.getCoverageNames();
+            CatalogBuilder builder = new CatalogBuilder(getCatalog());
+            List<CoverageInfo> coverages = new ArrayList<CoverageInfo>(coverageNames.size());
+            for (String coverageName: coverageNames) {
+                CoverageInfo coverageInfo = builder.buildCoverage(coverageName);
+                coverages.add(coverageInfo);
+            }
+
+            // CHECK CONSISTENCY
+            
 //            builder.setStore(dsInfo);
 //            FeatureTypeInfo fti = builder.buildFeatureType(ds.getFeatureSource(vt.getName()));
 //            fti.getMetadata().put(FeatureTypeInfo.JDBC_VIRTUAL_TABLE, vt);
-//            LayerInfo layerInfo = builder.buildLayer(fti);
-//            setResponsePage(new ResourceConfigurationPage(layerInfo, true));
+            CoverageInfo aggregatedCoverage = coverages.get(0);
+              LayerInfo layerInfo = builder.buildLayer(aggregatedCoverage);
+            setResponsePage(new ResourceConfigurationPage(layerInfo, true));
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to create feature type", e);
             error(new ParamResourceModel("creationFailure", this, getFirstErrorMessage(e))
