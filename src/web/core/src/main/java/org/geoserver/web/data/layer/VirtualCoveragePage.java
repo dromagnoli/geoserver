@@ -1,4 +1,4 @@
-/* Copyright (c) 2001 - 2013 OpenPlans - www.openplans.org. All rights reserved.
+/* Copyright (c) 2014 OpenPlans - www.openplans.org. All rights reserved.
  * This code is licensed under the GPL 2.0 license, available at the root
  * application directory.
  */
@@ -16,21 +16,27 @@ import org.apache.wicket.PageParameters;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.markup.html.form.Form;
 import org.apache.wicket.markup.html.form.SubmitLink;
+import org.apache.wicket.markup.html.form.TextArea;
 import org.apache.wicket.markup.html.form.TextField;
 import org.apache.wicket.markup.html.link.Link;
 import org.apache.wicket.model.CompoundPropertyModel;
 import org.apache.wicket.validation.IValidatable;
 import org.apache.wicket.validation.validator.AbstractValidator;
+import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.CatalogBuilder;
 import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.CoverageStoreInfo;
 import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.VirtualCoverage;
+import org.geoserver.catalog.VirtualCoverageBand;
+import org.geoserver.catalog.VirtualCoverageBand.CompositionType;
 import org.geoserver.web.ComponentAuthorizer;
 import org.geoserver.web.GeoServerSecuredPage;
 import org.geoserver.web.data.resource.ResourceConfigurationPage;
 import org.geoserver.web.wicket.GeoServerAjaxFormLink;
 import org.geoserver.web.wicket.ParamResourceModel;
+import org.geotools.coverage.grid.io.GridCoverage2DReader;
+import org.opengis.coverage.grid.GridCoverageReader;
 
 /**
  * Base page for VirtualCoverage creation/editing
@@ -47,8 +53,10 @@ public class VirtualCoveragePage extends GeoServerSecuredPage {
     String storeId;
     
     String coverageInfoId;
-//
-//    String sql;
+
+    String definition;
+    
+    String coverages;
 
     String name;
 
@@ -56,8 +64,8 @@ public class VirtualCoveragePage extends GeoServerSecuredPage {
 
 //    SQLViewAttributeProvider attProvider;
 
-//    private TextArea sqlEditor;
-
+    private TextArea definitionEditor;
+    
 //    private GeoServerTablePanel<SQLViewAttribute> attributes;
     
 //    private GeoServerTablePanel<Parameter> parameters;
@@ -88,10 +96,15 @@ public class VirtualCoveragePage extends GeoServerSecuredPage {
         add(form);
         final TextField nameField = new TextField("name");
         nameField.setRequired(true);
+        final TextField coveragesField = new TextField("coverages");
+        coveragesField.setRequired(true);
+        coveragesField.setEnabled(false);
         nameField.add(new VirtualCoverageNameValidator());
         form.add(nameField);
-//        sqlEditor = new TextArea("sql");
-//        form.add(sqlEditor);
+        form.add(coveragesField);
+        definitionEditor = new TextArea("definition");
+        form.add(definitionEditor);
+        
         
         // the parameters and attributes provider
 //        attProvider = new SQLViewAttributeProvider();
@@ -101,9 +114,11 @@ public class VirtualCoveragePage extends GeoServerSecuredPage {
         if (coverageName != null) {
             newCoverage = false;
 
-            // grab the virtual table
-            CoverageStoreInfo store = getCatalog().getStore(storeId, CoverageStoreInfo.class);
-            CoverageInfo coverageInfo = getCatalog().getResourceByStore(store, coverageName, CoverageInfo.class);
+//             grab the virtual coverage
+            Catalog catalog = getCatalog();
+            CoverageStoreInfo store = catalog.getStore(storeId, CoverageStoreInfo.class);
+            CoverageInfo coverageInfo = catalog.getResourceByStore(store, coverageName, CoverageInfo.class);
+            GridCoverage2DReader reader = (GridCoverage2DReader) catalog.getResourcePool().getGridCoverageReader(store, null);
             // the type can be still not saved
             if (coverageInfo != null) {
                 String coverageInfoId = coverageInfo.getId();
@@ -121,6 +136,12 @@ public class VirtualCoveragePage extends GeoServerSecuredPage {
 //            }
 
             name = virtualCoverage.getName();
+            String[] coverageNames = reader.getGridCoverageNames();
+            StringBuilder builder = new StringBuilder();
+            for (String coverage: coverageNames) {
+                builder.append(coverage).append(",");
+            }
+            coverages = builder.substring(0, builder.length()-1).toString();
 //            sql = virtualTable.getSql();
 //            escapeSql = virtualTable.isEscapeSql();
 //
@@ -252,7 +273,7 @@ public class VirtualCoveragePage extends GeoServerSecuredPage {
 
             @Override
             protected void onClick(AjaxRequestTarget target, Form form) {
-//                sqlEditor.processInput();
+                definitionEditor.processInput();
 //                parameters.processInputs();
 //                guessCheckbox.processInput();
 //                if (sql != null && !"".equals(sql.trim())) {
@@ -441,8 +462,18 @@ public class VirtualCoveragePage extends GeoServerSecuredPage {
 //        }
 //    }
 
-    protected VirtualCoverage buildVirtualCoverage() {
-        VirtualCoverage virtualCoverage = new VirtualCoverage(name, getCatalog().getStore(storeId, CoverageStoreInfo.class), null /*coverageNames*/);
+    protected VirtualCoverage buildVirtualCoverage(CoverageStoreInfo storeInfo, GridCoverageReader reader) throws IOException {
+                // TODO: ADD HINTS
+        String [] names = reader.getGridCoverageNames();
+        //TODO: FAKE Init
+        String inputs[] = definition.split(",");
+        List<VirtualCoverageBand> bands = new ArrayList<VirtualCoverageBand>(inputs.length);
+        for (String input: inputs) {
+            bands.add(new VirtualCoverageBand(input, input, CompositionType.BAND_SELECT));
+        }
+        VirtualCoverage virtualCoverage = new VirtualCoverage(name, storeInfo, bands);
+
+
 //        attProvider.fillVirtualTable(vt);
 //        paramProvider.updateVirtualTable(vt);
         return virtualCoverage;
@@ -474,28 +505,21 @@ public class VirtualCoveragePage extends GeoServerSecuredPage {
     
     protected void onSave() {
         try {
-            VirtualCoverage virtualCoverage = buildVirtualCoverage();
-            CoverageStoreInfo coverageStoreInfo = getCatalog().getCoverageStore(storeId);
+            Catalog catalog = getCatalog();
+            CoverageStoreInfo coverageStoreInfo = catalog.getCoverageStore(storeId);
+            GridCoverage2DReader reader = (GridCoverage2DReader) catalog.getResourcePool().getGridCoverageReader(coverageStoreInfo, null);
+            VirtualCoverage virtualCoverage = buildVirtualCoverage(coverageStoreInfo, reader);
             
 //            DataStoreInfo dsInfo = getCatalog().getStore(storeId, DataStoreInfo.class);
 //            JDBCDataStore ds = (JDBCDataStore) dsInfo.getDataStore(null);
 //            ds.addVirtualTable(vt);
 //
-            List<String> coverageNames =  virtualCoverage.getCoverageNames();
-            CatalogBuilder builder = new CatalogBuilder(getCatalog());
-            List<CoverageInfo> coverages = new ArrayList<CoverageInfo>(coverageNames.size());
-            for (String coverageName: coverageNames) {
-                CoverageInfo coverageInfo = builder.buildCoverage(coverageName);
-                coverages.add(coverageInfo);
-            }
-
-            // CHECK CONSISTENCY
+            CatalogBuilder builder = new CatalogBuilder(catalog);
+            CoverageInfo coverageInfo = virtualCoverage.createVirtualCoverageInfo(coverageStoreInfo, reader, builder);
             
-//            builder.setStore(dsInfo);
-//            FeatureTypeInfo fti = builder.buildFeatureType(ds.getFeatureSource(vt.getName()));
-//            fti.getMetadata().put(FeatureTypeInfo.JDBC_VIRTUAL_TABLE, vt);
-            CoverageInfo aggregatedCoverage = coverages.get(0);
-              LayerInfo layerInfo = builder.buildLayer(aggregatedCoverage);
+//            aggregatedCoverage.s
+            
+              LayerInfo layerInfo = builder.buildLayer(coverageInfo);
             setResponsePage(new ResourceConfigurationPage(layerInfo, true));
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to create feature type", e);
@@ -503,6 +527,7 @@ public class VirtualCoveragePage extends GeoServerSecuredPage {
                     .getString());
         }
     }
+
 
 //    protected abstract void onCancel();
 //    
