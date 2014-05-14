@@ -10,7 +10,6 @@ import java.util.Set;
 import javax.media.jai.operator.BandMergeDescriptor;
 
 import org.geoserver.catalog.CoverageDimensionCustomizerReader.CoverageDimensionCustomizerStructuredReader;
-import org.geoserver.catalog.VirtualCoverageBands.VirtualCoverageBand;
 import org.geotools.coverage.CoverageFactoryFinder;
 import org.geotools.coverage.GridSampleDimension;
 import org.geotools.coverage.grid.GridCoverage2D;
@@ -18,6 +17,7 @@ import org.geotools.coverage.grid.GridCoverageFactory;
 import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.coverage.grid.io.OverviewPolicy;
 import org.geotools.coverage.grid.io.StructuredGridCoverage2DReader;
+import org.geotools.factory.Hints;
 import org.geotools.geometry.GeneralEnvelope;
 import org.opengis.coverage.SampleDimension;
 import org.opengis.coverage.grid.GridCoverageReader;
@@ -36,21 +36,28 @@ public class VirtualCoverageReader extends SingleGridCoverage2DReader {
     
     private GridCoverage2DReader delegate;
     
+    private Hints hints;
+    
     private CoverageInfo coverageInfo;
     
     private GridCoverageFactory coverageFactory;
     
-//      private Catalog catalog;
-    public VirtualCoverageReader(GridCoverage2DReader delegate, VirtualCoverage virtualCoverage, CoverageInfo coverageInfo) {
-        super(delegate, /*virtualCoverage.getName()*/ coverageInfo.getName());
+    public VirtualCoverageReader(GridCoverage2DReader delegate, VirtualCoverage virtualCoverage, CoverageInfo coverageInfo, Hints hints) {
+        super(delegate, virtualCoverage.getName());
         this.delegate = delegate;
         this.virtualCoverage = virtualCoverage;
         this.coverageInfo = coverageInfo;
-//        this.catalog = catalog;
+        this.hints = hints;
         referenceName = virtualCoverage.getReferenceName();
-
-        //TODO: rendering Hints 
-        coverageFactory = CoverageFactoryFinder.getGridCoverageFactory(null);
+        if (this.hints != null && this.hints.containsKey(Hints.GRID_COVERAGE_FACTORY)) {
+            final Object factory = this.hints.get(Hints.GRID_COVERAGE_FACTORY);
+            if (factory != null && factory instanceof GridCoverageFactory) {
+                this.coverageFactory = (GridCoverageFactory) factory;
+            }
+        }
+        if (this.coverageFactory == null) {
+            this.coverageFactory = CoverageFactoryFinder.getGridCoverageFactory(this.hints);
+        }
     }
     @Override
     public String[] getMetadataNames() throws IOException {
@@ -75,15 +82,16 @@ public class VirtualCoverageReader extends SingleGridCoverage2DReader {
     @Override
     public GridCoverage2D read(GeneralParameterValue[] parameters) throws IllegalArgumentException,
             IOException {
-        // TODO: ask Nicola for BandMerges
-        VirtualCoverageBands bands = virtualCoverage.getCoverageBands();
+
+        List<VirtualCoverageBand> bands = virtualCoverage.getCoverageBands();
         List<GridCoverage2D> coverages = new ArrayList<GridCoverage2D>();
         List<SampleDimension> dims = new ArrayList<SampleDimension>();
         
         // Use composition rule specific implementation
-        final int bandSize = bands.getSize();
-        for (int i=0; i < bandSize; i++) {
-            VirtualCoverageBand band = bands.getBand(i);
+        final int bandSize = bands.size();
+//        for (int i=0; i < bandSize; i++) {
+        for (VirtualCoverageBand band : bands) {
+//            VirtualCoverageBand band = bands.getBand(i);
             String coverageName = band.getCoverageName();
             GridCoverageReader reader = wrap(delegate, coverageName, coverageInfo);
             GridCoverage2D coverage = (GridCoverage2D)reader.read(parameters);
@@ -93,7 +101,11 @@ public class VirtualCoverageReader extends SingleGridCoverage2DReader {
         
         
         GridCoverage2D sampleCoverage = coverages.get(0);
+
+        // TODO: Implement bandMerges
         RenderedImage image = BandMergeDescriptor.create(sampleCoverage.getRenderedImage(), coverages.get(1).getRenderedImage(), null);
+//        image.getData(new Rectangle(0,0,1000,1000));
+//        ImageIO.write(coverages.get(1).getRenderedImage(), "tiff", new File("C:\\merged2.tif"));
         GridSampleDimension[] wrappedDims = new GridSampleDimension[bandSize];
         
         if (coverageInfo.getDimensions() != null) {
@@ -106,7 +118,7 @@ public class VirtualCoverageReader extends SingleGridCoverage2DReader {
         }
         return coverageFactory.create(coverageInfo.getName()/*virtualCoverage.getName()*/, image, sampleCoverage.getGridGeometry(), dims.toArray(new GridSampleDimension[dims.size()]), null, /*props*/ null);
     }
-    
+
     public static GridCoverageReader wrap(GridCoverage2DReader delegate, String coverageName, CoverageInfo info) {
         GridCoverage2DReader reader = delegate;
         if (coverageName != null) {
@@ -142,13 +154,10 @@ public class VirtualCoverageReader extends SingleGridCoverage2DReader {
     }
     
     /**
-     * Checks the specified name is the one we are expecting
      * @param coverageName
      */
     protected void checkCoverageName(String coverageName) {
-//        if (!this.coverageName.equals(coverageName)) {
-//            throw new IllegalArgumentException("Unkonwn coverage named " + coverageName
-//                    + ", the only valid value is: " + this.coverageName);
-//        }
+        // It's virtual... TODO: add checks 
+        
     }
 }

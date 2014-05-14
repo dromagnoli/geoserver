@@ -1354,7 +1354,7 @@ public class ResourcePool {
             MetadataMap metadata = coverageInfo.getMetadata();
             if (metadata.containsKey(VirtualCoverage.VIRTUAL_COVERAGE)) {
                 VirtualCoverage virtualCoverage = (VirtualCoverage) metadata.get(VirtualCoverage.VIRTUAL_COVERAGE);
-                return new VirtualCoverageReader((GridCoverage2DReader) reader, virtualCoverage, coverageInfo);
+                return new VirtualCoverageReader((GridCoverage2DReader) reader, virtualCoverage, coverageInfo, hints);
             }
         }
 

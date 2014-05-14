@@ -28,9 +28,8 @@ import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.CoverageStoreInfo;
 import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.VirtualCoverage;
-import org.geoserver.catalog.VirtualCoverageBands;
-import org.geoserver.catalog.VirtualCoverageBands.CompositionType;
-import org.geoserver.catalog.VirtualCoverageBands.VirtualCoverageBand;
+import org.geoserver.catalog.VirtualCoverageBand;
+import org.geoserver.catalog.VirtualCoverageBand.CompositionType;
 import org.geoserver.web.ComponentAuthorizer;
 import org.geoserver.web.GeoServerSecuredPage;
 import org.geoserver.web.data.resource.ResourceConfigurationPage;
@@ -470,7 +469,7 @@ public class VirtualCoveragePage extends GeoServerSecuredPage {
         for (String input: inputs) {
             bands.add(new VirtualCoverageBand(input, input, i++, CompositionType.BAND_SELECT));
         }
-        VirtualCoverage virtualCoverage = new VirtualCoverage(name, new VirtualCoverageBands(bands));
+        VirtualCoverage virtualCoverage = new VirtualCoverage(name, bands);
         return virtualCoverage;
     }
 
@@ -504,7 +503,7 @@ public class VirtualCoveragePage extends GeoServerSecuredPage {
             CoverageStoreInfo coverageStoreInfo = catalog.getCoverageStore(storeId);
             VirtualCoverage virtualCoverage = buildVirtualCoverage(coverageStoreInfo);
             CatalogBuilder builder = new CatalogBuilder(catalog);
-            CoverageInfo coverageInfo = virtualCoverage.createVirtualCoverageInfo(/*name, */coverageStoreInfo, builder);
+            CoverageInfo coverageInfo = virtualCoverage.createVirtualCoverageInfo(name, coverageStoreInfo, builder);
             LayerInfo layerInfo = builder.buildLayer(coverageInfo);
             setResponsePage(new ResourceConfigurationPage(layerInfo, true));
         } catch (Exception e) {

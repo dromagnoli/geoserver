@@ -47,8 +47,7 @@ import org.geoserver.catalog.ResourceInfo;
 import org.geoserver.catalog.StoreInfo;
 import org.geoserver.catalog.StyleInfo;
 import org.geoserver.catalog.VirtualCoverage;
-import org.geoserver.catalog.VirtualCoverageBands;
-import org.geoserver.catalog.VirtualCoverageBands.VirtualCoverageBand;
+import org.geoserver.catalog.VirtualCoverageBand;
 import org.geoserver.catalog.WMSLayerInfo;
 import org.geoserver.catalog.WMSStoreInfo;
 import org.geoserver.catalog.WorkspaceInfo;
@@ -309,6 +308,7 @@ public class XStreamPersister {
         xs.alias( "coverage", CoverageInfo.class);
         xs.alias( "wmsLayer", WMSLayerInfo.class);
         xs.alias( "coverageDimension", CoverageDimensionInfo.class);
+        xs.alias( "coverageBand", VirtualCoverageBand.class);
         xs.alias( "metadataLink", MetadataLinkInfo.class);
         xs.alias( "attribute", AttributeTypeInfo.class );
         xs.alias( "layer", LayerInfo.class);
@@ -320,6 +320,7 @@ public class XStreamPersister {
         xs.aliasField("abstract", ResourceInfoImpl.class, "_abstract" );
         xs.alias("AuthorityURL", AuthorityURLInfo.class);
         xs.alias("Identifier", LayerIdentifierInfo.class);
+        xs.alias("band", LayerIdentifierInfo.class);
         
         // GeoServerInfo
         xs.omitField(impl(GeoServerInfo.class), "clientProperties");

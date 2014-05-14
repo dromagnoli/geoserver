@@ -17,7 +17,6 @@ import javax.media.jai.ImageLayout;
 import javax.media.jai.PropertySource;
 import javax.media.jai.PropertySourceImpl;
 
-import org.geoserver.catalog.VirtualCoverageBands.VirtualCoverageBand;
 import org.geotools.coverage.Category;
 import org.geotools.coverage.GridSampleDimension;
 import org.geotools.coverage.grid.GridCoverage2D;
@@ -236,8 +235,8 @@ public class CoverageDimensionCustomizerReader implements GridCoverage2DReader {
             MetadataMap map = info.getMetadata();
             if (map.containsKey(VirtualCoverage.VIRTUAL_COVERAGE)) {
                 VirtualCoverage virtualCoverage = (VirtualCoverage) map.get(VirtualCoverage.VIRTUAL_COVERAGE);
-                VirtualCoverageBands bands = virtualCoverage.getCoverageBands(); 
-                VirtualCoverageBand band = bands.getBand(coverageName);
+//                List<VirtualCoverageBand> bands = virtualCoverage.getCoverageBands(); 
+                VirtualCoverageBand band = virtualCoverage.getBand(coverageName);
                 
                 if (storedDimensions != null && storedDimensions.size() > 0) {
                     CoverageDimensionInfo dimensionInfo = storedDimensions.get(band.getIndex());
