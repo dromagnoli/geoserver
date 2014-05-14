@@ -1349,15 +1349,15 @@ public class ResourcePool {
                 }
             }
         }
-        
+
         if (coverageInfo != null) {
             MetadataMap metadata = coverageInfo.getMetadata();
             if (metadata.containsKey(VirtualCoverage.VIRTUAL_COVERAGE)) {
                 VirtualCoverage virtualCoverage = (VirtualCoverage) metadata.get(VirtualCoverage.VIRTUAL_COVERAGE);
-                return new VirtualCoverageReader((GridCoverage2DReader) reader, coverageName, virtualCoverage, catalog);
+                return new VirtualCoverageReader((GridCoverage2DReader) reader, virtualCoverage, coverageInfo);
             }
         }
-        
+
         // wrap it if we are dealing with a multi-coverage reader
         if (coverageName != null) {
             // force the result to work against a single coverage, so that the OGC service portion of
@@ -1380,7 +1380,6 @@ public class ResourcePool {
             // but no coveragename have been specified
             return (GridCoverage2DReader) reader;
 
-            
         }
     }
     

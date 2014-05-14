@@ -28,15 +28,15 @@ import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.CoverageStoreInfo;
 import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.VirtualCoverage;
-import org.geoserver.catalog.VirtualCoverageBand;
-import org.geoserver.catalog.VirtualCoverageBand.CompositionType;
+import org.geoserver.catalog.VirtualCoverageBands;
+import org.geoserver.catalog.VirtualCoverageBands.CompositionType;
+import org.geoserver.catalog.VirtualCoverageBands.VirtualCoverageBand;
 import org.geoserver.web.ComponentAuthorizer;
 import org.geoserver.web.GeoServerSecuredPage;
 import org.geoserver.web.data.resource.ResourceConfigurationPage;
 import org.geoserver.web.wicket.GeoServerAjaxFormLink;
 import org.geoserver.web.wicket.ParamResourceModel;
 import org.geotools.coverage.grid.io.GridCoverage2DReader;
-import org.opengis.coverage.grid.GridCoverageReader;
 
 /**
  * Base page for VirtualCoverage creation/editing
@@ -98,7 +98,7 @@ public class VirtualCoveragePage extends GeoServerSecuredPage {
         nameField.setRequired(true);
         final TextField coveragesField = new TextField("coverages");
         coveragesField.setRequired(true);
-        coveragesField.setEnabled(false);
+//        coveragesField.setEnabled(false);
         nameField.add(new VirtualCoverageNameValidator());
         form.add(nameField);
         form.add(coveragesField);
@@ -462,20 +462,15 @@ public class VirtualCoveragePage extends GeoServerSecuredPage {
 //        }
 //    }
 
-    protected VirtualCoverage buildVirtualCoverage(CoverageStoreInfo storeInfo, GridCoverageReader reader) throws IOException {
+    protected VirtualCoverage buildVirtualCoverage(CoverageStoreInfo storeInfo) throws IOException {
                 // TODO: ADD HINTS
-        String [] names = reader.getGridCoverageNames();
-        //TODO: FAKE Init
         String inputs[] = definition.split(",");
         List<VirtualCoverageBand> bands = new ArrayList<VirtualCoverageBand>(inputs.length);
+        int i=0;
         for (String input: inputs) {
-            bands.add(new VirtualCoverageBand(input, input, CompositionType.BAND_SELECT));
+            bands.add(new VirtualCoverageBand(input, input, i++, CompositionType.BAND_SELECT));
         }
-        VirtualCoverage virtualCoverage = new VirtualCoverage(name, storeInfo, bands);
-
-
-//        attProvider.fillVirtualTable(vt);
-//        paramProvider.updateVirtualTable(vt);
+        VirtualCoverage virtualCoverage = new VirtualCoverage(name, new VirtualCoverageBands(bands));
         return virtualCoverage;
     }
 
@@ -507,19 +502,10 @@ public class VirtualCoveragePage extends GeoServerSecuredPage {
         try {
             Catalog catalog = getCatalog();
             CoverageStoreInfo coverageStoreInfo = catalog.getCoverageStore(storeId);
-            GridCoverage2DReader reader = (GridCoverage2DReader) catalog.getResourcePool().getGridCoverageReader(coverageStoreInfo, null);
-            VirtualCoverage virtualCoverage = buildVirtualCoverage(coverageStoreInfo, reader);
-            
-//            DataStoreInfo dsInfo = getCatalog().getStore(storeId, DataStoreInfo.class);
-//            JDBCDataStore ds = (JDBCDataStore) dsInfo.getDataStore(null);
-//            ds.addVirtualTable(vt);
-//
+            VirtualCoverage virtualCoverage = buildVirtualCoverage(coverageStoreInfo);
             CatalogBuilder builder = new CatalogBuilder(catalog);
-            CoverageInfo coverageInfo = virtualCoverage.createVirtualCoverageInfo(coverageStoreInfo, reader, builder);
-            
-//            aggregatedCoverage.s
-            
-              LayerInfo layerInfo = builder.buildLayer(coverageInfo);
+            CoverageInfo coverageInfo = virtualCoverage.createVirtualCoverageInfo(/*name, */coverageStoreInfo, builder);
+            LayerInfo layerInfo = builder.buildLayer(coverageInfo);
             setResponsePage(new ResourceConfigurationPage(layerInfo, true));
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to create feature type", e);
