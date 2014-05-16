@@ -4,22 +4,35 @@
  */
 package org.geoserver.web.data.layer;
 
+import java.awt.image.SampleModel;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
+import javax.media.jai.ImageLayout;
+
 import org.apache.wicket.PageParameters;
 import org.apache.wicket.ajax.AjaxRequestTarget;
+import org.apache.wicket.ajax.markup.html.form.AjaxButton;
+import org.apache.wicket.markup.html.form.ChoiceRenderer;
+import org.apache.wicket.markup.html.form.DropDownChoice;
 import org.apache.wicket.markup.html.form.Form;
+import org.apache.wicket.markup.html.form.IChoiceRenderer;
+import org.apache.wicket.markup.html.form.ListMultipleChoice;
 import org.apache.wicket.markup.html.form.SubmitLink;
 import org.apache.wicket.markup.html.form.TextArea;
 import org.apache.wicket.markup.html.form.TextField;
 import org.apache.wicket.markup.html.link.Link;
 import org.apache.wicket.model.CompoundPropertyModel;
+import org.apache.wicket.model.Model;
+import org.apache.wicket.model.PropertyModel;
+import org.apache.wicket.model.StringResourceModel;
 import org.apache.wicket.validation.IValidatable;
 import org.apache.wicket.validation.validator.AbstractValidator;
 import org.geoserver.catalog.Catalog;
@@ -28,8 +41,9 @@ import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.CoverageStoreInfo;
 import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.VirtualCoverage;
-import org.geoserver.catalog.VirtualCoverageBand;
-import org.geoserver.catalog.VirtualCoverageBand.CompositionType;
+import org.geoserver.catalog.VirtualCoverage.CompositionType;
+import org.geoserver.catalog.VirtualCoverage.InputCoverageBand;
+import org.geoserver.catalog.VirtualCoverage.VirtualCoverageBand;
 import org.geoserver.web.ComponentAuthorizer;
 import org.geoserver.web.GeoServerSecuredPage;
 import org.geoserver.web.data.resource.ResourceConfigurationPage;
@@ -45,6 +59,8 @@ import org.geotools.coverage.grid.io.GridCoverage2DReader;
 @SuppressWarnings("serial")
 public class VirtualCoveragePage extends GeoServerSecuredPage {
 
+    private static final String BAND_SEPARATOR = "@";
+
     public static final String COVERAGESTORE = "storeName";
 
     public static final String WORKSPACE = "wsName";
@@ -55,13 +71,17 @@ public class VirtualCoveragePage extends GeoServerSecuredPage {
 
     String definition;
     
-    String coverages;
-
     String name;
 
     boolean newCoverage;
-
-//    SQLViewAttributeProvider attProvider;
+    
+    List<String> availableCoverages; 
+    List<String> selectedCoverages;
+    ListMultipleChoice coveragesChoice;
+//    DropDownChoice compositionType;
+    
+    List<VirtualCoverageBand> outputBands; 
+    ListMultipleChoice outputBandsChoice;
 
     private TextArea definitionEditor;
     
@@ -89,33 +109,12 @@ public class VirtualCoveragePage extends GeoServerSecuredPage {
     public VirtualCoveragePage(String workspaceName, String storeName, String coverageName, VirtualCoverage virtualCoverage)
             throws IOException {
         storeId = getCatalog().getStoreByName(workspaceName, storeName, CoverageStoreInfo.class).getId();
-        
-        // build the form and the text area
-        Form form = new Form("form", new CompoundPropertyModel(this));
-        add(form);
-        final TextField nameField = new TextField("name");
-        nameField.setRequired(true);
-        final TextField coveragesField = new TextField("coverages");
-        coveragesField.setRequired(true);
-//        coveragesField.setEnabled(false);
-        nameField.add(new VirtualCoverageNameValidator());
-        form.add(nameField);
-        form.add(coveragesField);
-        definitionEditor = new TextArea("definition");
-        form.add(definitionEditor);
-        
-        
-        // the parameters and attributes provider
-//        attProvider = new SQLViewAttributeProvider();
-//        paramProvider = new SQLViewParamProvider();
-
-        // setting up the providers
+        Catalog catalog = getCatalog();
+        CoverageStoreInfo store = catalog.getStore(storeId, CoverageStoreInfo.class);
         if (coverageName != null) {
             newCoverage = false;
 
 //             grab the virtual coverage
-            Catalog catalog = getCatalog();
-            CoverageStoreInfo store = catalog.getStore(storeId, CoverageStoreInfo.class);
             CoverageInfo coverageInfo = catalog.getResourceByStore(store, coverageName, CoverageInfo.class);
             GridCoverage2DReader reader = (GridCoverage2DReader) catalog.getResourcePool().getGridCoverageReader(store, null);
             // the type can be still not saved
@@ -136,11 +135,6 @@ public class VirtualCoveragePage extends GeoServerSecuredPage {
 
             name = virtualCoverage.getName();
             String[] coverageNames = reader.getGridCoverageNames();
-            StringBuilder builder = new StringBuilder();
-            for (String coverage: coverageNames) {
-                builder.append(coverage).append(",");
-            }
-            coverages = builder.substring(0, builder.length()-1).toString();
 //            sql = virtualTable.getSql();
 //            escapeSql = virtualTable.isEscapeSql();
 //
@@ -153,7 +147,75 @@ public class VirtualCoveragePage extends GeoServerSecuredPage {
 //            }
         } else {
             newCoverage = true;
+            GridCoverage2DReader reader = (GridCoverage2DReader) catalog.getResourcePool().getGridCoverageReader(store, null);
+            String[] coverageNames = reader.getGridCoverageNames();
+            StringBuilder builder = new StringBuilder();
+            if (availableCoverages == null) {
+                availableCoverages = new ArrayList<String>();
+            }
+            for (String coverage: coverageNames) {
+                ImageLayout layout = reader.getImageLayout(coverage);
+                SampleModel sampleModel = layout.getSampleModel(null);
+                final int numBands = sampleModel.getNumBands();
+                for (int i=0; i < numBands; i++ ) {
+//                    builder.append(coverage).append("@").append(i).append("\n");
+                    availableCoverages.add(coverage + BAND_SEPARATOR + i);
+                }
+                
+            }
+            Collections.sort(availableCoverages);
+//            coverages = builder.substring(0, builder.length()-1).toString();
         }
+        selectedCoverages = new ArrayList<String>();
+        
+        // build the form and the text area
+        Form form = new Form("form", new CompoundPropertyModel(this));
+        add(form);
+        
+//        add(new VirtualCoverageEditor("virtualCoverageConfig", LiveCollectionModel.list(new PropertyModel(model, "keywords"))));
+        
+        final TextField nameField = new TextField("name");
+        nameField.setRequired(true);
+        nameField.add(new VirtualCoverageNameValidator());
+        form.add(nameField);
+        
+        
+        coveragesChoice = new ListMultipleChoice("coveragesChoice",
+                new Model((ArrayList<String>) selectedCoverages), 
+//                new PropertyModel(this, "selectedCoverages"),
+                availableCoverages);
+                /* availableCoverages, new ChoiceRenderer<String>() {
+                    @Override
+                    public Object getDisplayValue(String kw) {
+                        return kw;
+                    }
+            });*/
+        coveragesChoice.setOutputMarkupId(true);
+        form.add(coveragesChoice);
+        form.add(addBandButton());
+        
+//        compositionType = new DropDownChoice("compositionType", Arrays.asList(CompositionType.values()), new CompositionTypeRenderer());
+//        form.add(compositionType);
+        outputBands = new ArrayList<VirtualCoverageBand>();
+        outputBandsChoice= new ListMultipleChoice("outputBandsChoice", new Model(),
+                outputBands, new ChoiceRenderer<VirtualCoverageBand>() {
+                    @Override
+                    public Object getDisplayValue(VirtualCoverageBand kw) {
+                        return kw.getDefinition();
+                    }
+            });
+        outputBandsChoice.setOutputMarkupId(true);
+        form.add(outputBandsChoice);
+        
+        
+        
+        
+        
+        definitionEditor = new TextArea("definition");
+        form.add(definitionEditor);
+        
+        
+        
         
         // the links to refresh, add and remove a parameter
 //        form.add(new GeoServerAjaxFormLink("guessParams") {
@@ -266,6 +328,53 @@ public class VirtualCoveragePage extends GeoServerSecuredPage {
             }
         });
     }
+    
+    private AjaxButton addBandButton() {
+        AjaxButton button = new AjaxButton("addBand") {
+            @Override
+            public void onSubmit(AjaxRequestTarget target, Form form) {
+                coveragesChoice.getValue();
+                List selection = (List) coveragesChoice.getModelObject();
+                selection.get(0);
+//                    update(target, coveragesChoice, outputBandsChoice);
+            }
+//          
+        };
+        button.setDefaultFormProcessing(false);
+        return button;
+    }
+        
+        private void update(AjaxRequestTarget target, ListMultipleChoice from, ListMultipleChoice to){
+//            String value = newKeyword.getInput();
+                //TODO: Check bandComposition
+            for (String selected : (List<String>) from.getChoices()) {
+//                List choices = from.getChoices();
+                if (!to.getChoices().contains(selected)) {
+                  to.getChoices().add(selected);
+                  
+                }
+              }
+              target.addComponent(to);
+              target.addComponent(from);
+            
+            
+//                List<String> coverages = (List<String>) coveragesChoice.getModelObject();
+//                int i=0;
+//                for (String coverage: coverages) {
+//                    //TODO check for band composition
+//                    final int bandIndexChar = coverage.indexOf(BAND_SEPARATOR);
+//                    String coverageName = coverage.substring(0, bandIndexChar);
+//                    String bandIndex = coverage.substring(bandIndexChar + 1 , coverage.length());
+//                    VirtualCoverageBand band = new VirtualCoverageBand(Collections.singletonList(new InputCoverageBand(coverageName, bandIndex)), coverageName, i++, CompositionType.BAND_SELECT);
+//                    outputBands.add(band);
+//                }
+//                
+//                outputBandsChoice.setChoices(outputBands);
+//                coverages.clear();
+//                target.addComponent(coveragesChoice);
+            }
+       
+      
 
     private GeoServerAjaxFormLink refreshLink() {
         return new GeoServerAjaxFormLink("refresh") {
@@ -377,89 +486,6 @@ public class VirtualCoveragePage extends GeoServerSecuredPage {
 //            
 //        }
 //    }
-//
-//    /**
-//     * Grabs the feature type from the store, but takes a peek at figuring out the geoemtry type and
-//     * srids
-//     * 
-//     * @param schema
-//     * @return
-//     */
-//    SimpleFeatureType guessFeatureType(JDBCDataStore store, String vtName, boolean guessGeometrySrid) throws IOException {
-//        SimpleFeatureType base = store.getSchema(vtName);
-//        List<String> geometries = new ArrayList<String>();
-//        for (AttributeDescriptor ad : base.getAttributeDescriptors()) {
-//            if (ad instanceof GeometryDescriptor) {
-//                geometries.add(ad.getLocalName());
-//            }
-//        }
-//
-//        // no geometries? Or, shall we not try to guess the geometries type and srid?
-//        if (geometries.size() == 0 || !guessGeometrySrid) {
-//            return base;
-//        }
-//
-//        // build a query to fetch the first rwo, we'll inspect the resulting
-//        // geometries 
-//        Query q = new Query(vtName);
-//        q.setPropertyNames(geometries);
-//        q.setMaxFeatures(1);
-//        SimpleFeatureIterator it = null;
-//        SimpleFeature f = null;
-//        try {
-//            it = store.getFeatureSource(vtName).getFeatures(q).features();
-//            if (it.hasNext()) {
-//                f = it.next();
-//            }
-//        } finally {
-//            if (it != null) {
-//                it.close();
-//            }
-//        }
-//
-//        // did we get more information?
-//        if (f == null) {
-//            return base;
-//        }
-//
-//        // if so, try to build an override feature type
-//        Connection cx = null;
-//        try {
-//            store.getConnection(Transaction.AUTO_COMMIT);
-//            SimpleFeatureTypeBuilder tb = new SimpleFeatureTypeBuilder();
-//            tb.setName(base.getName());
-//            for (AttributeDescriptor ad : base.getAttributeDescriptors()) {
-//                if (ad instanceof GeometryDescriptor) {
-//                    GeometryDescriptor gd = (GeometryDescriptor) ad;
-//                    Geometry g = (Geometry) f.getAttribute(ad.getLocalName());
-//                    if (g == null) {
-//                        // nothing new we can learn
-//                        tb.add(ad);
-//                    } else {
-//                        Class binding = g.getClass();
-//                        CoordinateReferenceSystem crs = null;
-//                        if (g.getSRID() > 0) {
-//                            // see if the dialect can handle this one
-//                            crs = store.getSQLDialect().createCRS(g.getSRID(), cx);
-//                            tb.userData(JDBCDataStore.JDBC_NATIVE_SRID, g.getSRID());
-//                        }
-//                        if (crs == null) {
-//                            crs = gd.getCoordinateReferenceSystem();
-//                        }
-//                        tb.add(ad.getLocalName(), binding, crs);
-//                    }
-//
-//                } else {
-//                    tb.add(ad);
-//                }
-//            }
-//            return tb.buildFeatureType();
-//        } catch (SQLException e) {
-//            throw (IOException) new IOException(e.getMessage()).initCause(e);
-//        } finally {
-//            store.closeSafe(cx);
-//        }
-//    }
 
     protected VirtualCoverage buildVirtualCoverage(CoverageStoreInfo storeInfo) throws IOException {
                 // TODO: ADD HINTS
@@ -467,7 +493,7 @@ public class VirtualCoveragePage extends GeoServerSecuredPage {
         List<VirtualCoverageBand> bands = new ArrayList<VirtualCoverageBand>(inputs.length);
         int i=0;
         for (String input: inputs) {
-            bands.add(new VirtualCoverageBand(input, input, i++, CompositionType.BAND_SELECT));
+            bands.add(new VirtualCoverageBand(Collections.singletonList(new InputCoverageBand(input, "1")), input, i++, CompositionType.BAND_SELECT));
         }
         VirtualCoverage virtualCoverage = new VirtualCoverage(name, bands);
         return virtualCoverage;
@@ -497,6 +523,14 @@ public class VirtualCoveragePage extends GeoServerSecuredPage {
         }
     }
     
+//    public DropDownChoice getCompositionType() {
+//        return compositionType;
+//    }
+//
+//    public void setCompositionType(DropDownChoice compositionType) {
+//        this.compositionType = compositionType;
+//    }
+
     protected void onSave() {
         try {
             Catalog catalog = getCatalog();
@@ -581,10 +615,23 @@ public class VirtualCoveragePage extends GeoServerSecuredPage {
         }
     }
     
-    
-    
     @Override
     protected ComponentAuthorizer getPageAuthorizer() {
         return ComponentAuthorizer.WORKSPACE_ADMIN;
     }
+    
+    private class CompositionTypeRenderer implements  IChoiceRenderer {
+
+        public Object getDisplayValue(Object object) {
+            return new StringResourceModel(((CompositionType) object).name(), VirtualCoveragePage.this, null).getString();
+        }
+
+        public String getIdValue(Object object, int index) {
+            return ((CompositionType) object).name();
+        }
+        
+    }
+    
+    
+   
 }

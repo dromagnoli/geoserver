@@ -17,6 +17,7 @@ import javax.media.jai.ImageLayout;
 import javax.media.jai.PropertySource;
 import javax.media.jai.PropertySourceImpl;
 
+import org.geoserver.catalog.VirtualCoverage.VirtualCoverageBand;
 import org.geotools.coverage.Category;
 import org.geotools.coverage.GridSampleDimension;
 import org.geotools.coverage.grid.GridCoverage2D;
@@ -196,6 +197,14 @@ public class CoverageDimensionCustomizerReader implements GridCoverage2DReader {
         return info;
     }
 
+    public String getCoverageName() {
+        return coverageName;
+    }
+
+    public CoverageInfo getInfo() {
+        return info;
+    }
+
     @Override
     public GridCoverage2D read(GeneralParameterValue[] parameters) throws IllegalArgumentException,
             IOException {
@@ -228,12 +237,12 @@ public class CoverageDimensionCustomizerReader implements GridCoverage2DReader {
         return new GridCoverageWrapper(coverageName, coverage, wrappedDims, properties);
     }
 
-    private GridSampleDimension[] wrapDimensions(SampleDimension[] dims) {
+    protected GridSampleDimension[] wrapDimensions(SampleDimension[] dims) {
         GridSampleDimension[] wrappedDims = null;
         if (info != null) {
             List<CoverageDimensionInfo> storedDimensions = info.getDimensions();
             MetadataMap map = info.getMetadata();
-            if (map.containsKey(VirtualCoverage.VIRTUAL_COVERAGE)) {
+            /*if (map.containsKey(VirtualCoverage.VIRTUAL_COVERAGE)) {
                 VirtualCoverage virtualCoverage = (VirtualCoverage) map.get(VirtualCoverage.VIRTUAL_COVERAGE);
 //                List<VirtualCoverageBand> bands = virtualCoverage.getCoverageBands(); 
                 VirtualCoverageBand band = virtualCoverage.getBand(coverageName);
@@ -243,7 +252,7 @@ public class CoverageDimensionCustomizerReader implements GridCoverage2DReader {
                     wrappedDims = new GridSampleDimension[1];
                     wrappedDims[0] = new WrappedSampleDimension((GridSampleDimension) dims[0], dimensionInfo);
                 }
-            } else if (storedDimensions != null && storedDimensions.size() > 0) {
+            } else */if (storedDimensions != null && storedDimensions.size() > 0) {
                     int i = 0;
                     final int inputDims = storedDimensions.size();
                     final int outputDims = dims.length;

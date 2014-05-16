@@ -11,26 +11,26 @@
         <li><label for="name"><wicket:message key="name">name</wicket:message></label>
           <input type="text" wicket:id="name"></input>
         </li>
-        <li><label for="coverages"><wicket:message key="coverages">coverages</wicket:message></label>
-          <input type="text" wicket:id="coverages"></input>
-        </li>
-       <li><label for="definition"><wicket:message key="definition">definition</wicket:message></label>
-          <textarea rows="60" cols="20" wicket:id="definition"></textarea>
-        </li>
-<!-- 
-        <li><label for="parameters"><wicket:message key="parameters">parameters</wicket:message></label>
-            <a href="#" wicket:id="guessParams"><wicket:message key="guessParams">guess from sql</wicket:message></a>&nbsp;&nbsp;&nbsp;&nbsp;
-            <a href="#" wicket:id="addNewParam"><wicket:message key="addNewParam">add new</wicket:message></a>&nbsp;&nbsp;&nbsp;&nbsp;
-            <a href="#" wicket:id="removeParam"><wicket:message key="removeSelected">remove selected</wicket:message></a>
-            <div wicket:id="parameters"></div>
-            <input type="checkbox" wicket:id="escapeSql"><wicket:message key="escapeSql">Escape special characters</wicket:message></input>
-        </li>
-        <li><label for="attributes"><wicket:message key="attributes">attributes</wicket:message></label>
-            <a href="#" wicket:id="refresh"><wicket:message key="refresh">refresh</wicket:message></a>&nbsp;&nbsp;&nbsp;
-            <span wicket:message="title:guessGeometrySridWarning"><input type="checkbox" wicket:id="guessGeometrySrid"><wicket:message key="guessGeometrySrid">Guess geometry type and srid</wicket:message></input></span>
-            <div wicket:id="attributes"></div>
-        </li>
--->
+        
+        <li>
+          <ul>
+             <li><label for="coveragesChoice"><wicket:message key="coveragesChoice">coveragesChoice</wicket:message></label>
+                 <select id="coveragesChoice" class="select" wicket:id="coveragesChoice" multiple="multiple" style="width:25em;"></select>
+<!--                  <label><wicket:message key="compositionType">Composition Type</wicket:message></label>
+                  <select wicket:id="compositionType"></select>
+-->                 <button wicket:id="addBand" type="submit"> <wicket:message key="addBand">Add</wicket:message> </button>
+             </li>
+             <li><label for="definition"><wicket:message key="definition">definition</wicket:message></label>
+                 <textarea rows="60" cols="20" wicket:id="definition"></textarea>
+             </li>
+          </ul>
+          <ul>
+             <li><label for="outputBandsChoice"><wicket:message key="outputBandsChoice">outputBandsChoice</wicket:message></label>
+                 <select id="outputBandsChoice" class="select" wicket:id="outputBandsChoice" multiple="multiple" style="width:25em;"></select>
+             </li>
+          </ul>
+       </li>
+       
     </ul>
 
     <div class="button-group selfclear"><a href="#" wicket:id="save"><wicket:message
@@ -38,18 +38,7 @@
         key="cancel">Cancel</wicket:message></a></div>
     </form>
     
-<!-- <wicket:fragment wicket:id="checkbox">
-  <input type="checkbox" wicket:id="identifier"></input>
-</wicket:fragment>
 
-<wicket:fragment wicket:id="geometry">
-  <select wicket:id="geometry"></select>
-</wicket:fragment>
-
-<wicket:fragment wicket:id="text">
-  <input type="text""wicket:id="text"></input>
-</wicket:fragment>       
-    -->
 </wicket:extend>
 
 

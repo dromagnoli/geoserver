@@ -1,3 +1,7 @@
+/* Copyright (c) 2014 OpenPlans - www.openplans.org. All rights reserved.
+ * This code is licensed under the GPL 2.0 license, available at the root
+ * application directory.
+ */
 package org.geoserver.catalog;
 
 import java.awt.image.RenderedImage;
@@ -9,7 +13,7 @@ import java.util.Set;
 
 import javax.media.jai.operator.BandMergeDescriptor;
 
-import org.geoserver.catalog.CoverageDimensionCustomizerReader.CoverageDimensionCustomizerStructuredReader;
+import org.geoserver.catalog.VirtualCoverage.VirtualCoverageBand;
 import org.geotools.coverage.CoverageFactoryFinder;
 import org.geotools.coverage.GridSampleDimension;
 import org.geotools.coverage.grid.GridCoverage2D;
@@ -30,6 +34,47 @@ import org.opengis.referencing.operation.MathTransform;
 
 public class VirtualCoverageReader extends SingleGridCoverage2DReader {
     
+    static class CoverageDimensionVirtualCustomizerReader extends CoverageDimensionCustomizerReader {
+
+        public CoverageDimensionVirtualCustomizerReader(GridCoverage2DReader delegate,
+                String coverageName, CoverageInfo info) {
+            super(delegate, coverageName, info);
+        }
+        
+        
+        protected GridSampleDimension[] wrapDimensions(SampleDimension[] dims) {
+            GridSampleDimension[] wrappedDims = null;
+            CoverageInfo info = getInfo();
+            if (info != null) {
+                List<CoverageDimensionInfo> storedDimensions = info.getDimensions();
+                MetadataMap map = info.getMetadata();
+                if (map.containsKey(VirtualCoverage.VIRTUAL_COVERAGE)) {
+                    VirtualCoverage virtualCoverage = (VirtualCoverage) map.get(VirtualCoverage.VIRTUAL_COVERAGE);
+//                    List<VirtualCoverageBand> bands = virtualCoverage.getCoverageBands(); 
+                    VirtualCoverageBand band = virtualCoverage.getBand(getCoverageName());
+                    
+                    if (storedDimensions != null && storedDimensions.size() > 0) {
+                        CoverageDimensionInfo dimensionInfo = storedDimensions.get(band.getIndex());
+                        wrappedDims = new GridSampleDimension[1];
+                        wrappedDims[0] = new WrappedSampleDimension((GridSampleDimension) dims[0], dimensionInfo);
+                    }
+                } else {
+                    super.wrapDimensions(wrappedDims);
+                }
+            }
+            return wrappedDims;
+        }
+    }
+    
+    static class CoverageDimensionVirtualCustomizerStructuredReader extends CoverageDimensionVirtualCustomizerReader {
+
+        public CoverageDimensionVirtualCustomizerStructuredReader(GridCoverage2DReader delegate,
+                String coverageName, CoverageInfo info) {
+            super(delegate, coverageName, info);
+        }
+        
+    }
+    
     private VirtualCoverage virtualCoverage;
     
     private String referenceName;
@@ -48,7 +93,8 @@ public class VirtualCoverageReader extends SingleGridCoverage2DReader {
         this.virtualCoverage = virtualCoverage;
         this.coverageInfo = coverageInfo;
         this.hints = hints;
-        referenceName = virtualCoverage.getReferenceName();
+        // Refactor this once supporting heterogeneous elements
+        referenceName = virtualCoverage.getBand(0).getInputCoverageBands().get(0).getCoverageName();
         if (this.hints != null && this.hints.containsKey(Hints.GRID_COVERAGE_FACTORY)) {
             final Object factory = this.hints.get(Hints.GRID_COVERAGE_FACTORY);
             if (factory != null && factory instanceof GridCoverageFactory) {
@@ -91,8 +137,8 @@ public class VirtualCoverageReader extends SingleGridCoverage2DReader {
         final int bandSize = bands.size();
 //        for (int i=0; i < bandSize; i++) {
         for (VirtualCoverageBand band : bands) {
-//            VirtualCoverageBand band = bands.getBand(i);
-            String coverageName = band.getCoverageName();
+            // Refactor this once supporting complex compositions 
+            String coverageName = band.getInputCoverageBands().get(0).getCoverageName();
             GridCoverageReader reader = wrap(delegate, coverageName, coverageInfo);
             GridCoverage2D coverage = (GridCoverage2D)reader.read(parameters);
             coverages.add(coverage);
@@ -125,9 +171,9 @@ public class VirtualCoverageReader extends SingleGridCoverage2DReader {
             reader = SingleGridCoverage2DReader.wrap(delegate, coverageName);
         }
         if (reader instanceof StructuredGridCoverage2DReader) {
-            return new CoverageDimensionCustomizerStructuredReader((StructuredGridCoverage2DReader) reader, coverageName, info);
+            return new CoverageDimensionVirtualCustomizerStructuredReader((StructuredGridCoverage2DReader) reader, coverageName, info);
         } else {
-            return new CoverageDimensionCustomizerReader(reader, coverageName, info);
+            return new CoverageDimensionVirtualCustomizerReader(reader, coverageName, info);
         }
     }
     

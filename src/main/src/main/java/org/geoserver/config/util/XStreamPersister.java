@@ -47,7 +47,7 @@ import org.geoserver.catalog.ResourceInfo;
 import org.geoserver.catalog.StoreInfo;
 import org.geoserver.catalog.StyleInfo;
 import org.geoserver.catalog.VirtualCoverage;
-import org.geoserver.catalog.VirtualCoverageBand;
+import org.geoserver.catalog.VirtualCoverage.VirtualCoverageBand;
 import org.geoserver.catalog.WMSLayerInfo;
 import org.geoserver.catalog.WMSStoreInfo;
 import org.geoserver.catalog.WorkspaceInfo;
