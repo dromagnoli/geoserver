@@ -33,7 +33,6 @@ import org.geoserver.catalog.VirtualCoverage;
 import org.geoserver.catalog.VirtualCoverage.VirtualCoverageBand;
 import org.geoserver.web.ComponentAuthorizer;
 import org.geoserver.web.GeoServerSecuredPage;
-import org.geoserver.web.wicket.VirtualCoverageEditor;
 import org.geotools.coverage.grid.io.GridCoverage2DReader;
 
 /**

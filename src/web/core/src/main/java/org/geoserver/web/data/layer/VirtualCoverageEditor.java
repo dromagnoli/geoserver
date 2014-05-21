@@ -2,7 +2,7 @@
  * This code is licensed under the GPL 2.0 license, available at the root
  * application directory.
  */
-package org.geoserver.web.wicket;
+package org.geoserver.web.data.layer;
 
 import java.util.ArrayList;
 import java.util.Arrays;
