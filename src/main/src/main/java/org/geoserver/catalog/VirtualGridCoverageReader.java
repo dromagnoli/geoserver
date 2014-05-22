@@ -245,7 +245,7 @@ public class VirtualGridCoverageReader extends SingleGridCoverage2DReader {
 
         // TODO: Implement bandMerges
         RenderedImage image = null;
-        if (coverages.size() > 0) {
+        if (coverages.size() > 1) {
            image = BandMergeDescriptor.create(sampleCoverage.getRenderedImage(), coverages.get(1).getRenderedImage(), null);
         } else {
             image = sampleCoverage.getRenderedImage();

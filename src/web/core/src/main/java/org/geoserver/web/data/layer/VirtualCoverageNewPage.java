@@ -32,6 +32,9 @@ public class VirtualCoverageNewPage extends VirtualCoverageAbstractPage {
 
     protected void onSave() {
         try {
+            if (name.equalsIgnoreCase(VIRTUAL_COVERAGE_NAME)) {
+                throw new IllegalArgumentException("Make sure to specify a proper coverage name, different that " + VIRTUAL_COVERAGE_NAME);
+            }
             Catalog catalog = getCatalog();
             CatalogBuilder builder = new CatalogBuilder(catalog);
             CoverageStoreInfo coverageStoreInfo = catalog.getCoverageStore(storeId);

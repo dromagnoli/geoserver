@@ -46,6 +46,8 @@ public abstract class VirtualCoverageAbstractPage extends GeoServerSecuredPage {
     public static final String COVERAGESTORE = "storeName";
 
     public static final String WORKSPACE = "wsName";
+    
+    static final String VIRTUAL_COVERAGE_NAME = "VIRTUAL_COVERAGE_NAME";
 
     String storeId;
 
@@ -95,6 +97,7 @@ public abstract class VirtualCoverageAbstractPage extends GeoServerSecuredPage {
             }
         }
         Collections.sort(availableCoverages);
+        name = VIRTUAL_COVERAGE_NAME;
         if (coverageName != null) {
             newCoverage = false;
 
