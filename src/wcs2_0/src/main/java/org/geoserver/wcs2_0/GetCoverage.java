@@ -761,14 +761,16 @@ public class GetCoverage {
                         spatialInterpolation, coverageCRS, readEnvelope, requestedEnvelope, scaling, preAppliedScale);
                 readCoverages.add(cov);
             }
-            Envelope2D covEnvelope = cov.getEnvelope2D();
-            if (covEnvelope.contains(readBoundingBox)
-                    && (covEnvelope.getWidth() > readBoundingBox.getWidth() || covEnvelope
-                            .getHeight() > readBoundingBox.getHeight())) {
-                GridCoverage2D cropped = cropOnEnvelope(cov, readEnvelope);
-                result.add(cropped);
-            } else {
-                result.add(cov);
+            if (cov != null) {
+                Envelope2D covEnvelope = cov.getEnvelope2D();
+                if (covEnvelope.contains(readBoundingBox)
+                        && (covEnvelope.getWidth() > readBoundingBox.getWidth() || covEnvelope
+                                .getHeight() > readBoundingBox.getHeight())) {
+                    GridCoverage2D cropped = cropOnEnvelope(cov, readEnvelope);
+                    result.add(cropped);
+                } else {
+                    result.add(cov);
+                }
             }
         }
 
