@@ -399,6 +399,7 @@ public class CatalogConfigurationTest {
         info.setId("layerWithNoGeometry");
         info.setName("layerWithNoGeometry");
         when(tl.getId()).thenReturn("layerWithNoGeometry");
+        when(tl.isAdvertised()).thenReturn(true);
         when(tl.getInfo()).thenReturn(info);
         when(tl.getLayerInfo()).thenReturn(layerWithNoGeometry);
         when(catalog.getLayer(layerWithNoGeometry.getId())).thenReturn(layerWithNoGeometry);
