@@ -6,9 +6,19 @@ import org.geoserver.gwc.config.GWCConfig;
 import org.geoserver.gwc.layer.GeoServerTileLayerInfoImpl;
 
 public class WCSLayerInfoImpl extends GeoServerTileLayerInfoImpl implements WCSLayerInfo {
-    
-    public WCSLayerInfoImpl(){
+
+    public WCSLayerInfoImpl() {
         super();
+    }
+
+    public WCSLayerInfoImpl(GeoServerTileLayerInfoImpl info) {
+        super();
+        setEnabled(info.isEnabled());
+        setGutter(info.getGutter());
+        setMetaTilingX(info.getMetaTilingX());
+        setMetaTilingY(info.getMetaTilingY());
+        setParameterFilters(info.getParameterFilters());
+        setGridSubsets(info.getGridSubsets());
     }
 
     /** serialVersionUID */
@@ -16,8 +26,9 @@ public class WCSLayerInfoImpl extends GeoServerTileLayerInfoImpl implements WCSL
 
     private boolean enabledCaching;
 
-    private Interpolation resamplingAlgorithm = Interpolation.getInstance(Interpolation.INTERP_NEAREST);
-    
+    private Interpolation resamplingAlgorithm = Interpolation
+            .getInstance(Interpolation.INTERP_NEAREST);
+
     private String seedingPolicy = "direct";
 
     @Override
@@ -39,7 +50,7 @@ public class WCSLayerInfoImpl extends GeoServerTileLayerInfoImpl implements WCSL
     public boolean isEnabledCaching() {
         return enabledCaching;
     }
-    
+
     @Override
     public void setSeedingPolicy(String seedingPolicy) {
         this.seedingPolicy = seedingPolicy;
@@ -49,16 +60,5 @@ public class WCSLayerInfoImpl extends GeoServerTileLayerInfoImpl implements WCSL
     public String getSeedingPolicy() {
         return seedingPolicy;
     }
-    
-    public void loadInfo(WCSLayerInfo info){
-        setEnabled(info.isEnabled());
-        setEnabledCaching(info.isEnabledCaching());
-        setGutter(info.getGutter());
-        setMetaTilingX(info.getMetaTilingX());
-        setMetaTilingY(info.getMetaTilingY());
-        setParameterFilters(info.getParameterFilters());
-        setResamplingAlgorithm(info.getResamplingAlgorithm());
-        setGridSubsets(info.getGridSubsets());
-        setSeedingPolicy(info.getSeedingPolicy());
-    }
+
 }

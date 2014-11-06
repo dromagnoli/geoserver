@@ -5,9 +5,8 @@
 package org.geoserver.coverage;
 
 import java.io.IOException;
-
+import java.util.Arrays;
 import java.util.Date;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,8 +17,11 @@ import java.util.logging.Logger;
 import javax.media.jai.ImageLayout;
 
 import org.geoserver.catalog.CoverageInfo;
+import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.ResourcePool;
+import org.geoserver.gwc.GWC;
 import org.geoserver.gwc.layer.CatalogConfiguration;
+import org.geoserver.gwc.layer.GeoServerTileLayer;
 import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.util.ISO8601Formatter;
 import org.geotools.coverage.grid.GridCoverage2D;
@@ -88,7 +90,7 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
 
     private GridCoveragesCache cache;
 
-    private GridSubset gridSubSet;
+    private List<GridSubset> gridSubSet;// TODO CHANGE HERE
 
     private boolean axisOrderingTopDown;
 
@@ -130,7 +132,17 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
             gridSubSet = buildGridSubSet();
             String coverageName = info.getNativeName();
             ImageLayout layout = reader.getImageLayout(coverageName);  
-            wcsLayer = new WCSLayer(info, cache.getGridSetBroker(), gridSubSet, layout);
+            //wcsLayer = new WCSLayer(info, cache.getGridSetBroker(), gridSubSet, layout);
+            //ImageLayout layout = reader.getImageLayout();
+            LayerInfo layerInfo = GWC.get().getCatalog().getLayers(info).get(0);
+            GeoServerTileLayer tileLayerByName = (GeoServerTileLayer) GWC.get().getTileLayerByName(layerInfo.getName());
+            wcsLayer = new WCSLayer(info, cache.getGridSetBroker(), gridSubSet, layout, tileLayerByName.getInfo());
+            List<CatalogConfiguration> extensions = GeoServerExtensions
+                    .extensions(CatalogConfiguration.class);
+            //CatalogConfiguration config = extensions.get(0);
+//            if (!config.containsLayer(wcsLayer.getId())) {
+//                config.addLayer(wcsLayer);
+//            }
         } catch (IOException e) {
             throw new IllegalArgumentException(e);
         } catch (Exception e) {
@@ -138,14 +150,14 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
         }
     }
 
-    private GridSubset buildGridSubSet() throws IOException {
+    private List<GridSubset> buildGridSubSet() throws IOException {
         gridSet = buildGridSet();
         axisOrderingTopDown = axisOrderingTopDown();
 //        GeneralEnvelope env = getOriginalEnvelope();
 //        GridSubsetFactory.createGridSubSet(gridSet)
-        return GridSubsetFactory.createGridSubSet(gridSet/*, new BoundingBox(
+        return Arrays.asList(GridSubsetFactory.createGridSubSet(gridSet/*, new BoundingBox(
                 env.getMinimum(0), env.getMinimum(1), env.getMaximum(0), env.getMaximum(1)), null,
-                null*/);
+                null*/)); // TODO CHANGE HERE
     }
 
     GridSet buildGridSet() throws IOException {
@@ -374,7 +386,7 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
 
             Integer zoomLevel = findClosestZoom(gridSet, env, gridEnv.width);
 
-            long[] tiles = gridSubSet.getCoverageIntersection(zoomLevel, bbox);
+            long[] tiles = gridSubSet.get(0).getCoverageIntersection(zoomLevel, bbox);// TODO CHANGE HERE
 
             final int minX = (int) tiles[0];
             final int minY = (int) tiles[1];

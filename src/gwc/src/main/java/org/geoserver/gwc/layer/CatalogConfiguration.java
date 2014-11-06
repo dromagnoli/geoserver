@@ -434,7 +434,7 @@ public class CatalogConfiguration implements Configuration {
      */
     @Override
     public boolean canSave(TileLayer tl) {
-        return tl instanceof GeoServerTileLayer;
+        return tl instanceof GeoServerTileLayer && (tl.isAdvertised());
     }
     
     public static boolean isLayerExposable(LayerInfo layer) {

@@ -46,6 +46,7 @@ import org.geowebcache.config.XMLGridSubset;
 import org.geowebcache.diskquota.storage.Quota;
 import org.geowebcache.filter.parameters.ParameterFilter;
 import org.geowebcache.grid.GridSetBroker;
+import org.geowebcache.grid.GridSubset;
 import org.geowebcache.grid.GridSubsetFactory;
 import org.geowebcache.layer.TileLayer;
 
@@ -250,11 +251,22 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
 
         tileLayerInfo.setName(name);
 
-        if (tileLayerExists) {
-            gwc.save(tileLayer);
-        } else {
-            gwc.add(tileLayer);
+        
+        GridSubset gridSubSet = GridSubsetFactory.createGridSubSet(gridsets.getGridSets().get(0));
+        CoverageInfo info = gwc.getCatalog().getCoverageByName(layerInfo.getName());
+        WCSLayer wcsLayer = null;
+        try {
+            wcsLayer = new WCSLayer(info, gridsets, Arrays.asList(gridSubSet) , null, tileLayerInfo);//TODO CHANGE HERE IT IS ONLY A TEST
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
+        gwc.add(wcsLayer);
+        
+//        if (tileLayerExists) {
+//            gwc.save(tileLayer);
+//        } else {
+//            gwc.add(tileLayer);
+//        }
     }
 
     private void updateConfigsVisibility(AjaxRequestTarget target) {

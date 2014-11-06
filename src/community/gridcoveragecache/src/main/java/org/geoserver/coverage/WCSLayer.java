@@ -20,6 +20,7 @@ import javax.media.jai.Interpolation;
 
 import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.CoverageStoreInfo;
+import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.ResourcePool;
 import org.geoserver.catalog.impl.LayerGroupInfoImpl;
 import org.geoserver.gwc.GWC;
@@ -42,12 +43,6 @@ import org.geowebcache.util.GWCVars;
  */
 public class WCSLayer extends GeoServerTileLayer {
 
-    private static GWCConfig config;
-
-    static {
-        config = GWC.get().getConfig().saneConfig();
-    }
-    
     private final static Logger LOGGER = org.geotools.util.logging.Logging
             .getLogger(WCSLayer.class);
 
@@ -68,11 +63,14 @@ public class WCSLayer extends GeoServerTileLayer {
 
     private String coverageName;
 
-    public WCSLayer( CoverageInfo info, GridSetBroker broker, GridSubset gridSubSet, ImageLayout layout) throws Exception {
-        super(new LayerGroupInfoImpl(), config, broker);
+    public WCSLayer(CoverageInfo info, GridSetBroker broker, List<GridSubset> gridSubsets,
+            ImageLayout layout, GeoServerTileLayerInfo state) throws Exception {
+        super(new LayerGroupInfoImpl(), broker, state);
 
         subSets = new HashMap<String, GridSubset>();
-        subSets.put(GridCoveragesCache.REFERENCE.getName(), gridSubSet);
+        for(GridSubset gridSubset : gridSubsets){
+            subSets.put(gridSubset.getName(), gridSubset);
+        }
 
         final CoverageStoreInfo storeInfo = info.getStore();
         workspaceName = storeInfo.getWorkspace().getName();
@@ -81,8 +79,7 @@ public class WCSLayer extends GeoServerTileLayer {
         bbox = info.boundingBox();
         sourceHelper = new WCSSourceHelper(this);
         GeoServerTileLayerInfo localLayerInfo = getInfo();
-        localLayerInfo.setName(name + "test");
-        localLayerInfo.setId(info.getId() + "test");
+        localLayerInfo.setName(name + "wcsLayerInfo");
         localLayerInfo.getMimeFormats().add("image/tiff");
         this.layout = layout;
         
@@ -314,5 +311,15 @@ public class WCSLayer extends GeoServerTileLayer {
 
     public ImageLayout getLayout() {
         return layout;
+    }
+    
+    @Override
+    public boolean isAdvertised() {
+        return false;
+    }
+
+    @Override
+    public void setAdvertised(boolean advertised) {
+        return;
     }
 }

@@ -17,6 +17,4 @@ public interface WCSLayerInfo extends GeoServerTileLayerInfo {
     public void setSeedingPolicy(String seedingPolicy);
     
     public String getSeedingPolicy();
-    
-    public void loadInfo(WCSLayerInfo info);
 }
