@@ -158,7 +158,7 @@ public class ResourcePool {
      * Hint to specify if we need to skip the Coverage extensions lookup
      */
     public static Hints.Key SKIP_COVERAGE_EXTENSIONS_LOOKUP = new Hints.Key( Boolean.class );
-    
+
     /** logging */
     static Logger LOGGER = Logging.getLogger( "org.geoserver.catalog");
     
@@ -173,6 +173,7 @@ public class ResourcePool {
         } catch (ClassNotFoundException e) {
             //fall through
         }
+        
     }
     
     /**
@@ -1384,7 +1385,6 @@ public class ResourcePool {
                 }
             }
         }
-
         final AbstractGridFormat gridFormat = info.getFormat();
         if(gridFormat == null) {
             throw new IOException("Could not find the raster plugin for format " + info.getType());

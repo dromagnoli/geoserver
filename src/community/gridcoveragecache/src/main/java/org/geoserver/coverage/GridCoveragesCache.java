@@ -21,6 +21,10 @@ public class GridCoveragesCache {
         tempDir = new File(System.getProperty("java.io.tmpdir"));
     }
 
+    public static File getTempdir() {
+        return tempDir;
+    }
+
     private GridCoveragesCache() {
     }
 

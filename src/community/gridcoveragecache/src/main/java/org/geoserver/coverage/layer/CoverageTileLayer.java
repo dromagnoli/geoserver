@@ -2,7 +2,7 @@
  * This code is licensed under the GPL 2.0 license, available at the root
  * application directory.
  */
-package org.geoserver.coverage;
+package org.geoserver.coverage.layer;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -20,11 +20,9 @@ import javax.media.jai.Interpolation;
 
 import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.CoverageStoreInfo;
-import org.geoserver.catalog.LayerInfo;
-import org.geoserver.catalog.ResourcePool;
 import org.geoserver.catalog.impl.LayerGroupInfoImpl;
+import org.geoserver.coverage.WCSSourceHelper;
 import org.geoserver.gwc.GWC;
-import org.geoserver.gwc.config.GWCConfig;
 import org.geoserver.gwc.layer.GeoServerTileLayer;
 import org.geoserver.gwc.layer.GeoServerTileLayerInfo;
 import org.geotools.geometry.jts.ReferencedEnvelope;
@@ -41,12 +39,12 @@ import org.geowebcache.util.GWCVars;
 /**
  * A tile layer backed by a WCS server
  */
-public class WCSLayer extends GeoServerTileLayer {
+public class CoverageTileLayer extends GeoServerTileLayer {
 
     private final static Logger LOGGER = org.geotools.util.logging.Logging
-            .getLogger(WCSLayer.class);
+            .getLogger(CoverageTileLayer.class);
     
-    public final static String WCSLAYERINFO_KEY = "wcsLayerInfo.key";
+    public final static String COVERAGETILELAYERINFO_KEY = "coverageTileLayerInfo.key";
 
     private transient WCSSourceHelper sourceHelper;
 
@@ -65,7 +63,9 @@ public class WCSLayer extends GeoServerTileLayer {
 
     private String coverageName;
 
-    public WCSLayer(CoverageInfo info, GridSetBroker broker, List<GridSubset> gridSubsets,
+    protected Integer gutter;
+
+    public CoverageTileLayer(CoverageInfo info, GridSetBroker broker, List<GridSubset> gridSubsets,
             ImageLayout layout, GeoServerTileLayerInfo state) throws Exception {
         super(new LayerGroupInfoImpl(), broker, state);
 
@@ -114,10 +114,10 @@ public class WCSLayer extends GeoServerTileLayer {
     @Override
     public GeoServerTileLayerInfo getInfo() {
         GeoServerTileLayerInfo info = super.getInfo();
-        if(info instanceof WCSLayerInfo){
+        if(info instanceof CoverageTileLayerInfo){
             return info;
         } else {
-            WCSLayerInfoImpl infoImpl = new WCSLayerInfoImpl(info);
+            CoverageTileLayerInfoImpl infoImpl = new CoverageTileLayerInfoImpl(info);
             return infoImpl;
         }
     }
@@ -148,7 +148,7 @@ public class WCSLayer extends GeoServerTileLayer {
             return finalizeTile(tile);
         }
 
-        final WCSMetaTile metaTile = createMetaTile(tile, metaX, metaY);
+        final CoverageMetaTile metaTile = createMetaTile(tile, metaX, metaY);
         Lock lock = null;
         try {
             /** ****************** Acquire lock ******************* */
@@ -180,7 +180,7 @@ public class WCSLayer extends GeoServerTileLayer {
         return finalizeTile(tile);
     }
 
-    private String buildLockKey(ConveyorTile tile, WCSMetaTile metaTile) {
+    private String buildLockKey(ConveyorTile tile, CoverageMetaTile metaTile) {
         StringBuilder metaKey = new StringBuilder();
 
         final long[] tileIndex;
@@ -311,15 +311,15 @@ public class WCSLayer extends GeoServerTileLayer {
         return returnTile;
     }
 
-    private WCSMetaTile createMetaTile(ConveyorTile tile, final int metaX, final int metaY) {
-        WCSMetaTile metaTile;
+    private CoverageMetaTile createMetaTile(ConveyorTile tile, final int metaX, final int metaY) {
+        CoverageMetaTile metaTile;
 
         final String tileGridSetId = tile.getGridSetId();
         final GridSubset gridSubset = getGridSubset(tileGridSetId);
         final MimeType responseFormat = tile.getMimeType();
         FormatModifier formatModifier = null;
         long[] tileGridPosition = tile.getTileIndex();
-        metaTile = new WCSMetaTile(this, gridSubset, responseFormat, formatModifier,
+        metaTile = new CoverageMetaTile(this, gridSubset, responseFormat, formatModifier,
                 tileGridPosition, metaX, metaY, tile.getFullParameters());
 
         return metaTile;

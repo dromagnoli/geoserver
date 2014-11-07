@@ -1,10 +1,14 @@
-package org.geoserver.coverage;
+/* (c) 2014 Open Source Geospatial Foundation - all rights reserved
+ * This code is licensed under the GPL 2.0 license, available at the root
+ * application directory.
+ */
+package org.geoserver.coverage.layer;
 
 import javax.media.jai.Interpolation;
 
 import org.geoserver.gwc.layer.GeoServerTileLayerInfo;
 
-public interface WCSLayerInfo extends GeoServerTileLayerInfo {
+public interface CoverageTileLayerInfo extends GeoServerTileLayerInfo {
     
     public enum SeedingPolicy{
         DIRECT, RECURSIVE, BASE_LEVEL;

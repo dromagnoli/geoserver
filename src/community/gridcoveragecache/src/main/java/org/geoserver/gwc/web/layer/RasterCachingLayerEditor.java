@@ -46,9 +46,9 @@ import org.geoserver.catalog.MetadataMap;
 import org.geoserver.catalog.ResourceInfo;
 import org.geoserver.catalog.impl.CoverageInfoImpl;
 import org.geoserver.catalog.impl.ModificationProxy;
-import org.geoserver.coverage.WCSLayer;
-import org.geoserver.coverage.WCSLayerInfo;
-import org.geoserver.coverage.WCSLayerInfo.SeedingPolicy;
+import org.geoserver.coverage.layer.CoverageTileLayer;
+import org.geoserver.coverage.layer.CoverageTileLayerInfo;
+import org.geoserver.coverage.layer.CoverageTileLayerInfo.SeedingPolicy;
 import org.geoserver.gwc.GWC;
 import org.geoserver.gwc.layer.GeoServerTileLayerInfo;
 import org.geoserver.web.wicket.GeoServerDialog;
@@ -128,7 +128,7 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
             final IModel<? extends CatalogInfo> layerModel,
             final IModel<GeoServerTileLayerInfo> tileLayerModel) {
         super(id);
-        checkArgument(tileLayerModel instanceof WCSLayerInfoModel);
+        checkArgument(tileLayerModel instanceof CoverageTileLayerInfoModel);
         this.layerModel = layerModel;
         setModel(tileLayerModel);
 
@@ -162,9 +162,9 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
                         .getTileLayers();
 
                 for (TileLayer layer : layers) {
-                    if (layer instanceof WCSLayer
+                    if (layer instanceof CoverageTileLayer
                             && layer.getId().equalsIgnoreCase(originalLayerId)) {
-                        tileLayer = (WCSLayer) layer;
+                        tileLayer = (CoverageTileLayer) layer;
                     }
                 }
                 // tileLayer = mediator.getTileLayerByName(originalLayerName);
@@ -283,7 +283,7 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
         ResourceInfo resource = ((LayerInfo) layer).getResource();
         CoverageInfo coverage = (CoverageInfo) resource;
 
-        final WCSLayerInfo tileLayerInfo = (WCSLayerInfo) getModelObject();
+        final CoverageTileLayerInfo tileLayerInfo = (CoverageTileLayerInfo) getModelObject();
         boolean tileLayerExists = false;// gwc.hasTileLayer(layer);// TODO CHANGE HERE
 
         Iterable<? extends TileLayer> layers = gwc.getTileLayers();
@@ -319,26 +319,26 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
 
         GridSubset gridSubSet = GridSubsetFactory.createGridSubSet(gridsets.getGridSets().get(0));
         CoverageInfo info = gwc.getCatalog().getCoverageByName(layerInfo.getName());
-        WCSLayer wcsLayer = null;
+        CoverageTileLayer coverageTileLayer = null;
         try {
-            wcsLayer = new WCSLayer(info, gridsets, Arrays.asList(gridSubSet), null, tileLayerInfo);// TODO CHANGE HERE IT IS ONLY A TEST
+            coverageTileLayer = new CoverageTileLayer(info, gridsets, Arrays.asList(gridSubSet), null, tileLayerInfo);// TODO CHANGE HERE IT IS ONLY A TEST
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
 
         if (tileLayerExists) {
-            gwc.save(wcsLayer);
+            gwc.save(coverageTileLayer);
         } else {
-            gwc.add(wcsLayer);
+            gwc.add(coverageTileLayer);
         }
         
         // Add the WCSLayerInfo to the CoverageInfo Metadata Map
         MetadataMap metadata = coverage.getMetadata();
         if(metadata != null){
-            metadata.put(WCSLayer.WCSLAYERINFO_KEY, tileLayerInfo);
+            metadata.put(CoverageTileLayer.COVERAGETILELAYERINFO_KEY, tileLayerInfo);
         } else if(coverage instanceof CoverageInfoImpl){
             metadata = new MetadataMap();
-            metadata.put(WCSLayer.WCSLAYERINFO_KEY, tileLayerInfo);
+            metadata.put(CoverageTileLayer.COVERAGETILELAYERINFO_KEY, tileLayerInfo);
             ((CoverageInfoImpl)coverage).setMetadata(metadata);
         }
         

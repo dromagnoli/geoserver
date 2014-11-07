@@ -32,7 +32,8 @@ import net.opengis.wcs20.TargetAxisSizeType;
 import net.opengis.wcs20.Wcs20Factory;
 
 import org.eclipse.emf.common.util.EList;
-import org.geoserver.catalog.CoverageInfo;
+import org.geoserver.coverage.layer.CoverageMetaTile;
+import org.geoserver.coverage.layer.CoverageTileLayer;
 import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.wcs2_0.DefaultWebCoverageService20;
 import org.geotools.coverage.grid.GeneralGridEnvelope;
@@ -92,16 +93,16 @@ public class WCSSourceHelper {
 
     private DefaultWebCoverageService20 service;
 
-    private WCSLayer layer;
+    private CoverageTileLayer layer;
 
-    public WCSSourceHelper(WCSLayer layer) {
+    public WCSSourceHelper(CoverageTileLayer layer) {
         this.layer = layer;
         List<DefaultWebCoverageService20> extensions = GeoServerExtensions
                 .extensions(DefaultWebCoverageService20.class);
         service = extensions.get(0);
     }
 
-    public void makeRequest(WCSMetaTile metaTile, ConveyorTile tile, Interpolation interpolation) throws GeoWebCacheException {
+    public void makeRequest(CoverageMetaTile metaTile, ConveyorTile tile, Interpolation interpolation) throws GeoWebCacheException {
         final GridSubset gridSubset = layer.getGridSubset(tile.getGridSetId());
 
         final GetCoverageType request = setupGetCoverageRequest(metaTile, tile, gridSubset, interpolation);
@@ -169,7 +170,7 @@ public class WCSSourceHelper {
      * @param gridSubset
      * @return
      */
-    private GetCoverageType setupGetCoverageRequest(WCSMetaTile metaTile, ConveyorTile tile,
+    private GetCoverageType setupGetCoverageRequest(CoverageMetaTile metaTile, ConveyorTile tile,
             GridSubset gridSubset, Interpolation interpolation) {
 
         // // 
@@ -242,7 +243,7 @@ public class WCSSourceHelper {
      * @param getCoverage
      * @param metaTile
      */
-    private void setScaling(GetCoverageType getCoverage, WCSMetaTile metaTile) {
+    private void setScaling(GetCoverageType getCoverage, CoverageMetaTile metaTile) {
         final int width = metaTile.getMetaTileWidth();
         final int height = metaTile.getMetaTileHeight();
         final ExtensionType extension = WCS20_FACTORY.createExtensionType();
@@ -282,7 +283,7 @@ public class WCSSourceHelper {
      * 
      * @TODO Need to add support for custom dimensions
      */
-    private void setDimensions(GetCoverageType getCoverage, WCSMetaTile metaTile, ConveyorTile tile) {
+    private void setDimensions(GetCoverageType getCoverage, CoverageMetaTile metaTile, ConveyorTile tile) {
         final BoundingBox bbox = metaTile.getMetaTileBounds();
         Map<String, String> parameters = tile.getFullParameters();
         final EList<DimensionSubsetType> dimensionSubset = getCoverage.getDimensionSubset();

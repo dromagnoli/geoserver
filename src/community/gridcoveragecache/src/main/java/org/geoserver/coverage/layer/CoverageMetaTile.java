@@ -2,7 +2,7 @@
  * This code is licensed under the GPL 2.0 license, available at the root
  * application directory.
  */
-package org.geoserver.coverage;
+package org.geoserver.coverage.layer;
 
 import it.geosolutions.imageioimpl.plugins.tiff.TIFFImageWriter;
 import it.geosolutions.imageioimpl.plugins.tiff.TIFFImageWriterSpi;
@@ -22,6 +22,7 @@ import javax.imageio.stream.FileCacheImageOutputStream;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.RenderedOp;
 
+import org.geoserver.coverage.GridCoveragesCache;
 import org.geoserver.wms.map.RenderedImageMapResponse;
 import org.geotools.image.crop.GTCropDescriptor;
 import org.geotools.resources.i18n.ErrorKeys;
@@ -33,10 +34,14 @@ import org.geowebcache.mime.FormatModifier;
 import org.geowebcache.mime.MimeType;
 
 
-public class WCSMetaTile extends MetaTile {
-    private final static Logger LOGGER = org.geotools.util.logging.Logging.getLogger(WCSMetaTile.class);
+public class CoverageMetaTile extends MetaTile {
+    private final static Logger LOGGER = org.geotools.util.logging.Logging.getLogger(CoverageMetaTile.class);
 
-    protected WCSLayer wcsLayer = null;
+    protected CoverageTileLayer coverageTileLayer = null;
+
+    public int[] getGutter() {
+        return gutter.clone();
+    }
 
     protected boolean requestTiled = false;
 
@@ -50,18 +55,18 @@ public class WCSMetaTile extends MetaTile {
      * @param profile
      * @param initGridPosition
      */
-    protected WCSMetaTile(WCSLayer layer, GridSubset gridSubset, MimeType responseFormat,
+    protected CoverageMetaTile(CoverageTileLayer layer, GridSubset gridSubset, MimeType responseFormat,
             FormatModifier formatModifier, long[] tileGridPosition, int metaX, int metaY,
             Map<String, String> fullParameters) {
         
         super(gridSubset, responseFormat, formatModifier, tileGridPosition, metaX, metaY,
-                null);
-        this.wcsLayer = layer;
+                (layer == null ? null : layer.gutter));
+        this.coverageTileLayer = layer;
         this.fullParameters = fullParameters;
     }
 
-    protected WCSLayer getLayer() {
-        return wcsLayer;
+    protected CoverageTileLayer getLayer() {
+        return coverageTileLayer;
     }
     
     /**
@@ -80,8 +85,10 @@ public class WCSMetaTile extends MetaTile {
         FileCacheImageOutputStream iios = null;
         try {
             writer = (TIFFImageWriter) SPI.createWriterInstance();
+            // TODO: we may consider using a stream adapter to link outputStream 
+            // to ImageOutputStream needed by tiff writer. 
             iios = new FileCacheImageOutputStream(target.getOutputStream(),
-                    GridCoveragesCache.tempDir);
+                    GridCoveragesCache.getTempdir());
             writer.setOutput(iios);
 
             // crop subsection of metaTileImage

@@ -10,9 +10,9 @@ import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.MetadataMap;
 import org.geoserver.catalog.ResourceInfo;
-import org.geoserver.coverage.WCSLayer;
-import org.geoserver.coverage.WCSLayerInfo;
-import org.geoserver.coverage.WCSLayerInfoImpl;
+import org.geoserver.coverage.layer.CoverageTileLayer;
+import org.geoserver.coverage.layer.CoverageTileLayerInfo;
+import org.geoserver.coverage.layer.CoverageTileLayerInfoImpl;
 import org.geoserver.gwc.GWC;
 import org.geoserver.gwc.config.GWCConfig;
 import org.geoserver.gwc.layer.GeoServerTileLayer;
@@ -25,7 +25,7 @@ public class RasterEditCacheOptionsTabPanelInfo extends LayerEditTabPanelInfo {
     private static final long serialVersionUID = 7917940832781227130L;
 
     @Override
-    public WCSLayerInfoModel createOwnModel(final IModel<? extends ResourceInfo> resourceModel,
+    public CoverageTileLayerInfoModel createOwnModel(final IModel<? extends ResourceInfo> resourceModel,
             final IModel<LayerInfo> layerModel, final boolean isNew) {
 
         final GWC mediator = GWC.get();
@@ -38,24 +38,24 @@ public class RasterEditCacheOptionsTabPanelInfo extends LayerEditTabPanelInfo {
                     "This Layer is not related to a CoverageInfo resource");
         }
 
-        WCSLayerInfo tileLayerInfo;
+        CoverageTileLayerInfo tileLayerInfo;
 
         final GWCConfig defaultSettings = mediator.getConfig();
 
-        WCSLayer tileLayer = null;
+        CoverageTileLayer tileLayer = null;
 
         if (!isNew) {
             Iterable<? extends TileLayer> layers = mediator.getTileLayers();
             
             for(TileLayer layer : layers){
-                if(layer instanceof WCSLayer && layer.getId().equalsIgnoreCase(resource.getId())){
-                    tileLayer = (WCSLayer) layer;
+                if(layer instanceof CoverageTileLayer && layer.getId().equalsIgnoreCase(resource.getId())){
+                    tileLayer = (CoverageTileLayer) layer;
                     break;
                 }
             }
         }
 
-        if (isNew || tileLayer == null || !(tileLayer instanceof WCSLayer)) {
+        if (isNew || tileLayer == null || !(tileLayer instanceof CoverageTileLayer)) {
 
             // First check on the CoverageInfo Metadata Map
 //            MetadataMap map = coverage.getMetadata();
@@ -68,11 +68,11 @@ public class RasterEditCacheOptionsTabPanelInfo extends LayerEditTabPanelInfo {
                  * Ensure a sane config for defaults, in case automatic cache of new layers is defined and the defaults is misconfigured
                  */
                 // TODO MAKE SURE TO LOAD THE CONFIGURATION DEFAULTS
-                tileLayerInfo = new WCSLayerInfoImpl();
+                tileLayerInfo = new CoverageTileLayerInfoImpl();
 
         } else {
-            WCSLayerInfo info = (WCSLayerInfo) ((WCSLayer) tileLayer).getInfo();
-            tileLayerInfo = (WCSLayerInfo) info.clone();
+            CoverageTileLayerInfo info = (CoverageTileLayerInfo) ((CoverageTileLayer) tileLayer).getInfo();
+            tileLayerInfo = (CoverageTileLayerInfo) info.clone();
         }
 
         tileLayerInfo.setEnabled(true);
@@ -83,6 +83,6 @@ public class RasterEditCacheOptionsTabPanelInfo extends LayerEditTabPanelInfo {
             tileLayerInfo.setId(null);// indicate not to create the tile layer
         }
 
-        return new WCSLayerInfoModel(tileLayerInfo, isNew);
+        return new CoverageTileLayerInfoModel(tileLayerInfo, isNew);
     }
 }

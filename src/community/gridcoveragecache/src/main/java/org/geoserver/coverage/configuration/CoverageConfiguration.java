@@ -13,7 +13,7 @@ import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.LayerGroupInfo;
 import org.geoserver.catalog.LayerInfo;
-import org.geoserver.coverage.WCSLayer;
+import org.geoserver.coverage.layer.CoverageTileLayer;
 import org.geoserver.gwc.layer.CatalogConfiguration;
 import org.geoserver.gwc.layer.GeoServerTileLayer;
 import org.geoserver.gwc.layer.GeoServerTileLayerInfo;
@@ -84,12 +84,12 @@ public class CoverageConfiguration extends CatalogConfiguration implements Confi
     }
 
     /**
-     * @return {@code true} only if {@code tl instanceof} {@link WCSLayer} .
+     * @return {@code true} only if {@code tl instanceof} {@link CoverageTileLayer} .
      * @see org.geowebcache.config.Configuration#canSave(org.geowebcache.layer.TileLayer)
      */
     @Override
     public boolean canSave(TileLayer tl) {
-        return tl instanceof WCSLayer;
+        return tl instanceof CoverageTileLayer;
     }
 
     @Override
@@ -97,8 +97,8 @@ public class CoverageConfiguration extends CatalogConfiguration implements Confi
         checkNotNull(layerId, "layer id is null");
 
         GeoServerTileLayer tileLayerById = super.getTileLayerById(layerId);
-        WCSLayer layer = null; 
-        if(!(tileLayerById instanceof WCSLayer)){
+        CoverageTileLayer layer = null; 
+        if(!(tileLayerById instanceof CoverageTileLayer)){
             GeoServerTileLayerInfo info = tileLayerById.getInfo();
 
             GridSubset gridSubSet = GridSubsetFactory.createGridSubSet(gwcGridSetBroker.getGridSets()
@@ -108,13 +108,13 @@ public class CoverageConfiguration extends CatalogConfiguration implements Confi
             ;
             
             try {
-                layer = new WCSLayer(coverageInfo, gwcGridSetBroker, Arrays.asList(gridSubSet), null,
+                layer = new CoverageTileLayer(coverageInfo, gwcGridSetBroker, Arrays.asList(gridSubSet), null,
                         info);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         } else {
-            layer = (WCSLayer) tileLayerById;
+            layer = (CoverageTileLayer) tileLayerById;
         }
 
 
@@ -169,7 +169,7 @@ public class CoverageConfiguration extends CatalogConfiguration implements Confi
                 GridSubset gridSubSet = GridSubsetFactory.createGridSubSet(gridSetBroker.getGridSets()
                         .get(0));
                 CoverageInfo coverage = geoServerCatalog.getCoverage(layerId);
-                tileLayer = new WCSLayer(coverage, gridSetBroker, Arrays.asList(gridSubSet), null, tileLayerInfo);
+                tileLayer = new CoverageTileLayer(coverage, gridSetBroker, Arrays.asList(gridSubSet), null, tileLayerInfo);
             } finally {
                 lock.readLock().unlock();
             }

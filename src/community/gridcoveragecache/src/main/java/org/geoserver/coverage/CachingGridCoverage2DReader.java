@@ -19,6 +19,7 @@ import javax.media.jai.ImageLayout;
 import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.ResourcePool;
+import org.geoserver.coverage.layer.CoverageTileLayer;
 import org.geoserver.gwc.GWC;
 import org.geoserver.gwc.layer.CatalogConfiguration;
 import org.geoserver.gwc.layer.GeoServerTileLayer;
@@ -84,9 +85,7 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
 
     private GridCoverage2DReader delegate;
 
-   // private CoverageInfo info;
-
-    private WCSLayer wcsLayer;
+    private CoverageTileLayer coverageTileLayer;
 
     private GridCoveragesCache cache;
 
@@ -111,7 +110,6 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
         } else {
             localHints = newHints;
         }
-//        localHints.add(new Hints(ResourcePool.SKIP_READER_WRAPPING, true));
         GridCoverage2DReader delegate = (GridCoverage2DReader) pool.getGridCoverageReader(info,
                 coverageName, localHints);
         if (delegate instanceof StructuredGridCoverage2DReader) {
@@ -125,24 +123,15 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
 
     public CachingGridCoverage2DReader(GridCoveragesCache cache,
             CoverageInfo info, GridCoverage2DReader reader) {
-        //this.info = info;
         this.cache = cache;
         try {
             delegate = reader;
             gridSubSet = buildGridSubSet();
             String coverageName = info.getNativeName();
             ImageLayout layout = reader.getImageLayout(coverageName);  
-            //wcsLayer = new WCSLayer(info, cache.getGridSetBroker(), gridSubSet, layout);
-            //ImageLayout layout = reader.getImageLayout();
             LayerInfo layerInfo = GWC.get().getCatalog().getLayers(info).get(0);
-            GeoServerTileLayer tileLayerByName = (GeoServerTileLayer) GWC.get().getTileLayerByName(layerInfo.getName());
-            wcsLayer = new WCSLayer(info, cache.getGridSetBroker(), gridSubSet, layout, tileLayerByName.getInfo());
-            List<CatalogConfiguration> extensions = GeoServerExtensions
-                    .extensions(CatalogConfiguration.class);
-            //CatalogConfiguration config = extensions.get(0);
-//            if (!config.containsLayer(wcsLayer.getId())) {
-//                config.addLayer(wcsLayer);
-//            }
+            GeoServerTileLayer tileLayer = (GeoServerTileLayer) GWC.get().getTileLayerByName(layerInfo.getName());
+            coverageTileLayer = new CoverageTileLayer(info, cache.getGridSetBroker(), gridSubSet, layout, tileLayer.getInfo());
         } catch (IOException e) {
             throw new IllegalArgumentException(e);
         } catch (Exception e) {
@@ -399,7 +388,7 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
             final int tileWidth = gridSet.getTileWidth();
             Map<String, ConveyorTile> cTiles = new HashMap<String, ConveyorTile>();
 
-            String id = wcsLayer.getName();
+            String id = coverageTileLayer.getName();
             String name = GridCoveragesCache.REFERENCE.getName();
             
             Map<String,String> filteringParameters = extractParameters(parameters);
@@ -412,11 +401,11 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
                     ct = new ConveyorTile(storageBroker, id, name, new long[] { i, j, level },
                             TIFF_MIME_TYPE, filteringParameters, null, null);
                     try {
-                        ConveyorTile tile = wcsLayer.getTile(ct);
+                        ConveyorTile tile = coverageTileLayer.getTile(ct);
                         // Ask again for the Tile in order to get the cached 
                         // one with FileResource and not the Conveyor Tile 
                         // with the ByteArrayResource
-                        tile = wcsLayer.getTile(ct);
+                        tile = coverageTileLayer.getTile(ct);
                         String index = i + "_" + j;
                         cTiles.put(index, tile);
                     } catch (OutsideCoverageException oce) {
@@ -431,7 +420,7 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
             // //
             // Reassembling tiles
             // //
-            GridSubset subset = wcsLayer.getGridSubset(gridSet.getName());
+            GridSubset subset = coverageTileLayer.getGridSubset(gridSet.getName());
             ImageLayout layout = new ImageLayout2(minX,
                     minY, tileWidth * wTiles, tileHeight * hTiles, 0, 0, tileWidth, tileHeight, null, null);
             

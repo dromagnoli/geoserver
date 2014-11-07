@@ -1,4 +1,8 @@
-package org.geoserver.coverage;
+/* (c) 2014 Open Source Geospatial Foundation - all rights reserved
+ * This code is licensed under the GPL 2.0 license, available at the root
+ * application directory.
+ */
+package org.geoserver.coverage.layer;
 
 import java.io.Serializable;
 
@@ -7,13 +11,13 @@ import javax.media.jai.Interpolation;
 import org.geoserver.gwc.layer.GeoServerTileLayerInfo;
 import org.geoserver.gwc.layer.GeoServerTileLayerInfoImpl;
 
-public class WCSLayerInfoImpl extends GeoServerTileLayerInfoImpl implements WCSLayerInfo,Serializable {
+public class CoverageTileLayerInfoImpl extends GeoServerTileLayerInfoImpl implements CoverageTileLayerInfo,Serializable {
 
-    public WCSLayerInfoImpl() {
+    public CoverageTileLayerInfoImpl() {
         super();
     }
 
-    public WCSLayerInfoImpl(GeoServerTileLayerInfo info) {
+    public CoverageTileLayerInfoImpl(GeoServerTileLayerInfo info) {
         super();
         setEnabled(info.isEnabled());
         setGutter(info.getGutter());
@@ -21,9 +25,9 @@ public class WCSLayerInfoImpl extends GeoServerTileLayerInfoImpl implements WCSL
         setMetaTilingY(info.getMetaTilingY());
         setParameterFilters(info.getParameterFilters());
         setGridSubsets(info.getGridSubsets());
-        if(info instanceof WCSLayerInfoImpl){
-            setResamplingAlgorithm(((WCSLayerInfoImpl) info).getResamplingAlgorithm());
-            setSeedingPolicy(((WCSLayerInfoImpl) info).getSeedingPolicy());
+        if(info instanceof CoverageTileLayerInfoImpl){
+            setResamplingAlgorithm(((CoverageTileLayerInfoImpl) info).getResamplingAlgorithm());
+            setSeedingPolicy(((CoverageTileLayerInfoImpl) info).getSeedingPolicy());
         }
     }
 
@@ -73,10 +77,10 @@ public class WCSLayerInfoImpl extends GeoServerTileLayerInfoImpl implements WCSL
     @Override
     public GeoServerTileLayerInfoImpl clone() {
         GeoServerTileLayerInfoImpl info = super.clone();
-        if(info instanceof WCSLayerInfoImpl){
+        if(info instanceof CoverageTileLayerInfoImpl){
             return info;
         } else {
-            WCSLayerInfoImpl infoImpl = new WCSLayerInfoImpl(info);
+            CoverageTileLayerInfoImpl infoImpl = new CoverageTileLayerInfoImpl(info);
             infoImpl.setSeedingPolicy(SeedingPolicy.DIRECT);
             infoImpl.setResamplingAlgorithm(Interpolation
             .getInstance(Interpolation.INTERP_NEAREST));
