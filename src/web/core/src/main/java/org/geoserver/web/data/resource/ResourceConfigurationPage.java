@@ -48,6 +48,7 @@ import org.geoserver.web.wicket.ParamResourceModel;
 import org.geotools.coverage.grid.GridGeometry2D;
 import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.factory.GeoTools;
+import org.geotools.factory.Hints;
 import org.geotools.feature.NameImpl;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.opengis.coverage.grid.GridGeometry;
@@ -278,8 +279,10 @@ public class ResourceConfigurationPage extends GeoServerSecuredPage {
                     // the coverage bounds computation path is a bit more linear, the
                     // readers always return the bounds and in the proper CRS (afaik)
                     CoverageInfo cinfo = (CoverageInfo) resourceInfo;
+                    Hints hints = new Hints(GeoTools.getDefaultHints());
+                    hints.add(new Hints(ResourcePool.SKIP_COVERAGE_EXTENSIONS_LOOKUP, true));
                     GridCoverage2DReader reader = (GridCoverage2DReader) cinfo
-                            .getGridCoverageReader(null, GeoTools.getDefaultHints());
+                            .getGridCoverageReader(null, hints);
 
                     // get bounds
                     final ReferencedEnvelope bounds = new ReferencedEnvelope(

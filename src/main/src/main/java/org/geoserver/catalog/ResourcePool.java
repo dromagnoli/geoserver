@@ -1459,7 +1459,7 @@ public class ResourcePool {
         } else {
             reader = wrappedReader;
         }
-        if (coverageInfo != null) {
+        if (coverageInfo != null && wrappedReader == null) {
             MetadataMap metadata = coverageInfo.getMetadata();
             if (metadata != null && metadata.containsKey(CoverageView.COVERAGE_VIEW)) {
                 CoverageView coverageView = (CoverageView) metadata.get(CoverageView.COVERAGE_VIEW);
@@ -1913,6 +1913,7 @@ public class ResourcePool {
         featureTypeAttributeCache.clear();
         coverageReaderCache.clear();
         hintCoverageReaderCache.clear();
+        wrappedCoverageReaderCache.clear();
         wmsCache.clear();
         styleCache.clear();
         listeners.clear();

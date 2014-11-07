@@ -109,6 +109,7 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
         } else {
             localHints = newHints;
         }
+//        localHints.add(new Hints(ResourcePool.SKIP_READER_WRAPPING, true));
         GridCoverage2DReader delegate = (GridCoverage2DReader) pool.getGridCoverageReader(info,
                 coverageName, localHints);
         if (delegate instanceof StructuredGridCoverage2DReader) {
@@ -127,14 +128,9 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
         try {
             delegate = reader;
             gridSubSet = buildGridSubSet();
-            ImageLayout layout = reader.getImageLayout();
+            String coverageName = info.getNativeName();
+            ImageLayout layout = reader.getImageLayout(coverageName);  
             wcsLayer = new WCSLayer(info, cache.getGridSetBroker(), gridSubSet, layout);
-            List<CatalogConfiguration> extensions = GeoServerExtensions
-                    .extensions(CatalogConfiguration.class);
-            //CatalogConfiguration config = extensions.get(0);
-//            if (!config.containsLayer(wcsLayer.getId())) {
-//                config.addLayer(wcsLayer);
-//            }
         } catch (IOException e) {
             throw new IllegalArgumentException(e);
         } catch (Exception e) {
