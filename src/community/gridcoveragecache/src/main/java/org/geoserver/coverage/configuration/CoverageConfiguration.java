@@ -45,9 +45,9 @@ public class CoverageConfiguration extends CatalogConfiguration implements Confi
         Set<String> pendingDeletes = null;
         Map<String, GeoServerTileLayerInfo> pendingModications = null;
         try {
-            Field lockRef = super.getClass().getDeclaredField("lock");
-            Field pendingDeletesRef = super.getClass().getDeclaredField("pendingDeletes");
-            Field pendingModicationsRef = super.getClass().getDeclaredField("pendingModications");
+            Field lockRef = this.getClass().getSuperclass().getDeclaredField("lock");
+            Field pendingDeletesRef = this.getClass().getSuperclass().getDeclaredField("pendingDeletes");
+            Field pendingModicationsRef = this.getClass().getSuperclass().getDeclaredField("pendingModications");
 
             lockRef.setAccessible(true);
             pendingDeletesRef.setAccessible(true);
@@ -74,7 +74,7 @@ public class CoverageConfiguration extends CatalogConfiguration implements Confi
                         catalog, pendingModications, lock));
 
         try {
-            Field cache = super.getClass().getDeclaredField("layerCache");
+            Field cache = this.getClass().getSuperclass().getDeclaredField("layerCache");
             cache.setAccessible(true);
             cache.set(CoverageConfiguration.this, layerCache);
         } catch (IllegalArgumentException | IllegalAccessException | NoSuchFieldException
@@ -97,20 +97,26 @@ public class CoverageConfiguration extends CatalogConfiguration implements Confi
         checkNotNull(layerId, "layer id is null");
 
         GeoServerTileLayer tileLayerById = super.getTileLayerById(layerId);
-        GeoServerTileLayerInfo info = tileLayerById.getInfo();
+        WCSLayer layer = null; 
+        if(!(tileLayerById instanceof WCSLayer)){
+            GeoServerTileLayerInfo info = tileLayerById.getInfo();
 
-        GridSubset gridSubSet = GridSubsetFactory.createGridSubSet(gwcGridSetBroker.getGridSets()
-                .get(0));
+            GridSubset gridSubSet = GridSubsetFactory.createGridSubSet(gwcGridSetBroker.getGridSets()
+                    .get(0));
 
-        CoverageInfo coverageInfo = gsCatalog.getCoverageByName(info.getName());
-        ;
-        WCSLayer layer;
-        try {
-            layer = new WCSLayer(coverageInfo, gwcGridSetBroker, Arrays.asList(gridSubSet), null,
-                    info);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            CoverageInfo coverageInfo = gsCatalog.getCoverageByName(info.getName());
+            ;
+            
+            try {
+                layer = new WCSLayer(coverageInfo, gwcGridSetBroker, Arrays.asList(gridSubSet), null,
+                        info);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            layer = (WCSLayer) tileLayerById;
         }
+
 
         return layer;
     }
@@ -160,16 +166,10 @@ public class CoverageConfiguration extends CatalogConfiguration implements Confi
                     throw new IllegalArgumentException("GeoServerTileLayerInfo '" + layerId
                             + "' does not exist.");
                 }
-                // TODO CONTINUE FROM HERE
-                LayerInfo layerInfo = geoServerCatalog.getLayer(layerId);
-                if (layerInfo != null) {
-                    tileLayer = new GeoServerTileLayer(layerInfo, gridSetBroker, tileLayerInfo);
-                } else {
-                    LayerGroupInfo lgi = geoServerCatalog.getLayerGroup(layerId);
-                    if (lgi != null) {
-                        tileLayer = new GeoServerTileLayer(lgi, gridSetBroker, tileLayerInfo);
-                    }
-                }
+                GridSubset gridSubSet = GridSubsetFactory.createGridSubSet(gridSetBroker.getGridSets()
+                        .get(0));
+                CoverageInfo coverage = geoServerCatalog.getCoverage(layerId);
+                tileLayer = new WCSLayer(coverage, gridSetBroker, Arrays.asList(gridSubSet), null, tileLayerInfo);
             } finally {
                 lock.readLock().unlock();
             }

@@ -45,6 +45,8 @@ public class WCSLayer extends GeoServerTileLayer {
 
     private final static Logger LOGGER = org.geotools.util.logging.Logging
             .getLogger(WCSLayer.class);
+    
+    public final static String WCSLAYERINFO_KEY = "wcsLayerInfo.key";
 
     private transient WCSSourceHelper sourceHelper;
 
@@ -79,7 +81,8 @@ public class WCSLayer extends GeoServerTileLayer {
         bbox = info.boundingBox();
         sourceHelper = new WCSSourceHelper(this);
         GeoServerTileLayerInfo localLayerInfo = getInfo();
-        localLayerInfo.setName(name + "wcsLayerInfo");
+        localLayerInfo.setId(info.getId());
+        localLayerInfo.setName(name + "test");
         localLayerInfo.getMimeFormats().add("image/tiff");
         this.layout = layout;
         
@@ -107,6 +110,19 @@ public class WCSLayer extends GeoServerTileLayer {
     public ReferencedEnvelope getBbox() {
         return bbox;
     }
+    
+    @Override
+    public GeoServerTileLayerInfo getInfo() {
+        GeoServerTileLayerInfo info = super.getInfo();
+        if(info instanceof WCSLayerInfo){
+            return info;
+        } else {
+            WCSLayerInfoImpl infoImpl = new WCSLayerInfoImpl(info);
+            return infoImpl;
+        }
+    }
+    
+    
 
     /**
      * Used for seeding

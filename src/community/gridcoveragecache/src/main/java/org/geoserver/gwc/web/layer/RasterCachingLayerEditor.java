@@ -8,9 +8,17 @@ package org.geoserver.gwc.web.layer;
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.geoserver.gwc.GWC.tileLayerName;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
+
+import javax.media.jai.Interpolation;
+import javax.media.jai.InterpolationBicubic;
+import javax.media.jai.InterpolationBicubic2;
+import javax.media.jai.InterpolationBilinear;
+import javax.media.jai.InterpolationNearest;
 
 import org.apache.wicket.AttributeModifier;
 import org.apache.wicket.Component;
@@ -22,23 +30,26 @@ import org.apache.wicket.markup.html.form.CheckBox;
 import org.apache.wicket.markup.html.form.DropDownChoice;
 import org.apache.wicket.markup.html.form.FormComponent;
 import org.apache.wicket.markup.html.form.FormComponentPanel;
+import org.apache.wicket.markup.html.form.IChoiceRenderer;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.Model;
 import org.apache.wicket.model.PropertyModel;
 import org.apache.wicket.model.ResourceModel;
+import org.apache.wicket.validation.IValidatable;
+import org.apache.wicket.validation.ValidationError;
+import org.apache.wicket.validation.validator.AbstractValidator;
 import org.geoserver.catalog.CatalogInfo;
-import org.geoserver.catalog.CatalogVisitor;
 import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.LayerGroupInfo;
 import org.geoserver.catalog.LayerInfo;
+import org.geoserver.catalog.MetadataMap;
 import org.geoserver.catalog.ResourceInfo;
-import org.geoserver.catalog.ResourcePool;
 import org.geoserver.catalog.impl.CoverageInfoImpl;
 import org.geoserver.catalog.impl.ModificationProxy;
-import org.geoserver.catalog.impl.StoreInfoImpl;
 import org.geoserver.coverage.WCSLayer;
+import org.geoserver.coverage.WCSLayerInfo;
+import org.geoserver.coverage.WCSLayerInfo.SeedingPolicy;
 import org.geoserver.gwc.GWC;
-import org.geoserver.gwc.layer.GeoServerTileLayer;
 import org.geoserver.gwc.layer.GeoServerTileLayerInfo;
 import org.geoserver.web.wicket.GeoServerDialog;
 import org.geoserver.web.wicket.ParamResourceModel;
@@ -51,6 +62,10 @@ import org.geowebcache.grid.GridSubsetFactory;
 import org.geowebcache.layer.TileLayer;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Maps;
+import com.sun.media.jai.util.InterpAverage;
 
 /**
  * 
@@ -95,9 +110,14 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
 
     private final RasterParameterFilterEditor parameterFilters;
 
+    private final String originalLayerId;
     private final String originalLayerName;
 
     private IModel<? extends CatalogInfo> layerModel;
+
+    //private final DropDownChoice<Interpolation> interpolationPolicy;
+
+    //private final DropDownChoice<SeedingPolicy> seedingPolicy;
 
     /**
      * @param id
@@ -108,7 +128,7 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
             final IModel<? extends CatalogInfo> layerModel,
             final IModel<GeoServerTileLayerInfo> tileLayerModel) {
         super(id);
-        checkArgument(tileLayerModel instanceof GeoServerTileLayerInfoModel);
+        checkArgument(tileLayerModel instanceof WCSLayerInfoModel);
         this.layerModel = layerModel;
         setModel(tileLayerModel);
 
@@ -123,16 +143,31 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
             ResourceInfo resource = ((LayerInfo) info).getResource();
             // we need the _current_ name, regardless of it's name is being changed
             resource = ModificationProxy.unwrap(resource);
+            originalLayerId = resource.getId();
             originalLayerName = resource.getPrefixedName();
+            if (!(resource instanceof CoverageInfo)) {
+                throw new IllegalArgumentException(
+                        "Provided Layer does not target a CoverageInfo: " + resource);
+            }
         } else {
             throw new IllegalArgumentException("Provided model does not target a LayerInfo: "
                     + info);
         }
 
         TileLayer tileLayer = null;
-        if (originalLayerName != null) {
+        if (originalLayerId != null) {
             try {
-                tileLayer = mediator.getTileLayerByName(originalLayerName);
+
+                Iterable<? extends TileLayer> layers = mediator
+                        .getTileLayers();
+
+                for (TileLayer layer : layers) {
+                    if (layer instanceof WCSLayer
+                            && layer.getId().equalsIgnoreCase(originalLayerId)) {
+                        tileLayer = (WCSLayer) layer;
+                    }
+                }
+                // tileLayer = mediator.getTileLayerByName(originalLayerName);
             } catch (IllegalArgumentException notFound) {
                 //
             }
@@ -155,8 +190,7 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
             doCreateTileLayer = false;
         }
         add(enabled = new CheckBox("createTileLayer", new Model<Boolean>(doCreateTileLayer)));
-        enabled.add(new AttributeModifier("title", true, new ResourceModel(
-                "createTileLayer.title")));
+        enabled.add(new AttributeModifier("title", true, new ResourceModel("createTileLayer.title")));
 
         container = new WebMarkupContainer("container");
         container.setOutputMarkupId(true);
@@ -171,11 +205,13 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
         IModel<Integer> metaTilingXModel = new PropertyModel<Integer>(getModel(), "metaTilingX");
         metaTilingX = new DropDownChoice<Integer>("metaTilingX", metaTilingXModel,
                 metaTilingChoices);
+        metaTilingX.add(new MetaTilingValidator("RasterCachingLayerEditor.metaTilingXError"));
         configs.add(metaTilingX);
 
         IModel<Integer> metaTilingYModel = new PropertyModel<Integer>(getModel(), "metaTilingY");
         metaTilingY = new DropDownChoice<Integer>("metaTilingY", metaTilingYModel,
                 metaTilingChoices);
+        metaTilingY.add(new MetaTilingValidator("RasterCachingLayerEditor.metaTilingYError"));
         configs.add(metaTilingY);
 
         IModel<Integer> gutterModel = new PropertyModel<Integer>(getModel(), "gutter");
@@ -183,7 +219,24 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
                 100);
         gutter = new DropDownChoice<Integer>("gutter", gutterModel, gutterChoices);
         configs.add(gutter);
-
+        
+//        IModel<SeedingPolicy> policyModel = new PropertyModel<SeedingPolicy>(getModel(), "seedingPolicy");
+//        seedingPolicy = new DropDownChoice<SeedingPolicy>("seedingPolicy", policyModel, Arrays.asList(SeedingPolicy.values()));
+//        configs.add(seedingPolicy);
+        
+        // TODO REQUIRES TO SAVE THEM IN A PLACE AND EVERY TIME TAKING THEM
+//        IModel<Interpolation> interpolationModel = new PropertyModel<Interpolation>(getModel(), "resamplingAlgorithm");
+//        List<Interpolation> interpList = new ArrayList<Interpolation>();
+//        interpList.add(Interpolation.getInstance(Interpolation.INTERP_NEAREST));
+//        interpList.add(Interpolation.getInstance(Interpolation.INTERP_BILINEAR));
+//        interpList.add(Interpolation.getInstance(Interpolation.INTERP_BICUBIC));
+//        interpList.add(Interpolation.getInstance(Interpolation.INTERP_BICUBIC_2));
+//        interpList.add(new InterpAverage(3, 3));
+//        
+//        interpolationPolicy = new DropDownChoice<Interpolation>("resamplingAlgorithm",
+//                interpolationModel, interpList, new InterpolationChoiceRenderer(interpList));
+//        configs.add(interpolationPolicy);
+        
         IModel<Set<XMLGridSubset>> gridSubsetsModel;
         gridSubsetsModel = new PropertyModel<Set<XMLGridSubset>>(getModel(), "gridSubsets");
         gridSubsets = new GridSubsetsEditor("cachedGridsets", gridSubsetsModel);
@@ -192,8 +245,8 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
         IModel<Set<ParameterFilter>> parameterFilterModel;
         parameterFilterModel = new PropertyModel<Set<ParameterFilter>>(getModel(),
                 "parameterFilters");
-        parameterFilters = new RasterParameterFilterEditor("parameterFilters", parameterFilterModel,
-                layerModel);
+        parameterFilters = new RasterParameterFilterEditor("parameterFilters",
+                parameterFilterModel, layerModel);
         configs.add(parameterFilters);
 
         // behavior phase
@@ -206,7 +259,7 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
             @Override
             protected void onUpdate(AjaxRequestTarget target) {
                 final boolean enableTileLayer = enabled.getModelObject().booleanValue();
-             // TODO CHANGE HERE
+                // TODO CHANGE HERE
                 if (!enableTileLayer && cachedLayerExistedInitially) {
                     confirmRemovalOfExistingTileLayer(target);
                 } else {
@@ -226,8 +279,22 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
         final GWC gwc = GWC.get();
 
         final CatalogInfo layer = layerModel.getObject();
-        final GeoServerTileLayerInfo tileLayerInfo = getModelObject();
-        final boolean tileLayerExists = gwc.hasTileLayer(layer);// TODO CHANGE HERE
+
+        ResourceInfo resource = ((LayerInfo) layer).getResource();
+        CoverageInfo coverage = (CoverageInfo) resource;
+
+        final WCSLayerInfo tileLayerInfo = (WCSLayerInfo) getModelObject();
+        boolean tileLayerExists = false;// gwc.hasTileLayer(layer);// TODO CHANGE HERE
+
+        Iterable<? extends TileLayer> layers = gwc.getTileLayers();
+
+        for (TileLayer l : layers) {
+            if (l.getId().equalsIgnoreCase(originalLayerId)) {
+                tileLayerExists = true;
+                break;
+            }
+        }
+
         final boolean enableTileLayer = this.enabled.getModelObject().booleanValue();
 
         if (!enableTileLayer) {
@@ -247,26 +314,36 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
         final GridSetBroker gridsets = gwc.getGridSetBroker();
         LayerInfo layerInfo = (LayerInfo) layer;
         name = tileLayerName(layerInfo);
-        GeoServerTileLayer tileLayer = new GeoServerTileLayer(layerInfo, gridsets, tileLayerInfo);
 
         tileLayerInfo.setName(name);
 
-        
         GridSubset gridSubSet = GridSubsetFactory.createGridSubSet(gridsets.getGridSets().get(0));
         CoverageInfo info = gwc.getCatalog().getCoverageByName(layerInfo.getName());
         WCSLayer wcsLayer = null;
         try {
-            wcsLayer = new WCSLayer(info, gridsets, Arrays.asList(gridSubSet) , null, tileLayerInfo);//TODO CHANGE HERE IT IS ONLY A TEST
+            wcsLayer = new WCSLayer(info, gridsets, Arrays.asList(gridSubSet), null, tileLayerInfo);// TODO CHANGE HERE IT IS ONLY A TEST
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        gwc.add(wcsLayer);
+
+        if (tileLayerExists) {
+            gwc.save(wcsLayer);
+        } else {
+            gwc.add(wcsLayer);
+        }
         
-//        if (tileLayerExists) {
-//            gwc.save(tileLayer);
-//        } else {
-//            gwc.add(tileLayer);
-//        }
+        // Add the WCSLayerInfo to the CoverageInfo Metadata Map
+        MetadataMap metadata = coverage.getMetadata();
+        if(metadata != null){
+            metadata.put(WCSLayer.WCSLAYERINFO_KEY, tileLayerInfo);
+        } else if(coverage instanceof CoverageInfoImpl){
+            metadata = new MetadataMap();
+            metadata.put(WCSLayer.WCSLAYERINFO_KEY, tileLayerInfo);
+            ((CoverageInfoImpl)coverage).setMetadata(metadata);
+        }
+        
+        // Saving catalog
+        gwc.getCatalog().save(coverage);
     }
 
     private void updateConfigsVisibility(AjaxRequestTarget target) {
@@ -339,8 +416,10 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
             gutter.processInput();
             parameterFilters.processInput();
             gridSubsets.processInput();
+//            interpolationPolicy.processInput();
+//            seedingPolicy.processInput();
 
-            tileLayerInfo.setId(layerModel.getObject().getId());
+            tileLayerInfo.setId(layerModel.getObject().getId());// TODO CHANGE HERE
             setConvertedInput(tileLayerInfo);
         } else {
             tileLayerInfo.setId(null);
@@ -355,6 +434,70 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
     @Override
     protected void onBeforeRender() {
         super.onBeforeRender();
+    }
+    
+    static class MetaTilingValidator extends AbstractValidator<Integer> {
+        
+        /** serialVersionUID */
+        private static final long serialVersionUID = 1L;
+        private final String name;
+
+        public MetaTilingValidator(String name){
+            this.name = name;
+        }
+        
+        @Override
+        public boolean validateOnNullValue() {
+            return true;
+        }
+
+        @Override
+        protected void onValidate(IValidatable<Integer> validatable) {
+            if(validatable == null || validatable.getValue() == null){
+                ValidationError error = new ValidationError();
+                error.setMessage(new ParamResourceModel(name, null,
+                "").getObject());
+                validatable.error(error);
+            }
+        }
+    }
+    
+    static class InterpolationChoiceRenderer implements IChoiceRenderer<Interpolation>{
+        
+        private HashMap<Interpolation,String> map;
+        
+        public InterpolationChoiceRenderer(List<Interpolation> interp){
+            map = new HashMap<Interpolation,String>();
+            
+            for(Interpolation i : interp){
+                String key = null;
+                if(i instanceof InterpolationNearest){
+                    key = "Nearest Interpolation";
+                } else if(i instanceof InterpolationBilinear){
+                    key = "Bilinear Interpolation";
+                } else if(i instanceof InterpolationBicubic){
+                    key = "Bicubic Interpolation";
+                } else if(i instanceof InterpolationBicubic2){
+                    key = "Bicubic2 Interpolation";
+                } 
+                if(key != null){
+                    map.put(i, key);
+                }
+            }
+            
+        }
+        
+        
+        @Override
+        public Object getDisplayValue(Interpolation object) {
+            return map.get(object);
+        }
+
+        @Override
+        public String getIdValue(Interpolation object, int index) {
+            return map.get(object);
+        }
+        
     }
 
 }
