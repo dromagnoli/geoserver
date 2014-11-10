@@ -489,10 +489,9 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
                     map.put(i, key);
                 }
             }
-            
+
         }
-        
-        
+
         @Override
         public Object getDisplayValue(Interpolation object) {
             return map.get(object);
@@ -502,7 +501,7 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
         public String getIdValue(Interpolation object, int index) {
             return map.get(object);
         }
-        
+
     }
 
 }

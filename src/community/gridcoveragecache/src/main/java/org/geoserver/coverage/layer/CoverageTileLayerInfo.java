@@ -4,8 +4,6 @@
  */
 package org.geoserver.coverage.layer;
 
-import javax.media.jai.Interpolation;
-
 import org.geoserver.gwc.layer.GeoServerTileLayerInfo;
 
 public interface CoverageTileLayerInfo extends GeoServerTileLayerInfo {

@@ -8,15 +8,11 @@ package org.geoserver.gwc.web.layer;
 import org.apache.wicket.model.IModel;
 import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.LayerInfo;
-import org.geoserver.catalog.MetadataMap;
 import org.geoserver.catalog.ResourceInfo;
 import org.geoserver.coverage.layer.CoverageTileLayer;
 import org.geoserver.coverage.layer.CoverageTileLayerInfo;
 import org.geoserver.coverage.layer.CoverageTileLayerInfoImpl;
 import org.geoserver.gwc.GWC;
-import org.geoserver.gwc.config.GWCConfig;
-import org.geoserver.gwc.layer.GeoServerTileLayer;
-import org.geoserver.gwc.layer.TileLayerInfoUtil;
 import org.geoserver.web.data.resource.LayerEditTabPanelInfo;
 import org.geowebcache.layer.TileLayer;
 
@@ -39,8 +35,6 @@ public class RasterEditCacheOptionsTabPanelInfo extends LayerEditTabPanelInfo {
         }
 
         CoverageTileLayerInfo tileLayerInfo;
-
-        final GWCConfig defaultSettings = mediator.getConfig();
 
         CoverageTileLayer tileLayer = null;
 

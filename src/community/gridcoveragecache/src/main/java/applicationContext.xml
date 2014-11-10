@@ -5,7 +5,8 @@ This code is licensed under the GPL 2.0 license, available at the root applicati
 <!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
 
 <beans>
-    <bean id="cacheCoverageReaderCallback" class="org.geoserver.coverage.CachingGridCoverageReaderCallback">
+
+	<bean id="cacheCoverageReaderCallback" class="org.geoserver.coverage.CachingGridCoverageReaderCallback">
         <property name="gridCoveragesCache" ref="gridCoveragesCache" />
     </bean>
 
@@ -52,4 +53,6 @@ This code is licensed under the GPL 2.0 license, available at the root applicati
         <constructor-arg ref="coverageCacheDefaultStorageFinder" />
     </bean>
     -->
+    
+    <bean id="coveragCacheXStreamInitializer" class="org.geoserver.coverage.CoverageCacheXStreamInitializer" />
 </beans>

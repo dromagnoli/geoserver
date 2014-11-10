@@ -1,8 +1,6 @@
 package org.geoserver.coverage.configuration;
 
 import org.geoserver.catalog.Catalog;
-import org.geoserver.config.GeoServer;
-import org.geoserver.config.GeoServerInitializer;
 import org.geoserver.gwc.GWC;
 
 public class CoverageCacheInitializer{

@@ -4,8 +4,8 @@
  */
 package org.geoserver.coverage;
 
+import java.awt.image.SampleModel;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -24,6 +24,7 @@ import org.geoserver.coverage.layer.CoverageTileLayerInfo;
 import org.geoserver.coverage.layer.CoverageTileLayerInfoImpl;
 import org.geoserver.gwc.GWC;
 import org.geoserver.util.ISO8601Formatter;
+import org.geotools.coverage.GridSampleDimension;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridCoverageFactory;
 import org.geotools.coverage.grid.GridEnvelope2D;
@@ -43,7 +44,6 @@ import org.geowebcache.conveyor.ConveyorTile;
 import org.geowebcache.grid.BoundingBox;
 import org.geowebcache.grid.Grid;
 import org.geowebcache.grid.GridSet;
-import org.geowebcache.grid.GridSetBroker;
 import org.geowebcache.grid.GridSubset;
 import org.geowebcache.grid.GridSubsetFactory;
 import org.geowebcache.grid.OutsideCoverageException;
@@ -128,7 +128,6 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
 //            gridSubSet = buildGridSubSet();
             //String coverageName = info.getNativeName();
             //ImageLayout layout = reader.getImageLayout(coverageName);  
-            GWC gwc = GWC.get();
             //Catalog catalog = gwc.getCatalog();
             //LayerInfo layerInfo = catalog.getLayers(info).get(0);
             //String nameSpace = layerInfo.getResource().getNamespace().getName();
@@ -137,7 +136,7 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
             CoverageTileLayerInfo tlInfo = info.getMetadata().get(CoverageTileLayer.COVERAGETILELAYERINFO_KEY, CoverageTileLayerInfoImpl.class);
             gridSubSet = CoverageConfiguration.parseGridSubsets(cache.getGridSetBroker(), tlInfo);
             gridSet = gridSubSet.get(0).getGridSet();
-            coverageTileLayer = (CoverageTileLayer) gwc.getTileLayerByName(tlInfo.getName());
+            coverageTileLayer = (CoverageTileLayer) GWC.get().getTileLayerByName(tlInfo.getName());
             //GeoServerTileLayer tileLayer = (GeoServerTileLayer) gwc.getTileLayerByName(nameSpace + ":" + layerInfo.getName() + "test");
             //coverageTileLayer = new CoverageTileLayer(info, cache.getGridSetBroker(), gridSubSet, layout, tileLayer.getInfo());
 //        } catch (IOException e) {
@@ -437,7 +436,15 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
             CoordinateReferenceSystem crs = requestedEnvelope.getCoordinateReferenceSystem();
             ConveyorTilesRenderedImage finalImage = new ConveyorTilesRenderedImage(cTiles, layout, axisOrderingTopDown, wTiles, hTiles, zoomLevel, gridSet, subset, crs);
             ReferencedEnvelope readEnvelope = finalImage.getEnvelope();
-            GridCoverage2D readCoverage = gcf.create(name, finalImage, readEnvelope);
+            final SampleModel sampleModel = finalImage.getSampleModel();
+            final int numBands = sampleModel.getNumBands();
+            final GridSampleDimension bands[] = new GridSampleDimension[numBands];
+
+            for (int i = 0; i < numBands; i++) {
+                bands[i] = new GridSampleDimension("band" + i);
+            }
+
+            GridCoverage2D readCoverage = gcf.create(name, finalImage, readEnvelope, bands, null, null);
             return readCoverage;
         } catch (Exception e) {
             throw new IOException(e);
