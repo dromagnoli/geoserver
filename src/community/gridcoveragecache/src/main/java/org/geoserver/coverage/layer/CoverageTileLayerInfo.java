@@ -18,11 +18,11 @@ public interface CoverageTileLayerInfo extends GeoServerTileLayerInfo {
 //    
 //    public boolean isEnabledCaching();
     
-    public void setResamplingAlgorithm(Interpolation resamplingAlgorithm);
+    //public void setResamplingAlgorithm(Interpolation resamplingAlgorithm);
     
-    public Interpolation getResamplingAlgorithm();
+    //public Interpolation getResamplingAlgorithm();
     
-    public void setSeedingPolicy(SeedingPolicy seedingPolicy);
+    //public void setSeedingPolicy(SeedingPolicy seedingPolicy);
     
-    public SeedingPolicy getSeedingPolicy();
+    //public SeedingPolicy getSeedingPolicy();
 }

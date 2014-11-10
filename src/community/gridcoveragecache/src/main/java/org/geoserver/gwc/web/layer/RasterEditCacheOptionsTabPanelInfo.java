@@ -76,7 +76,7 @@ public class RasterEditCacheOptionsTabPanelInfo extends LayerEditTabPanelInfo {
         }
 
         tileLayerInfo.setEnabled(true);
-        final boolean initWithTileLayer = (isNew && defaultSettings.isCacheLayersByDefault())
+        final boolean initWithTileLayer = isNew//(isNew && defaultSettings.isCacheLayersByDefault())
                 || tileLayer != null;
 
         if (!initWithTileLayer) {

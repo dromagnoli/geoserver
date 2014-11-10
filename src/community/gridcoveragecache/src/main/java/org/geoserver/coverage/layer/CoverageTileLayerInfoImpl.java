@@ -6,7 +6,7 @@ package org.geoserver.coverage.layer;
 
 import java.io.Serializable;
 
-import javax.media.jai.Interpolation;
+//import javax.media.jai.Interpolation;
 
 import org.geoserver.gwc.layer.GeoServerTileLayerInfo;
 import org.geoserver.gwc.layer.GeoServerTileLayerInfoImpl;
@@ -26,8 +26,8 @@ public class CoverageTileLayerInfoImpl extends GeoServerTileLayerInfoImpl implem
         setParameterFilters(info.getParameterFilters());
         setGridSubsets(info.getGridSubsets());
         if(info instanceof CoverageTileLayerInfoImpl){
-            setResamplingAlgorithm(((CoverageTileLayerInfoImpl) info).getResamplingAlgorithm());
-            setSeedingPolicy(((CoverageTileLayerInfoImpl) info).getSeedingPolicy());
+            //setResamplingAlgorithm(((CoverageTileLayerInfoImpl) info).getResamplingAlgorithm());
+            //setSeedingPolicy(((CoverageTileLayerInfoImpl) info).getSeedingPolicy());
         }
     }
 
@@ -36,23 +36,23 @@ public class CoverageTileLayerInfoImpl extends GeoServerTileLayerInfoImpl implem
 
 //    private boolean enabledCaching;
 
-    private Interpolation resamplingAlgorithm = Interpolation
-            .getInstance(Interpolation.INTERP_NEAREST);
+//    private Interpolation resamplingAlgorithm = Interpolation
+//            .getInstance(Interpolation.INTERP_NEAREST);
 //    private String resamplingAlgorithm = "nearest";
 //    
 //    private String seedingPolicy = "direct";
 
-    private SeedingPolicy seedingPolicy = SeedingPolicy.DIRECT;
+    //private SeedingPolicy seedingPolicy = SeedingPolicy.DIRECT;
 
-    @Override
-    public void setResamplingAlgorithm(Interpolation resamplingAlgorithm) {
-        this.resamplingAlgorithm = resamplingAlgorithm;
-    }
-
-    @Override
-    public Interpolation getResamplingAlgorithm() {
-        return resamplingAlgorithm;
-    }
+//    @Override
+//    public void setResamplingAlgorithm(Interpolation resamplingAlgorithm) {
+//        this.resamplingAlgorithm = resamplingAlgorithm;
+//    }
+//
+//    @Override
+//    public Interpolation getResamplingAlgorithm() {
+//        return resamplingAlgorithm;
+//    }
 //
 //    @Override
 //    public void setEnabledCaching(boolean enabledCaching) {
@@ -64,15 +64,15 @@ public class CoverageTileLayerInfoImpl extends GeoServerTileLayerInfoImpl implem
 //        return enabledCaching;
 //    }
 
-    @Override
-    public void setSeedingPolicy(SeedingPolicy seedingPolicy) {
-        this.seedingPolicy = seedingPolicy;
-    }
-
-    @Override
-    public SeedingPolicy getSeedingPolicy() {
-        return seedingPolicy;
-    }
+//    @Override
+//    public void setSeedingPolicy(SeedingPolicy seedingPolicy) {
+//        this.seedingPolicy = seedingPolicy;
+//    }
+//
+//    @Override
+//    public SeedingPolicy getSeedingPolicy() {
+//        return seedingPolicy;
+//    }
     
     @Override
     public GeoServerTileLayerInfoImpl clone() {
@@ -81,9 +81,9 @@ public class CoverageTileLayerInfoImpl extends GeoServerTileLayerInfoImpl implem
             return info;
         } else {
             CoverageTileLayerInfoImpl infoImpl = new CoverageTileLayerInfoImpl(info);
-            infoImpl.setSeedingPolicy(SeedingPolicy.DIRECT);
-            infoImpl.setResamplingAlgorithm(Interpolation
-            .getInstance(Interpolation.INTERP_NEAREST));
+            //infoImpl.setSeedingPolicy(SeedingPolicy.DIRECT);
+            //infoImpl.setResamplingAlgorithm(Interpolation
+            //.getInstance(Interpolation.INTERP_NEAREST));
             return infoImpl;
         }
     }

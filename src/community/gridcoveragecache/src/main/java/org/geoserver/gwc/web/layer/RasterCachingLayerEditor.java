@@ -184,7 +184,7 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
         boolean doCreateTileLayer;
         if (tileLayerInfo.getId() != null) {
             doCreateTileLayer = true;
-        } else if (isNew() && mediator.getConfig().isCacheLayersByDefault()) {
+        } else if (isNew()) {
             doCreateTileLayer = true;
         } else {
             doCreateTileLayer = false;
@@ -280,8 +280,7 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
 
         final CatalogInfo layer = layerModel.getObject();
 
-        ResourceInfo resource = ((LayerInfo) layer).getResource();
-        CoverageInfo coverage = (CoverageInfo) resource;
+
 
         final CoverageTileLayerInfo tileLayerInfo = (CoverageTileLayerInfo) getModelObject();
         boolean tileLayerExists = false;// gwc.hasTileLayer(layer);// TODO CHANGE HERE
@@ -332,7 +331,15 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
             gwc.add(coverageTileLayer);
         }
         
+        // Get the resource
+        CoverageInfo coverage = gwc.getCatalog().getCoverageByName(((LayerInfo) layer).getName());
+        //ResourceInfo resource = ((LayerInfo) layer).getResource();
+        //CoverageInfo coverage = (CoverageInfo) resource;
+        
         // Add the WCSLayerInfo to the CoverageInfo Metadata Map
+        if(coverage == null){
+            return;
+        }
         MetadataMap metadata = coverage.getMetadata();
         if(metadata != null){
             metadata.put(CoverageTileLayer.COVERAGETILELAYERINFO_KEY, tileLayerInfo);
@@ -343,9 +350,6 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
         }
         
         // Saving catalog
-        if(!(coverage instanceof ModificationProxy)){
-            coverage = ModificationProxy.create(coverage, CoverageInfo.class);
-        }
         gwc.getCatalog().save(coverage);
     }
 

@@ -21,6 +21,8 @@ import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.ResourcePool;
 import org.geoserver.coverage.layer.CoverageTileLayer;
+import org.geoserver.coverage.layer.CoverageTileLayerInfo;
+import org.geoserver.coverage.layer.CoverageTileLayerInfoImpl;
 import org.geoserver.gwc.GWC;
 import org.geoserver.gwc.layer.CatalogConfiguration;
 import org.geoserver.gwc.layer.GeoServerTileLayer;
@@ -128,14 +130,19 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
         try {
             delegate = reader;
             gridSubSet = buildGridSubSet();
-            String coverageName = info.getNativeName();
-            ImageLayout layout = reader.getImageLayout(coverageName);  
+            //String coverageName = info.getNativeName();
+            //ImageLayout layout = reader.getImageLayout(coverageName);  
             GWC gwc = GWC.get();
-            Catalog catalog = gwc.getCatalog();
-            LayerInfo layerInfo = catalog.getLayers(info).get(0);
-            String nameSpace = layerInfo.getResource().getNamespace().getName();
-            GeoServerTileLayer tileLayer = (GeoServerTileLayer) gwc.getTileLayerByName(nameSpace + ":" + layerInfo.getName() + "test");
-            coverageTileLayer = new CoverageTileLayer(info, cache.getGridSetBroker(), gridSubSet, layout, tileLayer.getInfo());
+            //Catalog catalog = gwc.getCatalog();
+            //LayerInfo layerInfo = catalog.getLayers(info).get(0);
+            //String nameSpace = layerInfo.getResource().getNamespace().getName();
+            
+            // Getting the Metadata Map
+            CoverageTileLayerInfo tlInfo = info.getMetadata().get(CoverageTileLayer.COVERAGETILELAYERINFO_KEY, CoverageTileLayerInfoImpl.class);
+            
+            coverageTileLayer = (CoverageTileLayer) gwc.getTileLayerByName(tlInfo.getName());
+            //GeoServerTileLayer tileLayer = (GeoServerTileLayer) gwc.getTileLayerByName(nameSpace + ":" + layerInfo.getName() + "test");
+            //coverageTileLayer = new CoverageTileLayer(info, cache.getGridSetBroker(), gridSubSet, layout, tileLayer.getInfo());
         } catch (IOException e) {
             throw new IllegalArgumentException(e);
         } catch (Exception e) {

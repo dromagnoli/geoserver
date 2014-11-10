@@ -81,6 +81,9 @@ public class CoverageConfiguration extends CatalogConfiguration implements Confi
                 | SecurityException e) {
             throw new RuntimeException(e);
         }
+        
+        // Add the new Listener for the CoverageConfiguration
+        
     }
 
     /**
