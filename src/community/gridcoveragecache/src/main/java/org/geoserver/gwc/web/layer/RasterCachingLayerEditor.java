@@ -343,6 +343,9 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
         }
         
         // Saving catalog
+        if(!(coverage instanceof ModificationProxy)){
+            coverage = ModificationProxy.create(coverage, CoverageInfo.class);
+        }
         gwc.getCatalog().save(coverage);
     }
 

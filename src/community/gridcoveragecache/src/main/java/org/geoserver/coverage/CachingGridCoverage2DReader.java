@@ -16,6 +16,7 @@ import java.util.logging.Logger;
 
 import javax.media.jai.ImageLayout;
 
+import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.ResourcePool;
@@ -129,8 +130,11 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
             gridSubSet = buildGridSubSet();
             String coverageName = info.getNativeName();
             ImageLayout layout = reader.getImageLayout(coverageName);  
-            LayerInfo layerInfo = GWC.get().getCatalog().getLayers(info).get(0);
-            GeoServerTileLayer tileLayer = (GeoServerTileLayer) GWC.get().getTileLayerByName(layerInfo.getName());
+            GWC gwc = GWC.get();
+            Catalog catalog = gwc.getCatalog();
+            LayerInfo layerInfo = catalog.getLayers(info).get(0);
+            String nameSpace = layerInfo.getResource().getNamespace().getName();
+            GeoServerTileLayer tileLayer = (GeoServerTileLayer) gwc.getTileLayerByName(nameSpace + ":" + layerInfo.getName() + "test");
             coverageTileLayer = new CoverageTileLayer(info, cache.getGridSetBroker(), gridSubSet, layout, tileLayer.getInfo());
         } catch (IOException e) {
             throw new IllegalArgumentException(e);
