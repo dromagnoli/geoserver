@@ -16,11 +16,13 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 import javax.media.jai.ImageLayout;
+import javax.media.jai.Interpolation;
 
 import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.CoverageStoreInfo;
 import org.geoserver.catalog.impl.LayerGroupInfoImpl;
 import org.geoserver.coverage.WCSSourceHelper;
+import org.geoserver.coverage.configuration.CoverageConfiguration;
 import org.geoserver.gwc.GWC;
 import org.geoserver.gwc.layer.GeoServerTileLayer;
 import org.geoserver.gwc.layer.GeoServerTileLayerInfo;
@@ -58,6 +60,8 @@ public class CoverageTileLayer extends GeoServerTileLayer {
     private ReferencedEnvelope bbox;
 
     private String coverageName;
+    
+    Interpolation interpolation = Interpolation.getInstance(Interpolation.INTERP_NEAREST);
 
     private CoverageTileLayerInfo coverageTileLayerInfo; 
 
@@ -84,7 +88,7 @@ public class CoverageTileLayer extends GeoServerTileLayer {
             this.coverageTileLayerInfo = new CoverageTileLayerInfoImpl(localInfo);
         }
         coverageTileLayerInfo.setId(info.getId());
-        coverageTileLayerInfo.setName(name + "test");
+        coverageTileLayerInfo.setName(name + CoverageConfiguration.COVERAGE_LAYER_SUFFIX);
         coverageTileLayerInfo.getMimeFormats().add("image/tiff");
         this.layout = layout;
         
@@ -158,7 +162,8 @@ public class CoverageTileLayer extends GeoServerTileLayer {
                 try {
                     long requestTime = System.currentTimeMillis();
 
-                    sourceHelper.makeRequest(metaTile, tile, coverageTileLayerInfo.getResamplingAlgorithm());
+                    sourceHelper.makeRequest(metaTile, tile, interpolation
+                            /*coverageTileLayerInfo.getResamplingAlgorithm()*/);
                     saveTiles(metaTile, tile, requestTime);
                 } catch (Exception e) {
                     throw new GeoWebCacheException("Problem communicating with GeoServer", e);

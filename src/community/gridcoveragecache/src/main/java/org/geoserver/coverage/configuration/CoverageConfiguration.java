@@ -3,7 +3,10 @@ package org.geoserver.coverage.configuration;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -11,14 +14,14 @@ import java.util.concurrent.locks.ReadWriteLock;
 
 import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.CoverageInfo;
-import org.geoserver.catalog.LayerGroupInfo;
-import org.geoserver.catalog.LayerInfo;
 import org.geoserver.coverage.layer.CoverageTileLayer;
 import org.geoserver.gwc.layer.CatalogConfiguration;
 import org.geoserver.gwc.layer.GeoServerTileLayer;
 import org.geoserver.gwc.layer.GeoServerTileLayerInfo;
 import org.geoserver.gwc.layer.TileLayerCatalog;
 import org.geowebcache.config.Configuration;
+import org.geowebcache.config.XMLGridSubset;
+import org.geowebcache.grid.GridSet;
 import org.geowebcache.grid.GridSetBroker;
 import org.geowebcache.grid.GridSubset;
 import org.geowebcache.grid.GridSubsetFactory;
@@ -29,6 +32,8 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 
 public class CoverageConfiguration extends CatalogConfiguration implements Configuration {
+
+    public static String COVERAGE_LAYER_SUFFIX = "cov";
 
     private GridSetBroker gwcGridSetBroker;
 
@@ -169,10 +174,9 @@ public class CoverageConfiguration extends CatalogConfiguration implements Confi
                     throw new IllegalArgumentException("GeoServerTileLayerInfo '" + layerId
                             + "' does not exist.");
                 }
-                GridSubset gridSubSet = GridSubsetFactory.createGridSubSet(gridSetBroker.getGridSets()
-                        .get(0));
+                List<GridSubset> subsets = parseGridSubsets(gridSetBroker, tileLayerInfo);
                 CoverageInfo coverage = geoServerCatalog.getCoverage(layerId);
-                tileLayer = new CoverageTileLayer(coverage, gridSetBroker, Arrays.asList(gridSubSet), null, tileLayerInfo);
+                tileLayer = new CoverageTileLayer(coverage, gridSetBroker, subsets, null, tileLayerInfo);
             } finally {
                 lock.readLock().unlock();
             }
@@ -182,5 +186,20 @@ public class CoverageConfiguration extends CatalogConfiguration implements Confi
             }
             return tileLayer;
         }
+
+    }
+
+    public static List<GridSubset> parseGridSubsets(GridSetBroker gridsetBroker,
+            GeoServerTileLayerInfo tileLayerInfo) {
+        Set<XMLGridSubset> subset = tileLayerInfo.getGridSubsets();
+        Iterator<XMLGridSubset> subsetIt = subset.iterator();
+        List<GridSubset> subSets = new ArrayList<GridSubset>();
+        while (subsetIt.hasNext()) {
+            XMLGridSubset element = subsetIt.next();
+            GridSet gridset = gridsetBroker.get(element.getGridSetName());
+            subSets.add(GridSubsetFactory.createGridSubSet(gridset, element.getExtent(),
+                    element.getZoomStart(), element.getZoomStop()));
+        }
+        return subSets;
     }
 }

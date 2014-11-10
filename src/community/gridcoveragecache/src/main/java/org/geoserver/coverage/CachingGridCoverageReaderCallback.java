@@ -11,7 +11,6 @@ import org.geoserver.catalog.GridCoverageReaderCallback;
 import org.geoserver.catalog.MetadataMap;
 import org.geoserver.catalog.ResourcePool;
 import org.geoserver.coverage.layer.CoverageTileLayer;
-import org.geoserver.gwc.layer.CatalogConfiguration;
 import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.factory.Hints;
 

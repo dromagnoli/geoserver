@@ -11,6 +11,7 @@ import static org.geoserver.gwc.GWC.tileLayerName;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -46,9 +47,9 @@ import org.geoserver.catalog.MetadataMap;
 import org.geoserver.catalog.ResourceInfo;
 import org.geoserver.catalog.impl.CoverageInfoImpl;
 import org.geoserver.catalog.impl.ModificationProxy;
+import org.geoserver.coverage.configuration.CoverageConfiguration;
 import org.geoserver.coverage.layer.CoverageTileLayer;
 import org.geoserver.coverage.layer.CoverageTileLayerInfo;
-import org.geoserver.coverage.layer.CoverageTileLayerInfo.SeedingPolicy;
 import org.geoserver.gwc.GWC;
 import org.geoserver.gwc.layer.GeoServerTileLayerInfo;
 import org.geoserver.web.wicket.GeoServerDialog;
@@ -56,16 +57,13 @@ import org.geoserver.web.wicket.ParamResourceModel;
 import org.geowebcache.config.XMLGridSubset;
 import org.geowebcache.diskquota.storage.Quota;
 import org.geowebcache.filter.parameters.ParameterFilter;
+import org.geowebcache.grid.GridSet;
 import org.geowebcache.grid.GridSetBroker;
 import org.geowebcache.grid.GridSubset;
 import org.geowebcache.grid.GridSubsetFactory;
 import org.geowebcache.layer.TileLayer;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import com.google.common.collect.Maps;
-import com.sun.media.jai.util.InterpAverage;
 
 /**
  * 
@@ -310,17 +308,17 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
         tileLayerInfo.setId(layer.getId());
 
         final String name;
-        final GridSetBroker gridsets = gwc.getGridSetBroker();
+        final GridSetBroker gridsetBroker = gwc.getGridSetBroker();
         LayerInfo layerInfo = (LayerInfo) layer;
         name = tileLayerName(layerInfo);
 
         tileLayerInfo.setName(name);
-
-        GridSubset gridSubSet = GridSubsetFactory.createGridSubSet(gridsets.getGridSets().get(0));
+        List<GridSubset> subSets = CoverageConfiguration.parseGridSubsets(gridsetBroker, tileLayerInfo);
+        
         CoverageInfo info = gwc.getCatalog().getCoverageByName(layerInfo.getName());
         CoverageTileLayer coverageTileLayer = null;
         try {
-            coverageTileLayer = new CoverageTileLayer(info, gridsets, Arrays.asList(gridSubSet), null, tileLayerInfo);// TODO CHANGE HERE IT IS ONLY A TEST
+            coverageTileLayer = new CoverageTileLayer(info, gridsetBroker, subSets, null, tileLayerInfo);// TODO CHANGE HERE IT IS ONLY A TEST
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

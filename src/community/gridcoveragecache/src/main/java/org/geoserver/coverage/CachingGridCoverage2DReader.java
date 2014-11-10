@@ -16,17 +16,13 @@ import java.util.logging.Logger;
 
 import javax.media.jai.ImageLayout;
 
-import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.CoverageInfo;
-import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.ResourcePool;
+import org.geoserver.coverage.configuration.CoverageConfiguration;
 import org.geoserver.coverage.layer.CoverageTileLayer;
 import org.geoserver.coverage.layer.CoverageTileLayerInfo;
 import org.geoserver.coverage.layer.CoverageTileLayerInfoImpl;
 import org.geoserver.gwc.GWC;
-import org.geoserver.gwc.layer.CatalogConfiguration;
-import org.geoserver.gwc.layer.GeoServerTileLayer;
-import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.util.ISO8601Formatter;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridCoverageFactory;
@@ -129,7 +125,7 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
         this.cache = cache;
         try {
             delegate = reader;
-            gridSubSet = buildGridSubSet();
+//            gridSubSet = buildGridSubSet();
             //String coverageName = info.getNativeName();
             //ImageLayout layout = reader.getImageLayout(coverageName);  
             GWC gwc = GWC.get();
@@ -139,52 +135,53 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
             
             // Getting the Metadata Map
             CoverageTileLayerInfo tlInfo = info.getMetadata().get(CoverageTileLayer.COVERAGETILELAYERINFO_KEY, CoverageTileLayerInfoImpl.class);
-            
+            gridSubSet = CoverageConfiguration.parseGridSubsets(cache.getGridSetBroker(), tlInfo);
+            gridSet = gridSubSet.get(0).getGridSet();
             coverageTileLayer = (CoverageTileLayer) gwc.getTileLayerByName(tlInfo.getName());
             //GeoServerTileLayer tileLayer = (GeoServerTileLayer) gwc.getTileLayerByName(nameSpace + ":" + layerInfo.getName() + "test");
             //coverageTileLayer = new CoverageTileLayer(info, cache.getGridSetBroker(), gridSubSet, layout, tileLayer.getInfo());
-        } catch (IOException e) {
-            throw new IllegalArgumentException(e);
+//        } catch (IOException e) {
+//            throw new IllegalArgumentException(e);
         } catch (Exception e) {
             throw new IllegalArgumentException(e);
         }
     }
 
-    private List<GridSubset> buildGridSubSet() throws IOException {
-        gridSet = buildGridSet();
-        axisOrderingTopDown = axisOrderingTopDown();
-//        GeneralEnvelope env = getOriginalEnvelope();
-//        GridSubsetFactory.createGridSubSet(gridSet)
-        return Arrays.asList(GridSubsetFactory.createGridSubSet(gridSet/*, new BoundingBox(
-                env.getMinimum(0), env.getMinimum(1), env.getMaximum(0), env.getMaximum(1)), null,
-                null*/)); // TODO CHANGE HERE
-    }
-
-    GridSet buildGridSet() throws IOException {
-        // TODO: Replace that using global GridSet
-        GridSetBroker broker = cache.getGridSetBroker();
-
-        // TODO: Support different grids
-        // GridSet set = broker.get(broker.WORLD_EPSG4326.getName());
-        GridSet set = broker.get(cache.REFERENCE.getName());
-        return set;
-
-        // Previous code for dynamic gridSet 
-        //
-        // int epsgCode = 4326;
-        // String name = info.getName() + "_" + epsgCode + "_" + 1;
-        // SRS srs = SRS.getSRS(epsgCode);
-        // GeneralEnvelope envelope = delegate.getOriginalEnvelope();
-        // BoundingBox extent = new BoundingBox(envelope.getMinimum(0), envelope.getMinimum(1),
-        // envelope.getMaximum(0), envelope.getMaximum(1));
-        // double[][] resolution = delegate.getResolutionLevels();
-        // return GridSetFactory.createGridSet(name, srs, extent, true /*CHECKTHAT*/, 3 /*CHECKTHAT_LEVELS*/,
-        // 1d /*CHECKTHAT_METERS_PER_UNIT*/,
-        // resolution[0][0] /*CHECKTHAT_PIXELSIZE*/,
-        // 512/*CHECKTHAT_TILEWIDTH*/ , 512/*CHECKTHAT_TILEHEIGHT*/ ,
-        // false /*CHECKTHAT_yCoordinateFirst*/);
-        //
-    }
+//    private List<GridSubset> buildGridSubSet() throws IOException {
+//        gridSet = buildGridSet();
+//        axisOrderingTopDown = axisOrderingTopDown();
+////        GeneralEnvelope env = getOriginalEnvelope();
+////        GridSubsetFactory.createGridSubSet(gridSet)
+//        return Arrays.asList(GridSubsetFactory.createGridSubSet(gridSet/*, new BoundingBox(
+//                env.getMinimum(0), env.getMinimum(1), env.getMaximum(0), env.getMaximum(1)), null,
+//                null*/)); // TODO CHANGE HERE
+//    }
+//
+//    GridSet buildGridSet() throws IOException {
+//        // TODO: Replace that using global GridSet
+//        GridSetBroker broker = cache.getGridSetBroker();
+//
+//        // TODO: Support different grids
+//        // GridSet set = broker.get(broker.WORLD_EPSG4326.getName());
+//        GridSet set = broker.get(cache.REFERENCE.getName());
+//        return set;
+//
+//        // Previous code for dynamic gridSet 
+//        //
+//        // int epsgCode = 4326;
+//        // String name = info.getName() + "_" + epsgCode + "_" + 1;
+//        // SRS srs = SRS.getSRS(epsgCode);
+//        // GeneralEnvelope envelope = delegate.getOriginalEnvelope();
+//        // BoundingBox extent = new BoundingBox(envelope.getMinimum(0), envelope.getMinimum(1),
+//        // envelope.getMaximum(0), envelope.getMaximum(1));
+//        // double[][] resolution = delegate.getResolutionLevels();
+//        // return GridSetFactory.createGridSet(name, srs, extent, true /*CHECKTHAT*/, 3 /*CHECKTHAT_LEVELS*/,
+//        // 1d /*CHECKTHAT_METERS_PER_UNIT*/,
+//        // resolution[0][0] /*CHECKTHAT_PIXELSIZE*/,
+//        // 512/*CHECKTHAT_TILEWIDTH*/ , 512/*CHECKTHAT_TILEHEIGHT*/ ,
+//        // false /*CHECKTHAT_yCoordinateFirst*/);
+//        //
+//    }
 
     @Override
     public Format getFormat() {
