@@ -416,7 +416,7 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
                         // Ask again for the Tile in order to get the cached 
                         // one with FileResource and not the Conveyor Tile 
                         // with the ByteArrayResource
-                        tile = coverageTileLayer.getTile(ct);
+//                        tile = coverageTileLayer.getTile(ct);
                         String index = i + "_" + j;
                         cTiles.put(index, tile);
                     } catch (OutsideCoverageException oce) {
