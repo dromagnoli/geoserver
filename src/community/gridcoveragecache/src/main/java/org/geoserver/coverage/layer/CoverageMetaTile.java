@@ -60,7 +60,7 @@ public class CoverageMetaTile extends MetaTile {
             Map<String, String> fullParameters) {
         
         super(gridSubset, responseFormat, formatModifier, tileGridPosition, metaX, metaY,
-                (layer == null ? null : layer.gutter));
+                (layer == null ? null : layer.getInfo().getGutter()));
         this.coverageTileLayer = layer;
         this.fullParameters = fullParameters;
     }

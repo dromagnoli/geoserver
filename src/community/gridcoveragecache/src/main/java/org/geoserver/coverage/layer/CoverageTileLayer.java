@@ -16,7 +16,6 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 import javax.media.jai.ImageLayout;
-import javax.media.jai.Interpolation;
 
 import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.CoverageStoreInfo;
@@ -52,9 +51,6 @@ public class CoverageTileLayer extends GeoServerTileLayer {
 
     protected Map<String, GridSubset> subSets;
 
-    /** Interpolation used when processing raster data to populate this layer's tiles **/
-    protected Interpolation interpolation = Interpolation.getInstance(Interpolation.INTERP_NEAREST); 
-
     private ImageLayout layout;
 
     private String workspaceName;
@@ -63,7 +59,7 @@ public class CoverageTileLayer extends GeoServerTileLayer {
 
     private String coverageName;
 
-    protected Integer gutter;
+    private CoverageTileLayerInfo coverageTileLayerInfo; 
 
     public CoverageTileLayer(CoverageInfo info, GridSetBroker broker, List<GridSubset> gridSubsets,
             ImageLayout layout, GeoServerTileLayerInfo state) throws Exception {
@@ -80,10 +76,16 @@ public class CoverageTileLayer extends GeoServerTileLayer {
         name = workspaceName + ":" + coverageName;
         bbox = info.boundingBox();
         sourceHelper = new WCSSourceHelper(this);
-        GeoServerTileLayerInfo localLayerInfo = getInfo();
-        localLayerInfo.setId(info.getId());
-        localLayerInfo.setName(name + "test");
-        localLayerInfo.getMimeFormats().add("image/tiff");
+        
+        GeoServerTileLayerInfo localInfo = super.getInfo();
+        if(localInfo instanceof CoverageTileLayerInfo){
+            this.coverageTileLayerInfo = (CoverageTileLayerInfo) localInfo;
+        } else {
+            this.coverageTileLayerInfo = new CoverageTileLayerInfoImpl(localInfo);
+        }
+        coverageTileLayerInfo.setId(info.getId());
+        coverageTileLayerInfo.setName(name + "test");
+        coverageTileLayerInfo.getMimeFormats().add("image/tiff");
         this.layout = layout;
         
         //TODO: Customize Interpolation, getting it from the GUI
@@ -113,16 +115,8 @@ public class CoverageTileLayer extends GeoServerTileLayer {
     
     @Override
     public GeoServerTileLayerInfo getInfo() {
-        GeoServerTileLayerInfo info = super.getInfo();
-        if(info instanceof CoverageTileLayerInfo){
-            return info;
-        } else {
-            CoverageTileLayerInfoImpl infoImpl = new CoverageTileLayerInfoImpl(info);
-            return infoImpl;
-        }
+       return coverageTileLayerInfo;
     }
-    
-    
 
     /**
      * Used for seeding
@@ -133,7 +127,7 @@ public class CoverageTileLayer extends GeoServerTileLayer {
         if (gridSubset.shouldCacheAtZoom(tile.getTileIndex()[2])) {
             // Always use metaTiling on seeding since we are implementing our
             // custom GWC layer
-            getMetatilingReponse(tile, tryCache, 2, 2);
+            getMetatilingReponse(tile, tryCache, coverageTileLayerInfo.getMetaTilingX(), coverageTileLayerInfo.getMetaTilingY());
         }
     }
 
@@ -164,7 +158,7 @@ public class CoverageTileLayer extends GeoServerTileLayer {
                 try {
                     long requestTime = System.currentTimeMillis();
 
-                    sourceHelper.makeRequest(metaTile, tile, interpolation);
+                    sourceHelper.makeRequest(metaTile, tile, coverageTileLayerInfo.getResamplingAlgorithm());
                     saveTiles(metaTile, tile, requestTime);
                 } catch (Exception e) {
                     throw new GeoWebCacheException("Problem communicating with GeoServer", e);
@@ -243,16 +237,10 @@ public class CoverageTileLayer extends GeoServerTileLayer {
         return tile;
     }
 
-
     public long[][] getZoomedInGridLoc(String gridSetId, long[] gridLoc)
             throws GeoWebCacheException {
         return null;
     }
-
-//    public void addMetaWidthHeight(int w, int h) {
-//        this.metaWidthHeight[0] = w;
-//        this.metaWidthHeight[1] = h;
-//    }
 
     public void setSourceHelper(WCSSourceHelper source) {
         LOGGER.fine("Setting sourceHelper on " + this.name);
@@ -261,10 +249,10 @@ public class CoverageTileLayer extends GeoServerTileLayer {
     }
 
 
-    // public void cleanUpThreadLocals() {
-    // WMS_BUFFER.remove();
-    // WMS_BUFFER2.remove();
-    // }
+    public void cleanUpThreadLocals() {
+        WMS_BUFFER.remove();
+        WMS_BUFFER2.remove();
+    }
 
     @Override
     public String getStyles() {
@@ -300,11 +288,12 @@ public class CoverageTileLayer extends GeoServerTileLayer {
 
         ConveyorTile returnTile;
 
-        // Customize metatiling size
-        final int metaX = 2;
-        final int metaY = 2;
-
-        returnTile = getMetatilingReponse(tile, true, metaX, metaY);
+        try {
+            returnTile = getMetatilingReponse(tile, true, coverageTileLayerInfo.getMetaTilingX(), 
+                    coverageTileLayerInfo.getMetaTilingY());
+        } finally {
+            cleanUpThreadLocals();
+        }
 
         sendTileRequestedEvent(returnTile);
 
@@ -328,7 +317,7 @@ public class CoverageTileLayer extends GeoServerTileLayer {
     public ImageLayout getLayout() {
         return layout;
     }
-    
+
     @Override
     public boolean isAdvertised() {
         return false;
