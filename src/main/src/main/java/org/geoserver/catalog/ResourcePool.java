@@ -198,6 +198,7 @@ public class ResourcePool {
     ThreadPoolExecutor coverageExecutor;
     CatalogRepository repository;
     List<GridCoverageReaderCallback> gridCoverageReaders;
+    public final static String COVERAGETILELAYERINFO_KEY = "coverageTileLayerInfo.key";
 
     /**
      * Creates a new instance of the resource pool.
@@ -1372,14 +1373,19 @@ public class ResourcePool {
             if (info.getId() != null) {
                 // expand the hints if necessary
                 key = new CoverageHintReaderKey(info.getId(), hints);
-                synchronized (wrappedCoverageReaderCache) {
-                    Object cachedReader = wrappedCoverageReaderCache.get( key );
-                    wrappedReader = cachedReader != null ? (GridCoverage2DReader)cachedReader : null;
-                    if (wrappedReader == null) {
-                        GridCoverageReaderCallback callBack = getGridCoverageReader(coverageInfo);
-                        if (callBack != null) {
-                            wrappedReader = callBack.wrapGridCoverageReader(this, coverageInfo, coverageName, hints);
-                            wrappedCoverageReaderCache.put(key, wrappedReader);
+                MetadataMap metadata = coverageInfo.getMetadata();
+                if (metadata != null && metadata.containsKey(COVERAGETILELAYERINFO_KEY)) {
+                    synchronized (wrappedCoverageReaderCache) {
+                        Object cachedReader = wrappedCoverageReaderCache.get(key);
+                        wrappedReader = cachedReader != null ? (GridCoverage2DReader) cachedReader
+                                : null;
+                        if (wrappedReader == null) {
+                            GridCoverageReaderCallback callBack = getGridCoverageReader(coverageInfo);
+                            if (callBack != null) {
+                                wrappedReader = callBack.wrapGridCoverageReader(this, coverageInfo,
+                                        coverageName, hints);
+                                wrappedCoverageReaderCache.put(key, wrappedReader);
+                            }
                         }
                     }
                 }
@@ -1502,9 +1508,9 @@ public class ResourcePool {
         for (CoverageHintReaderKey key : keys) {
             if(key.id != null && key.id.equals(storeId)) {
                 hintCoverageReaderCache.remove(key);
+                wrappedCoverageReaderCache.remove(key);
             }
         }
-        //TODO: Should I clear wrapped readers
     }
     
     public GridCoverage getGridCoverage(CoverageInfo info, ReferencedEnvelope env, Hints hints) throws IOException {

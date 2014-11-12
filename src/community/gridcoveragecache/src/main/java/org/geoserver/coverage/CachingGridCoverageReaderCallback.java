@@ -10,7 +10,6 @@ import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.GridCoverageReaderCallback;
 import org.geoserver.catalog.MetadataMap;
 import org.geoserver.catalog.ResourcePool;
-import org.geoserver.coverage.layer.CoverageTileLayer;
 import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.factory.Hints;
 
@@ -37,7 +36,7 @@ public class CachingGridCoverageReaderCallback implements GridCoverageReaderCall
     public boolean canHandle(CoverageInfo info) {
         boolean canHandle = false;
         MetadataMap metadata = info.getMetadata();
-        if(metadata != null && metadata.containsKey(CoverageTileLayer.COVERAGETILELAYERINFO_KEY)){
+        if(metadata != null && metadata.containsKey(ResourcePool.COVERAGETILELAYERINFO_KEY)){
             canHandle = true;
         }
         return canHandle;

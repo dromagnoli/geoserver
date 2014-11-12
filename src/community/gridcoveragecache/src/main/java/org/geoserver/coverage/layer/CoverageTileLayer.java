@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.media.jai.ImageLayout;
@@ -45,8 +46,6 @@ public class CoverageTileLayer extends GeoServerTileLayer {
     private final static Logger LOGGER = org.geotools.util.logging.Logging
             .getLogger(CoverageTileLayer.class);
     
-    public final static String COVERAGETILELAYERINFO_KEY = "coverageTileLayerInfo.key";
-
     private transient WCSSourceHelper sourceHelper;
 
     protected String name;
@@ -66,7 +65,7 @@ public class CoverageTileLayer extends GeoServerTileLayer {
     private CoverageTileLayerInfo coverageTileLayerInfo; 
 
     public CoverageTileLayer(CoverageInfo info, GridSetBroker broker, List<GridSubset> gridSubsets,
-            ImageLayout layout, GeoServerTileLayerInfo state) throws Exception {
+            GeoServerTileLayerInfo state, boolean init) throws Exception {
         super(new LayerGroupInfoImpl(), broker, state);
 
         subSets = new HashMap<String, GridSubset>();
@@ -87,10 +86,11 @@ public class CoverageTileLayer extends GeoServerTileLayer {
         } else {
             this.coverageTileLayerInfo = new CoverageTileLayerInfoImpl(localInfo);
         }
-        coverageTileLayerInfo.setId(info.getId());
-        coverageTileLayerInfo.setName(name + CoverageConfiguration.COVERAGE_LAYER_SUFFIX);
-        coverageTileLayerInfo.getMimeFormats().add("image/tiff");
-        this.layout = layout;
+        if (init) {
+            coverageTileLayerInfo.setId(info.getId());
+            coverageTileLayerInfo.setName(name + CoverageConfiguration.COVERAGE_LAYER_SUFFIX);
+            coverageTileLayerInfo.getMimeFormats().add("image/tiff");
+        }
         
         //TODO: Customize Interpolation, getting it from the GUI
     }
@@ -120,6 +120,10 @@ public class CoverageTileLayer extends GeoServerTileLayer {
     @Override
     public GeoServerTileLayerInfo getInfo() {
        return coverageTileLayerInfo;
+    }
+
+    public void setLayout(ImageLayout layout) {
+        this.layout = layout;
     }
 
     /**
@@ -153,12 +157,16 @@ public class CoverageTileLayer extends GeoServerTileLayer {
             lock = GWC.get().getLockProvider().getLock(buildLockKey(tile, metaTile));
             // got the lock on the meta tile, try again
             if (tryCache && tryCacheFetch(tile)) {
+                if (LOGGER.isLoggable(Level.FINEST)) {
                 LOGGER.finest("--> " + Thread.currentThread().getName() + " returns cache hit for "
                         + Arrays.toString(metaTile.getMetaGridPos()));
+                }
             } else {
+                if (LOGGER.isLoggable(Level.FINER)) {
                 LOGGER.finer("--> " + Thread.currentThread().getName()
                         + " submitting request for meta grid location "
                         + Arrays.toString(metaTile.getMetaGridPos()) + " on " + metaTile);
+                }
                 try {
                     long requestTime = System.currentTimeMillis();
 

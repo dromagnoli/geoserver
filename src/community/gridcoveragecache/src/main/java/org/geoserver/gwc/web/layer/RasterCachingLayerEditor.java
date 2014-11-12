@@ -45,6 +45,7 @@ import org.geoserver.catalog.LayerGroupInfo;
 import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.MetadataMap;
 import org.geoserver.catalog.ResourceInfo;
+import org.geoserver.catalog.ResourcePool;
 import org.geoserver.catalog.impl.CoverageInfoImpl;
 import org.geoserver.catalog.impl.ModificationProxy;
 import org.geoserver.coverage.configuration.CoverageConfiguration;
@@ -318,7 +319,8 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
         CoverageInfo info = gwc.getCatalog().getCoverageByName(layerInfo.getName());
         CoverageTileLayer coverageTileLayer = null;
         try {
-            coverageTileLayer = new CoverageTileLayer(info, gridsetBroker, subSets, null, tileLayerInfo);// TODO CHANGE HERE IT IS ONLY A TEST
+            coverageTileLayer = new CoverageTileLayer(info, gridsetBroker, subSets, tileLayerInfo, true);
+            // TODO CHANGE HERE IT IS ONLY A TEST
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -340,10 +342,10 @@ public class RasterCachingLayerEditor extends FormComponentPanel<GeoServerTileLa
         }
         MetadataMap metadata = coverage.getMetadata();
         if(metadata != null){
-            metadata.put(CoverageTileLayer.COVERAGETILELAYERINFO_KEY, tileLayerInfo);
+            metadata.put(ResourcePool.COVERAGETILELAYERINFO_KEY, tileLayerInfo);
         } else if(coverage instanceof CoverageInfoImpl){
             metadata = new MetadataMap();
-            metadata.put(CoverageTileLayer.COVERAGETILELAYERINFO_KEY, tileLayerInfo);
+            metadata.put(ResourcePool.COVERAGETILELAYERINFO_KEY, tileLayerInfo);
             ((CoverageInfoImpl)coverage).setMetadata(metadata);
         }
         

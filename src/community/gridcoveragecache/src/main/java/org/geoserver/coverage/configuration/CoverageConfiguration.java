@@ -116,8 +116,8 @@ public class CoverageConfiguration extends CatalogConfiguration implements Confi
             ;
             
             try {
-                layer = new CoverageTileLayer(coverageInfo, gwcGridSetBroker, Arrays.asList(gridSubSet), null,
-                        info);
+                layer = new CoverageTileLayer(coverageInfo, gwcGridSetBroker,
+                        Arrays.asList(gridSubSet), info, false);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -176,7 +176,7 @@ public class CoverageConfiguration extends CatalogConfiguration implements Confi
                 }
                 List<GridSubset> subsets = parseGridSubsets(gridSetBroker, tileLayerInfo);
                 CoverageInfo coverage = geoServerCatalog.getCoverage(layerId);
-                tileLayer = new CoverageTileLayer(coverage, gridSetBroker, subsets, null, tileLayerInfo);
+                tileLayer = new CoverageTileLayer(coverage, gridSetBroker, subsets, tileLayerInfo, false);
             } finally {
                 lock.readLock().unlock();
             }

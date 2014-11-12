@@ -8,8 +8,11 @@ import java.awt.Rectangle;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.RenderedImage;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
@@ -36,10 +39,12 @@ import org.geoserver.coverage.layer.CoverageMetaTile;
 import org.geoserver.coverage.layer.CoverageTileLayer;
 import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.wcs2_0.DefaultWebCoverageService20;
+import org.geoserver.wcs2_0.WCS20Const;
 import org.geotools.coverage.grid.GeneralGridEnvelope;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridCoverageFactory;
 import org.geotools.coverage.grid.GridGeometry2D;
+import org.geotools.coverage.grid.io.OverviewPolicy;
 import org.geotools.coverage.processing.CoverageProcessor;
 import org.geotools.coverage.processing.operation.Mosaic;
 import org.geotools.factory.GeoTools;
@@ -52,10 +57,16 @@ import org.geowebcache.conveyor.ConveyorTile;
 import org.geowebcache.grid.BoundingBox;
 import org.geowebcache.grid.GridSubset;
 import org.opengis.parameter.ParameterValueGroup;
+import org.opengis.referencing.FactoryException;
+import org.opengis.referencing.NoSuchAuthorityCodeException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 public class WCSSourceHelper {
 
+    private final static Logger LOGGER = org.geotools.util.logging.Logging
+            .getLogger(WCSSourceHelper.class);
+
+    
     private static final String INTERPOLATION_CUBIC = "http://www.opengis.net/def/interpolation/OGC/1/cubic";
 
     private static final String INTERPOLATION_NEAREST = "http://www.opengis.net/def/interpolation/OGC/1/nearest-neighbor";
@@ -95,6 +106,17 @@ public class WCSSourceHelper {
 
     private CoverageTileLayer layer;
 
+    private final static Map<Integer, CoordinateReferenceSystem> crsCache = new HashMap<Integer, CoordinateReferenceSystem>(); 
+
+    static {
+        final int EPSG_4326 = 4326;
+        try {
+            crsCache.put(EPSG_4326, getCRS(EPSG_4326));
+        } catch ( FactoryException e) {
+            throw new RuntimeException(e);
+        } 
+    }
+    
     public WCSSourceHelper(CoverageTileLayer layer) {
         this.layer = layer;
         List<DefaultWebCoverageService20> extensions = GeoServerExtensions
@@ -117,7 +139,7 @@ public class WCSSourceHelper {
         try {
             ReferencedEnvelope layerBBOX = layer.getBbox();
             int code = metaTile.getSRS().getNumber();
-            CoordinateReferenceSystem tileCRS = CRS.decode("EPSG:" + code);
+            CoordinateReferenceSystem tileCRS = getCRS(code);
             ReferencedEnvelope tileBBOX = new ReferencedEnvelope(bbox.getMinX(), bbox.getMaxX(),
                     bbox.getMinY(), bbox.getMaxY(), tileCRS);
             intersection = layerBBOX.intersects(tileBBOX.toBounds(tileCRS));
@@ -130,6 +152,9 @@ public class WCSSourceHelper {
         if (intersection) {
             coverage = (GridCoverage2D) service.getCoverage(request);
         } else {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.fine("Metatile bbox doesn't intersect the coverage bbox; Returning constant image");
+            }
             ImageLayout layout = layer.getLayout();
             Number[] backgroundValues = ImageUtilities.getBackgroundValues(layout.getSampleModel(null), null);
             RenderedImage constant = ConstantDescriptor.create(width * 1.0f, height * 1.0f, backgroundValues, null);
@@ -146,6 +171,7 @@ public class WCSSourceHelper {
         List<GridCoverage2D> sources = new ArrayList<GridCoverage2D>(2);
         sources.add(coverage);
 
+        
         ParameterValueGroup param = MOSAIC.getParameters();
         // Setting of the sources
         param.parameter("Sources").setValue(sources);
@@ -157,9 +183,27 @@ public class WCSSourceHelper {
 
         param.parameter("geometry").setValue(ggStart);
 
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.fine("Adding border to the read coverage through mosaic operation "
+                    + "to satisfy the original request, using the specified bbox: " + bbox);
+        }
         // Mosaic
         final GridCoverage2D mosaic = (GridCoverage2D) processor.doOperation(param);
         metaTile.setImage(mosaic.getRenderedImage());
+    }
+
+    private static CoordinateReferenceSystem getCRS(int code) throws NoSuchAuthorityCodeException, FactoryException {
+        // Working against a non synchronized cache shouldn't be an issue
+        // In the worst case, we will add the same element more times when 
+        // not available
+        CoordinateReferenceSystem crs = null;
+        if (!crsCache.containsKey(code)) {
+            crs = CRS.decode("EPSG:" + code);
+            crsCache.put(code, crs);
+        } else {
+            crs = crsCache.get(code);
+        }
+        return crs;
     }
 
     /**
@@ -196,8 +240,24 @@ public class WCSSourceHelper {
         // Setting interpolation
         // //
         setInterpolation(getCoverage, interpolation);
-
+        
+        // //
+        // Setting overview policy
+        // //
+        setOverviewPolicy(getCoverage);
         return getCoverage;
+    }
+
+    private void setOverviewPolicy(GetCoverageType getCoverage) {
+        ExtensionType extension = getCoverage.getExtension();
+
+        final EList<ExtensionItemType> content = extension.getContents();
+        final ExtensionItemType extensionItem = WCS20_FACTORY.createExtensionItemType();
+
+        extensionItem.setName(WCS20Const.OVERVIEW_POLICY_EXTENSION);
+        // Should we change that policy?
+        extensionItem.setSimpleContent(OverviewPolicy.QUALITY.name());
+        content.add(extensionItem);
     }
 
     /**

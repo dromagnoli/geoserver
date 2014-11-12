@@ -16,6 +16,7 @@ import net.opengis.wcs20.Wcs20Factory;
 
 import org.geoserver.ows.kvp.EMFKvpRequestReader;
 import org.geoserver.ows.util.KvpUtils;
+import org.geoserver.wcs2_0.WCS20Const;
 import org.geotools.wcs.v2_0.Interpolation;
 import org.geotools.wcs.v2_0.RangeSubset;
 import org.geotools.wcs.v2_0.Scaling;
@@ -62,6 +63,7 @@ public class WCS20GetCoverageRequestReader extends EMFKvpRequestReader {
         parseScalingExtension(gc, kvp);
         parseRangeSubsetExtension(gc, kvp);
         parseInterpolationExtension(gc, kvp);
+        parseOverviewPolicyExtension(gc, kvp);
 
         return gc;
     }
@@ -146,6 +148,15 @@ public class WCS20GetCoverageRequestReader extends EMFKvpRequestReader {
             gc.getExtension().getContents().add(item);
         }
 
+    }
+    
+    private void parseOverviewPolicyExtension(GetCoverageType gc, Map kvp) {
+        if (kvp.containsKey(WCS20Const.OVERVIEW_POLICY_EXTENSION_LOWERCASE)) {
+            Object item = kvp.get(WCS20Const.OVERVIEW_POLICY_EXTENSION_LOWERCASE);
+            if (item instanceof ExtensionItemType) {
+                gc.getExtension().getContents().add((ExtensionItemType) item);
+            }
+        }
     }
 
 }

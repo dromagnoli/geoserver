@@ -126,17 +126,18 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
         try {
             delegate = reader;
 //            gridSubSet = buildGridSubSet();
-            //String coverageName = info.getNativeName();
-            //ImageLayout layout = reader.getImageLayout(coverageName);  
+            String coverageName = info.getNativeName();
+            ImageLayout layout = reader.getImageLayout(coverageName);  
             //Catalog catalog = gwc.getCatalog();
             //LayerInfo layerInfo = catalog.getLayers(info).get(0);
             //String nameSpace = layerInfo.getResource().getNamespace().getName();
             
             // Getting the Metadata Map
-            CoverageTileLayerInfo tlInfo = info.getMetadata().get(CoverageTileLayer.COVERAGETILELAYERINFO_KEY, CoverageTileLayerInfoImpl.class);
+            CoverageTileLayerInfo tlInfo = info.getMetadata().get(ResourcePool.COVERAGETILELAYERINFO_KEY, CoverageTileLayerInfoImpl.class);
             gridSubSet = CoverageConfiguration.parseGridSubsets(cache.getGridSetBroker(), tlInfo);
             gridSet = gridSubSet.get(0).getGridSet();
             coverageTileLayer = (CoverageTileLayer) GWC.get().getTileLayerByName(tlInfo.getName());
+            coverageTileLayer.setLayout(layout);
             //GeoServerTileLayer tileLayer = (GeoServerTileLayer) gwc.getTileLayerByName(nameSpace + ":" + layerInfo.getName() + "test");
             //coverageTileLayer = new CoverageTileLayer(info, cache.getGridSetBroker(), gridSubSet, layout, tileLayer.getInfo());
 //        } catch (IOException e) {
@@ -396,7 +397,7 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
             Map<String, ConveyorTile> cTiles = new HashMap<String, ConveyorTile>();
 
             String id = coverageTileLayer.getName();
-            String name = GridCoveragesCache.REFERENCE.getName();
+            String gridSetName = gridSet.getName();
             
             Map<String,String> filteringParameters = extractParameters(parameters);
 
@@ -405,7 +406,7 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
             // //
             for (int i = minX; i <= maxX; i++) {
                 for (int j = minY; j <= maxY; j++) {
-                    ct = new ConveyorTile(storageBroker, id, name, new long[] { i, j, level },
+                    ct = new ConveyorTile(storageBroker, id, gridSetName, new long[] { i, j, level },
                             TIFF_MIME_TYPE, filteringParameters, null, null);
                     try {
                         ConveyorTile tile = coverageTileLayer.getTile(ct);
@@ -427,7 +428,7 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
             // //
             // Reassembling tiles
             // //
-            GridSubset subset = coverageTileLayer.getGridSubset(gridSet.getName());
+            GridSubset subset = coverageTileLayer.getGridSubset(gridSetName);
             ImageLayout layout = new ImageLayout2(minX,
                     minY, tileWidth * wTiles, tileHeight * hTiles, 0, 0, tileWidth, tileHeight, null, null);
             
@@ -444,7 +445,7 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
                 bands[i] = new GridSampleDimension("band" + i);
             }
 
-            GridCoverage2D readCoverage = gcf.create(name, finalImage, readEnvelope, bands, null, null);
+            GridCoverage2D readCoverage = gcf.create(coverageName, finalImage, readEnvelope, bands, null, null);
             return readCoverage;
         } catch (Exception e) {
             throw new IOException(e);
