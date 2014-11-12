@@ -411,12 +411,13 @@ public class GeoTiffKvpTest extends WCSKVPTestSupport {
             final int g3 = rasterOverviewSF.getSample(refX, refY, 1);
             final int b3 = rasterOverviewSF.getSample(refX, refY, 2);
 
-            // Checking the pixels are different 
+            // Checking the pixels of the coverage taken from native resolutions 
+            // are different with respect to pixel coming from overviews 
             assertTrue(r1 != r2);
             assertTrue(g1 != g2);
             assertTrue(b1 != b2);
 
-            // Checking the pixels from quality overviews using same layout are equals
+            // Checking the pixels from overviews using same layout are equals
             assertEquals(r2, r3);
             assertEquals(g2, g3);
             assertEquals(b2, b3);
