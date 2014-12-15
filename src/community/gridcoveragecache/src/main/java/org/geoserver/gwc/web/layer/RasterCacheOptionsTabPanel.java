@@ -29,7 +29,7 @@ public class RasterCacheOptionsTabPanel extends LayerEditTabPanel {
             editor = new RasterCachingLayerEditor("tileLayerEditor", layerModel, tileLayerModel);
             add(editor);
         } else {
-            add(new Label("tileLayerEditor", new ResourceModel("geometryLessLabel")));
+            add(new Label("tileLayerEditor", new ResourceModel("vectorLayer")));
         }
     }
 

@@ -33,8 +33,7 @@ public class RasterEditCacheOptionsTabPanelInfo extends LayerEditTabPanelInfo {
         ResourceInfo resource = layerInfo.getResource();
 
         if (!(resource instanceof CoverageInfo)) {
-            throw new IllegalArgumentException(
-                    "This Layer is not related to a CoverageInfo resource");
+            return new CoverageTileLayerInfoModel(null, isNew);
         }
 
         CoverageTileLayerInfo tileLayerInfo;
