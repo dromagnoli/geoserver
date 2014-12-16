@@ -4,6 +4,7 @@
  */
 package org.geoserver.coverage;
 
+import java.awt.RenderingHints;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.io.IOException;
@@ -15,6 +16,8 @@ import java.util.logging.Logger;
 
 import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
+import javax.media.jai.JAI;
+import javax.media.jai.RenderedOp;
 import javax.media.jai.operator.MosaicDescriptor;
 import javax.media.jai.operator.ScaleDescriptor;
 import javax.media.jai.operator.TranslateDescriptor;
@@ -24,6 +27,7 @@ import org.geoserver.coverage.layer.CoverageTileLayer;
 import org.geotools.coverage.GridSampleDimension;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridCoverageFactory;
+import org.geotools.factory.GeoTools;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geowebcache.GeoWebCacheException;
 import org.geowebcache.conveyor.ConveyorTile;
@@ -240,8 +244,10 @@ public class CoverageTileComposer {
         for (int i = 0; i < numBands; i++) {
             bands[i] = new GridSampleDimension("band" + i);
         }
+        RenderingHints h = new RenderingHints(JAI.KEY_TILE_CACHE, null);
+        RenderedOp finalImg = ScaleDescriptor.create(finalImage, 1.0f, 1.0f, 0f, 0f, Interpolation.getInstance(Interpolation.INTERP_NEAREST), h);
 
         // TODO: Check nodata management
-        return gcf.create(coverageName, finalImage, readEnvelope, bands, null, null);
+        return gcf.create(coverageName, finalImg, readEnvelope, bands, null, null);
     }
 }
