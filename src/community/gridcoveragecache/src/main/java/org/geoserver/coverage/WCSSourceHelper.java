@@ -8,6 +8,8 @@ import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.RenderedImage;
+import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -45,6 +47,7 @@ import org.geoserver.coverage.layer.CoverageMetaTile;
 import org.geoserver.coverage.layer.CoverageTileLayer;
 import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.wcs2_0.DefaultWebCoverageService20;
+import org.geoserver.wcs2_0.GetCoverage;
 import org.geoserver.wcs2_0.WCS20Const;
 import org.geotools.coverage.grid.GeneralGridEnvelope;
 import org.geotools.coverage.grid.GridCoverage2D;
@@ -54,6 +57,7 @@ import org.geotools.coverage.processing.CoverageProcessor;
 import org.geotools.coverage.processing.operation.Mosaic;
 import org.geotools.factory.GeoTools;
 import org.geotools.factory.Hints;
+import org.geotools.gce.geotiff.GeoTiffWriter;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.CRS;
@@ -166,6 +170,10 @@ public class WCSSourceHelper {
             final double ratio = nativeRes / approxResolution;
 
             if (ratio > 1) {
+                if (LOGGER.isLoggable(Level.FINER)) {
+                    LOGGER.finer("applying extra gutter");
+                }
+                 
                 // Deal with oversampling, asking for EXTRA pixels
                 double minX = boundingBox.getMinX();
                 double maxX = boundingBox.getMaxX();
@@ -269,6 +277,12 @@ public class WCSSourceHelper {
             try {
                 // Actually getting the coverage
                 coverage = (GridCoverage2D) service.getCoverage(request);
+                if (GetCoverage.DEBUGWCS) {
+                    File file = File.createTempFile("gridCoverageCache_wcsrequest", ".tiff");
+                    GeoTiffWriter writer = new GeoTiffWriter(file);
+                    writer.write(coverage, null);
+                    writer.dispose();
+                }
             } catch (Exception e) {
                 if (LOGGER.isLoggable(Level.FINE)) {
                     LOGGER.fine("Unable to get a coverage for that request " + request + "\nCreating constant coverage"  );
@@ -327,6 +341,18 @@ public class WCSSourceHelper {
 
         // Mosaic 
         final GridCoverage2D mosaic = (GridCoverage2D) processor.doOperation(param, hints);
+        if (GetCoverage.DEBUGWCS) {
+            File file;
+            try {
+                file = File.createTempFile("gridCoverageCache_mosaic", ".tiff");
+                GeoTiffWriter writer = new GeoTiffWriter(file);
+                writer.write(mosaic, null);
+                writer.dispose();
+            } catch (IOException e) {
+                LOGGER.log(Level.FINER, e.getMessage(), e);
+            }
+        }
+
         metaTile.setImage(mosaic.getRenderedImage());
     }
 
@@ -481,6 +507,9 @@ public class WCSSourceHelper {
         final EList<TargetAxisSizeType> targets = scaleToSize.getTargetAxisSize();
         targets.add(lonScalingValue);
         targets.add(latScalingValue);
+        if (LOGGER.isLoggable(Level.FINER)) {
+            LOGGER.finer("Applying scaling extension with width = " + width + " and height = " + height);
+        }
     }
 
     /**
