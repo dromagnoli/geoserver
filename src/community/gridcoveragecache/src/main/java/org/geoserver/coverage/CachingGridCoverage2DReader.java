@@ -37,6 +37,8 @@ import org.geotools.factory.Hints;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.renderer.lite.RendererUtilities;
+import org.geotools.util.DateRange;
+import org.geotools.util.NumberRange;
 import org.geowebcache.conveyor.ConveyorTile;
 import org.geowebcache.grid.BoundingBox;
 import org.geowebcache.grid.Grid;
@@ -410,12 +412,24 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
                 if (gParam instanceof ParameterValue<?>) {
                     final ParameterValue<?> param = (ParameterValue<?>) gParam;
                     final Object value = param.getValue();
-                    List<Date> times = (List<Date>)value;
-                    Date date = times.get(0);
+                    List times = (List)value;
+                    Object object = times.get(0);
+                    String timeValue = null;
+                    if (object instanceof Date) {
+                        Date date = (Date) object;
+                        timeValue = formatter.format(date);
+                    } else if (object instanceof DateRange) {
+                        DateRange dateRange = (DateRange) object;
+                        Date min = dateRange.getMinValue();
+                        Date max = dateRange.getMaxValue();
+                        boolean sameDate = min.compareTo(max) == 0;
+                        timeValue = formatter.format(min)
+                                + (sameDate ? "" : ("/" + formatter.format(max)));
+                    }
                     if (params == null) {
                         params = new HashMap<String, String>();
                     }
-                    final String timeValue = formatter.format(date);
+                    
                     if (LOGGER.isLoggable(Level.FINE)) {
                         LOGGER.fine("Time param found: " + timeValue);
                     }
@@ -426,12 +440,19 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
                 if (gParam instanceof ParameterValue<?>) {
                     final ParameterValue<?> param = (ParameterValue<?>) gParam;
                     final Object value = param.getValue();
-                    List<Number> elevations = (List<Number>)value;
-                    Number elevation = elevations.get(0);
+                    List elevations = (List)value;
+                    Object object = elevations .get(0);
+                    String elevationValue = null;
+                    if (object instanceof Number) {
+                        Number elevation = (Number) object;
+                        elevationValue = elevation.toString();
+                    } else if (object instanceof NumberRange) {
+                        NumberRange elevationRange = (NumberRange) object;
+                        elevationValue = elevationRange.getMinValue() +"/"+ elevationRange.getMaxValue();
+                    }
                     if (params == null) {
                         params = new HashMap<String, String>();
                     }
-                    final String elevationValue = elevation.toString();
                     if (LOGGER.isLoggable(Level.FINE)) {
                         LOGGER.fine("Elevation param found: " + elevationValue);
                     }
@@ -444,11 +465,17 @@ public class CachingGridCoverage2DReader implements GridCoverage2DReader {
                         if (gParam instanceof ParameterValue<?>) {
                             final ParameterValue<?> param = (ParameterValue<?>) gParam;
                             final Object value = param.getValue();
-                            List<String> objValue = (List<String>)value;
+                            List objValue = (List)value;
                             if (params == null) {
                                 params = new HashMap<String, String>();
                             }
-                            final String customValue = objValue.get(0);
+                            final Object customObject = objValue.get(0);
+                            String customValue = null;
+                            if (customObject instanceof String) {
+                                customValue = (String) customObject;
+                            } else if (customObject instanceof Number) {
+                                customValue = ((Number)customObject).toString();
+                            }
                             if (LOGGER.isLoggable(Level.FINE)) {
                                 LOGGER.fine("custom param " + name + " found: " + customValue);
                             }

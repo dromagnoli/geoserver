@@ -409,11 +409,13 @@ public class WCSSourceHelper {
         // Setting interpolation
         // //
         setInterpolation(getCoverage, interpolation);
-        
+
         // //
         // Setting overview policy
         // //
         setOverviewPolicy(getCoverage, overviewPolicy);
+
+        setSkipExtensionsLookup(getCoverage);
         return getCoverage;
     }
 
@@ -434,6 +436,17 @@ public class WCSSourceHelper {
         content.add(extensionItem);
     }
 
+    private void setSkipExtensionsLookup(GetCoverageType getCoverage) {
+        ExtensionType extension = getCoverage.getExtension();
+
+        final EList<ExtensionItemType> content = extension.getContents();
+        final ExtensionItemType extensionItem = WCS20_FACTORY.createExtensionItemType();
+
+        extensionItem.setName(WCS20Const.SKIP_EXTENSIONS_LOOKUP_EXTENSION );
+        extensionItem.setSimpleContent("true");
+        content.add(extensionItem);
+    }
+    
     /**
      * Set the interpolation extension to the WCS 2.0 get coverage request.
      * 

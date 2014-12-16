@@ -229,7 +229,11 @@ public class GetCoverage {
             final Hints hints = GeoTools.getDefaultHints();
             hints.add(WCSUtils.getReaderHints(wcs));
             hints.add(new RenderingHints(JAI.KEY_BORDER_EXTENDER,BorderExtender.createInstance(BorderExtender.BORDER_COPY)));
-            hints.add(new Hints(ResourcePool.SKIP_COVERAGE_EXTENSIONS_LOOKUP, Boolean.TRUE));
+
+            Boolean extensionsLookup = extractExtensionsLookup(extensions);
+            if (extensionsLookup != null) {
+                hints.add(new Hints(ResourcePool.SKIP_COVERAGE_EXTENSIONS_LOOKUP, extensionsLookup));
+            }
 //            hints.add(new RenderingHints(JAI.KEY_REPLACE_INDEX_COLOR_MODEL,Boolean.FALSE));// TODO check interpolation
 
             // get a reader for this coverage
@@ -632,6 +636,28 @@ public class GetCoverage {
             }
         }
         return null;
+    }
+
+    private Boolean extractExtensionsLookup(Map<String, ExtensionItemType> extensions) {
+            if (extensions == null || extensions.size() == 0
+                    || !extensions.containsKey(WCS20Const.SKIP_EXTENSIONS_LOOKUP_EXTENSION)) {
+                // NO extension at hand
+                return null;
+            }
+
+            // look for an overviewPolicy extension
+            final ExtensionItemType extensionItem = extensions.get(WCS20Const.SKIP_EXTENSIONS_LOOKUP_EXTENSION);
+            if (extensionItem.getName().equals(WCS20Const.SKIP_EXTENSIONS_LOOKUP_EXTENSION)) {
+                String extensionContent = extensionItem.getSimpleContent();
+
+                // checks
+                if (extensionContent == null) {
+                    throw new WCS20Exception(WCS20Const.SKIP_EXTENSIONS_LOOKUP_EXTENSION + " was null", WCS20ExceptionCode.MissingParameterValue,
+                            "null");
+                }
+                return Boolean.valueOf(extensionContent);
+            }
+            return null;
     }
 
     /**
@@ -1185,6 +1211,11 @@ public class GetCoverage {
                     parsedExtensions.put(WCS20Const.OVERVIEW_POLICY_EXTENSION, extensionItem);
                     if (LOGGER.isLoggable(Level.FINE)) {
                         LOGGER.fine("Added extension overviewPolicy ");
+                    }
+                } else if (extensionName.equals(WCS20Const.SKIP_EXTENSIONS_LOOKUP_EXTENSION)) {
+                    parsedExtensions.put(WCS20Const.SKIP_EXTENSIONS_LOOKUP_EXTENSION, extensionItem);
+                    if (LOGGER.isLoggable(Level.FINE)) {
+                        LOGGER.fine("Added extension for hints");
                     }
                 }
             }
