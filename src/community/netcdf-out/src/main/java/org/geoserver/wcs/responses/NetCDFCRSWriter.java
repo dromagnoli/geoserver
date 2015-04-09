@@ -20,8 +20,8 @@ import org.geoserver.wcs.responses.NetCDFDimensionsManager.NetCDFDimensionMappin
 import org.geoserver.wcs.responses.NetCDFDimensionsManager.NetCDFDimensionMapping.DimensionValuesArray;
 import org.geoserver.wcs2_0.response.DimensionBean;
 import org.geotools.coverage.grid.GridCoverage2D;
-import org.geotools.imageio.netcdf.cv.NetCDFCoordinateReferenceSystem;
-import org.geotools.imageio.netcdf.cv.NetCDFCoordinateReferenceSystem.NetCDFCoordinate;
+import org.geotools.imageio.netcdf.cv.NetCDFCoordinateReferenceSystemType;
+import org.geotools.imageio.netcdf.cv.NetCDFCoordinateReferenceSystemType.NetCDFCoordinate;
 import org.geotools.imageio.netcdf.cv.NetCDFProjection;
 import org.geotools.imageio.netcdf.utilities.NetCDFUtilities;
 import org.geotools.referencing.CRS;
@@ -71,7 +71,7 @@ class NetCDFCRSWriter {
     public static final Logger LOGGER = Logging.getLogger(NetCDFCRSWriter.class);
 
     /** the NetCDF CoordinateReferenceSystem holder */
-    private NetCDFCoordinateReferenceSystem supportedCrs;
+    private NetCDFCoordinateReferenceSystemType supportedCrs;
 
     /** the NetCDF File writer */
     private NetcdfFileWriter writer;
@@ -97,7 +97,7 @@ class NetCDFCRSWriter {
         GridGeometry gridGeometry = sampleGranule.getGridGeometry();
         transform = gridGeometry.getGridToCRS();
         crs = sampleGranule.getCoordinateReferenceSystem();
-        supportedCrs = NetCDFCoordinateReferenceSystem.parseCRS(crs);
+        supportedCrs = NetCDFCoordinateReferenceSystemType.parseCRS(crs);
     }
 
     /**
@@ -217,13 +217,13 @@ class NetCDFCRSWriter {
      * @param var the {@link Variable} where the mapping attribute needs to be appended
      */
     void initializeGridMapping(Variable var) {
-        String gridMapping = supportedCrs.getGridMapping();
-        if (gridMapping != null && !gridMapping.isEmpty()) {
+        NetCDFProjection projection = supportedCrs.getNetCDFProjection();
+        if (projection != null) {
+            String mappingName = projection.getName();
             if (var != null) {
-                writer.addVariableAttribute(var, new Attribute(NetCDFUtilities.GRID_MAPPING,
-                        gridMapping));
+                writer.addVariableAttribute(var, new Attribute(NetCDFUtilities.GRID_MAPPING, mappingName));
             }
-            writer.addVariable(null, gridMapping, DataType.CHAR, (String) null);
+            writer.addVariable(null, mappingName, DataType.CHAR, (String) null);
         }
         addProjectionInformation(supportedCrs, writer, crs, transform);
     }
@@ -235,16 +235,15 @@ class NetCDFCRSWriter {
      * @param crs
      * @param transform
      */
-    public void addProjectionInformation(NetCDFCoordinateReferenceSystem supportedCrs,
+    public void addProjectionInformation(NetCDFCoordinateReferenceSystemType supportedCrs,
             NetcdfFileWriter writer, CoordinateReferenceSystem crs, MathTransform transform) {
-        String gridMapping = supportedCrs.getGridMapping();
+        NetCDFProjection projection = supportedCrs.getNetCDFProjection();
 
-        if (!gridMapping.isEmpty()) {
-            NetCDFProjection manager = supportedCrs
-                    .getNetCDFProjectionParametersManager();
-            Variable var = writer.findVariable(gridMapping);
-            setProjectionParams(writer, crs, var, manager);
-            addMappingAttributes(writer, crs, transform, var, gridMapping);
+        if (projection != null) {
+            String name = projection.getName();
+            Variable var = writer.findVariable(name);
+            setProjectionParams(writer, crs, var, projection);
+            addMappingAttributes(writer, crs, transform, var, name);
         } else {
             addGlobalAttributes(writer, crs, transform);
         }
@@ -254,8 +253,8 @@ class NetCDFCRSWriter {
      * Setup proper projection information to the output NetCDF 
      */
     private void setProjectionParams(NetcdfFileWriter writer, CoordinateReferenceSystem crs,
-            Variable var, NetCDFProjection manager) {
-        Map<String, String> referencingToNetCDFParameters = manager.getParameters();
+            Variable var, NetCDFProjection projection) {
+        Map<String, String> referencingToNetCDFParameters = projection.getParameters();
         if (!(crs instanceof ProjectedCRS)) {
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.fine("The provided CRS is not a projected CRS\n"
