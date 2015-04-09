@@ -25,7 +25,7 @@ import org.geotools.util.logging.Logging;
  */
 public class NetCDFParserBean {
 
-    public final static String NETCDF_STANDARD_NAME_TABLE = "NETCDF_STARNDARD_TABLE";
+    public final static String NETCDF_STANDARD_NAME_TABLE = "NETCDF_STANDARD_TABLE";
 
     public final static String NETCDF_STANDARD_NAME = "cf-standard-name-table.xml";
 
