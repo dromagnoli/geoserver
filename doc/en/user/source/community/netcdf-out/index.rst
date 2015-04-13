@@ -36,7 +36,25 @@ See :ref:`Installing required NetCDF-4 Native libraries <nc4>` for more info on 
 
 NetCDF Output customization
 ---------------------------
-Starting with version 2.8 of GeoServer is it possible to add more customization to the layer in order to specify some properties of the NetCDF Output.
+
+Global Settings configuration
++++++++++++++++++++++++++++++
+Starting with version 2.8 of GeoServer it is possible to define a few global settings for the NetCDF output format. A new section will be added to the *Global Settings* page.
+
+.. figure:: netcdfoutsettings.png
+   :align: center
+
+   *NetCDF Output Global settings section*
+
+From this panel, you may configure:
+
+* Data Packing (*NONE*, *BYTE*, *SHORT*, *INT*)
+* Variable attributes
+* NetCDF4-Classic output specific parameters (they will be taken into account only in case the format specified in the WCS 2.0 GetCoverage request is application/x-netcdf4).
+
+Layer configuration
+++++++++++++++++++++
+With version 2.8 of GeoServer it is also possible to add more customization to the layer in order to specify some properties of the NetCDF Output.
 You will notice an additional tab to the layer configuration.
 
 .. figure:: netcdfoutpanel.png
@@ -44,14 +62,14 @@ You will notice an additional tab to the layer configuration.
 
    *NetCDF Output settings panel*
 
-From this panel, you may configure:
+.. note:: This tab will be initialized with the parameters defined in the *Global Settings* page. 
+   
+From this panel, you may configure the same parameters as for the global panel and also other 2 Layer-specific parameters:
 
 * Output variable name. 
 * variable's unit of measure.
-* Variable attributes
-* NetCDF4-Classic output specific parameters (they will be taken into account only in case the format specified in the WCS 2.0 GetCoverage request is application/x-netcdf4).
 
-
+.. note:: This panel will be available for Raster data only.
 
 CF Standard names support
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -82,4 +100,4 @@ You have three ways to provide it to GeoServer.
 #. Put that xml file within the ``NETCDF_DATA_DIR`` which is the folder where all NetCDF auxiliary files are located. (`More info <http://geoserver.geo-solutions.it/multidim/en/mosaic_config/netcdf_mosaic.html#customizing-netcdf-ancillary-files-location>`_)
 #. Put that xml file within the ``GEOSERVER_DATA_DIR``.
 
-
+.. note:: Note that for the 2nd and 3rd case, file name must be **cf-standard-name-table.xml**.
