@@ -6,7 +6,6 @@
 package org.geoserver.catalog;
 
 import it.geosolutions.imageio.maskband.DatasetLayout;
-import it.geosolutions.jaiext.range.NoDataContainer;
 
 import java.awt.image.ColorModel;
 import java.io.IOException;
@@ -234,12 +233,11 @@ public class CoverageDimensionCustomizerReader implements GridCoverage2DReader {
         final SampleDimension[] dims = coverage.getSampleDimensions();
         GridSampleDimension[] wrappedDims = wrapDimensions(dims);
         // Wrapping sample dimensions
-        NoDataContainer noDataProperty = CoverageUtilities.getNoDataProperty(coverage);
         if (wrappedDims == null) {
             wrappedDims = (GridSampleDimension[]) dims;
-        } else if (properties != null && noDataProperty != null) {
-            // update the GC_NODATA property (if any) with the latest value, if we have any
+        } else if (properties != null) {
             double[] wrappedNoDataValues = wrappedDims[0].getNoDataValues();
+            // update the GC_NODATA property (if any) with the latest value, if we have any
             if (wrappedNoDataValues != null && wrappedNoDataValues.length > 0) {
                 CoverageUtilities.setNoDataProperty(properties, wrappedNoDataValues[0]);
             }
@@ -664,7 +662,7 @@ public class CoverageDimensionCustomizerReader implements GridCoverage2DReader {
             boolean nodataConfigured = configuredNoDataValues != null
                     && configuredNoDataValues.length > 0;
             // custom categories
-            if (categories != null) {
+            if (categories != null && !categories.isEmpty()) {
                 this.customCategories = new ArrayList<Category>(categories.size());
                 Category wrapped = null;
                 for (Category category : categories) {
