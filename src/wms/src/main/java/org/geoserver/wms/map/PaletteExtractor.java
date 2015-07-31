@@ -52,6 +52,7 @@ import org.geotools.styling.UserLayer;
 import org.opengis.filter.Filter;
 import org.opengis.filter.expression.Expression;
 import org.opengis.filter.expression.Literal;
+import org.opengis.style.ContrastMethod;
 
 /**
  * A style visitor whose purpose is to extract a minimal palette for the
@@ -469,6 +470,11 @@ public class PaletteExtractor extends FilterAttributeExtractor implements StyleV
     }
 
     public void visit(ShadedRelief sr) {
+        unknownColors = true;
+    }
+
+    @Override
+    public void visit(ContrastMethod method) {
         unknownColors = true;
     }
 

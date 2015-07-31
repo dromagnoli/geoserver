@@ -49,6 +49,7 @@ import org.opengis.filter.capability.FunctionName;
 import org.opengis.filter.expression.Expression;
 import org.opengis.filter.expression.Function;
 import org.opengis.parameter.Parameter;
+import org.opengis.style.ContrastMethod;
 
 /**
  * Extracts the active raster symbolizers, as long as there are some, and only raster symbolizers 
@@ -267,6 +268,10 @@ public class RasterSymbolizerVisitor implements StyleVisitor {
     }
 
     public void visit(ShadedRelief sr) {
+        // nothing to do
+    }
+
+    public void visit(ContrastMethod method) {
         // nothing to do
     }
 
