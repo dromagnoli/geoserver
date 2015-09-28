@@ -5,11 +5,15 @@
  */
 package org.geoserver.csw.store.internal;
 
+import java.io.IOException;
+import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.logging.Level;
@@ -20,20 +24,33 @@ import java.util.regex.Pattern;
 import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.CatalogFacade;
 import org.geoserver.catalog.CatalogInfo;
+import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.Info;
 import org.geoserver.catalog.LayerGroupInfo;
+import org.geoserver.catalog.MetadataMap;
 import org.geoserver.catalog.ResourceInfo;
+import org.geoserver.catalog.impl.ModificationProxy;
 import org.geoserver.csw.feature.sort.CatalogComparatorFactory;
 import org.geoserver.csw.records.GenericRecordBuilder;
 import org.geoserver.csw.records.RecordBuilder;
 import org.geoserver.csw.records.RecordDescriptor;
-import org.opengis.filter.Filter;
-import org.opengis.filter.FilterFactory2;
-import org.opengis.filter.sort.SortBy;
+import org.geoserver.csw.records.iso.MetaDataDescriptor;
+import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
+import org.geotools.data.ServiceInfo;
 import org.geotools.factory.CommonFactoryFinder;
+import org.geotools.factory.GeoTools;
+import org.geotools.feature.AttributeImpl;
+import org.geotools.feature.ComplexAttributeImpl;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.util.logging.Logging;
+import org.opengis.feature.ComplexAttribute;
 import org.opengis.feature.Feature;
+import org.opengis.feature.Property;
+import org.opengis.feature.type.AttributeDescriptor;
+import org.opengis.filter.Filter;
+import org.opengis.filter.FilterFactory2;
+import org.opengis.filter.expression.PropertyName;
+import org.opengis.filter.sort.SortBy;
 
 /**
  * Internal Catalog Store Feature Iterator
@@ -71,7 +88,9 @@ class CatalogStoreFeatureIterator implements Iterator<Feature> {
     protected Filter filter;
     
     protected int index;
-    
+
+    protected RecordDescriptor recordDescriptor;
+
     protected Comparator<Info> comparator;
     
     public CatalogStoreFeatureIterator(int offset, int count, SortBy[] sortOrder, Filter filter, Catalog catalog, CatalogStoreMapping mapping, RecordDescriptor recordDescriptor, Map<String, String> interpolationProperties) {
@@ -95,7 +114,7 @@ class CatalogStoreFeatureIterator implements Iterator<Feature> {
         while (index < offset && hasNext()) {
         	nextInternal();
         }
-        
+        this.recordDescriptor = recordDescriptor;
         builder = new GenericRecordBuilder(recordDescriptor);
     }
     
@@ -167,11 +186,11 @@ class CatalogStoreFeatureIterator implements Iterator<Feature> {
     
     private String mapProperties(CatalogInfo resource) {
         String id = null;
-        
         for (CatalogStoreMapping.CatalogStoreMappingElement mappingElement: mapping.elements()) {
                 Object value = mappingElement.getContent().evaluate(resource);
 
             if (value != null) {
+                String key = mappingElement.getKey();
                 if (value instanceof Collection) {
                     ((Collection)value).removeAll(Collections.singleton(null));
                     if (((Collection)value).size() > 0) {
@@ -180,10 +199,11 @@ class CatalogStoreFeatureIterator implements Iterator<Feature> {
                         for (Object element : (Collection) value) {
                             elements[i++] = interpolate(interpolationProperties, element.toString());
                         }
-                        builder.addElement(mappingElement.getKey(), mappingElement.getSplitIndex(), elements);
+                            builder.addElement(key, mappingElement.getSplitIndex(), elements);
                     }
                 } else {
-                    builder.addElement(mappingElement.getKey(), interpolate(interpolationProperties, value.toString()));
+                    String element = interpolate(interpolationProperties, value.toString());
+                        builder.addElement(key, element);
                 }
 
                 if (mappingElement == mapping.getIdentifierElement()) {
@@ -191,10 +211,30 @@ class CatalogStoreFeatureIterator implements Iterator<Feature> {
                 }
             }
         }
-        
         return id;
     }
     
+    private FeatureCustomizer getCustomizer(CatalogInfo info) {
+        FeatureCustomizer customizer = null;
+        if (info instanceof CoverageInfo) {
+            CoverageInfo coverageInfo = ((CoverageInfo) info);
+            MetadataMap metadata = coverageInfo.getMetadata();
+            if (metadata != null && !metadata.isEmpty() && metadata.containsKey("DirectDownload") || true) {
+                Object dd = metadata.get("DirectDownload");
+                String typeName = recordDescriptor.getFeatureType().getName().getLocalPart();
+//                customizer = FeatureCustomizer.getCustomizer(typeName);
+                customizer = FeatureCustomizer.getCustomizer("metadata");
+                if (customizer == null) {
+                    if (LOGGER.isLoggable(Level.WARNING)) {
+                        LOGGER.warning("No Mapping customizer have been found for " + typeName
+                                + ". Mapping customizations will not be made");
+                    }
+                }
+            }
+        }
+        return customizer;
+    }
+
     private Feature convertToFeature(ResourceInfo resource) {
         
         String id = mapProperties(resource);
@@ -211,10 +251,18 @@ class CatalogStoreFeatureIterator implements Iterator<Feature> {
                 builder.addBoundingBox(bbox);
             }          
         }
-
-        return builder.build(id);
+        Feature feature = builder.build(id);
+        
+        CatalogInfo info = ModificationProxy.unwrap(resource);
+      FeatureCustomizer customizer = getCustomizer(resource);
+      if (customizer != null) {
+        customizer.customizeFeature(feature, info);
+      }
+        return feature;
     }
     
+    
+
     private Feature convertToFeature(LayerGroupInfo resource) {
        
         String id = mapProperties(resource);        

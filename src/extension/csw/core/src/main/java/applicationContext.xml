@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 
- Copyright (C) 2014 - Open Source Geospatial Foundation. All rights reserved.
+ Copyright (C) 2014 - 2015 - Open Source Geospatial Foundation. All rights reserved.
  This code is licensed under the GPL 2.0 license, available at the root
  application directory.
  -->
@@ -45,6 +45,7 @@
             <value>GetRepositoryItem</value>
             <value>Harvest</value>
             <value>Transaction</value>
+            <value>DirectDownload</value>
 		  </list>
 		</constructor-arg>
     </bean>
@@ -223,4 +224,15 @@
       
     <!--  factory extension  -->  
 	<bean id="cswFactoryExtension" class="org.geoserver.csw.CSWFactoryExtension"/>
-</beans>
+
+
+	<!--  DirectDownload extensions -->
+	<bean id="DownloadLinkGenerator" class="org.geoserver.csw.store.internal.DownloadLinkGenerator" />
+
+ 	<bean id="FeatureCustomizerMetadata" class="org.geoserver.csw.store.internal.MetadataLinkCustomizer" >
+ 	      <constructor-arg ref="DownloadLinkGenerator"/>
+    </bean>
+ 	      
+
+	
+ </beans>
