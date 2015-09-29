@@ -5,15 +5,11 @@
  */
 package org.geoserver.csw.store.internal;
 
-import java.io.IOException;
-import java.net.URL;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.logging.Level;
@@ -34,22 +30,12 @@ import org.geoserver.csw.feature.sort.CatalogComparatorFactory;
 import org.geoserver.csw.records.GenericRecordBuilder;
 import org.geoserver.csw.records.RecordBuilder;
 import org.geoserver.csw.records.RecordDescriptor;
-import org.geoserver.csw.records.iso.MetaDataDescriptor;
-import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
-import org.geotools.data.ServiceInfo;
 import org.geotools.factory.CommonFactoryFinder;
-import org.geotools.factory.GeoTools;
-import org.geotools.feature.AttributeImpl;
-import org.geotools.feature.ComplexAttributeImpl;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.util.logging.Logging;
-import org.opengis.feature.ComplexAttribute;
 import org.opengis.feature.Feature;
-import org.opengis.feature.Property;
-import org.opengis.feature.type.AttributeDescriptor;
 import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory2;
-import org.opengis.filter.expression.PropertyName;
 import org.opengis.filter.sort.SortBy;
 
 /**
@@ -223,7 +209,7 @@ class CatalogStoreFeatureIterator implements Iterator<Feature> {
                 Object dd = metadata.get("DirectDownload");
                 String typeName = recordDescriptor.getFeatureType().getName().getLocalPart();
 //                customizer = FeatureCustomizer.getCustomizer(typeName);
-                customizer = FeatureCustomizer.getCustomizer("metadata");
+                customizer = FeatureCustomizer.getCustomizer(typeName);
                 if (customizer == null) {
                     if (LOGGER.isLoggable(Level.WARNING)) {
                         LOGGER.warning("No Mapping customizer have been found for " + typeName

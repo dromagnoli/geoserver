@@ -36,6 +36,8 @@ import org.geotools.coverage.grid.io.OverviewPolicy;
 import org.geotools.coverage.grid.io.StructuredGridCoverage2DReader;
 import org.geotools.coverage.processing.CoverageProcessor;
 import org.geotools.data.DataSourceException;
+import org.geotools.data.ResourceInfo;
+import org.geotools.data.ServiceInfo;
 import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.factory.Hints;
 import org.geotools.geometry.GeneralEnvelope;
@@ -179,7 +181,7 @@ public class CoverageViewReader implements GridCoverage2DReader {
 
         protected GridSampleDimension[] wrapDimensions(SampleDimension[] dims) {
             GridSampleDimension[] wrappedDims = null;
-            CoverageInfo info = getInfo();
+            CoverageInfo info = getCoverageInfo();
             if (info != null) {
                 List<CoverageDimensionInfo> storedDimensions = info.getDimensions();
                 MetadataMap map = info.getMetadata();
@@ -562,6 +564,16 @@ public class CoverageViewReader implements GridCoverage2DReader {
     @Override
     public DatasetLayout getDatasetLayout(String coverageName) {
         return delegate.getDatasetLayout(coverageName);
+    }
+
+    @Override
+    public ServiceInfo getInfo() {
+        return delegate.getInfo();
+    }
+
+    @Override
+    public ResourceInfo getInfo(String coverageName) {
+        return delegate.getInfo(coverageName);
     }
 
 }

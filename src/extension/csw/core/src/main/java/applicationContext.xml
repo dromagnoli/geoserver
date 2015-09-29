@@ -226,13 +226,18 @@
 	<bean id="cswFactoryExtension" class="org.geoserver.csw.CSWFactoryExtension"/>
 
 
-	<!--  DirectDownload extensions -->
-	<bean id="DownloadLinkGenerator" class="org.geoserver.csw.store.internal.DownloadLinkGenerator" />
+    <!--  DirectDownload extensions -->
+    <bean id="DownloadLinkGenerator" class="org.geoserver.csw.store.internal.DownloadLinkGenerator" />
 
- 	<bean id="FeatureCustomizerMetadata" class="org.geoserver.csw.store.internal.MetadataLinkCustomizer" >
- 	      <constructor-arg ref="DownloadLinkGenerator"/>
+    <bean id="FeatureCustomizerMetadata" class="org.geoserver.csw.store.internal.MetadataCustomizer" >
+        <property name="linkGenerator">
+            <ref bean="DownloadLinkGenerator" />
+        </property>
     </bean>
- 	      
 
-	
+    <bean id="FeatureCustomizerRecord" class="org.geoserver.csw.store.internal.RecordCustomizer">
+        <property name="linkGenerator">
+            <ref bean="DownloadLinkGenerator" />
+        </property>
+    </bean>
  </beans>
