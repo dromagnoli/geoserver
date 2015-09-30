@@ -1,3 +1,7 @@
+/* (c) 2015 Open Source Geospatial Foundation - all rights reserved
+ * This code is licensed under the GPL 2.0 license, available at the root
+ * application directory.
+ */
 package org.geoserver.csw.store.internal;
 
 import java.util.ArrayList;
@@ -30,11 +34,15 @@ public class RecordCustomizer extends FeatureCustomizer {
 
     }
 
-    /** An instance of DownloadLinkGenerator, used to create download links */
-    private DownloadLinkGenerator linkGenerator;
+    /** An instance of {@link DownloadLinkHandler}, used to deal with download links */
+    private DownloadLinkHandler downloadLinkHandler;
 
-    public void setLinkGenerator(DownloadLinkGenerator linkGenerator) {
-        this.linkGenerator = linkGenerator;
+    public DownloadLinkHandler getDownloadLinkHandler() {
+        return downloadLinkHandler;
+    }
+
+    public void setDownloadLinkHandler(DownloadLinkHandler downloadLinkHandler) {
+        this.downloadLinkHandler = downloadLinkHandler;
     }
 
     public RecordCustomizer() {
@@ -43,7 +51,7 @@ public class RecordCustomizer extends FeatureCustomizer {
 
     @Override
     public void customizeFeature(Feature feature, CatalogInfo resource) {
-        Iterator<String> links = linkGenerator.generateDownloadLinks(resource);
+        Iterator<String> links = downloadLinkHandler.generateDownloadLinks(resource);
         Collection<Property> newReferencesList = new ArrayList<Property>();
         while (links.hasNext()) {
             String link = links.next();

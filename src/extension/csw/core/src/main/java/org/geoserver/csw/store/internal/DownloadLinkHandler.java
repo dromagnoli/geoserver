@@ -9,22 +9,24 @@ import java.util.Iterator;
 import org.apache.commons.io.FilenameUtils;
 import org.geoserver.catalog.CatalogInfo;
 import org.geoserver.catalog.CoverageInfo;
-import org.geoserver.config.GeoServer;
 import org.geoserver.ows.Dispatcher;
 import org.geoserver.ows.Request;
 import org.geoserver.ows.URLMangler.URLType;
 import org.geoserver.ows.util.RequestUtils;
 import org.geoserver.ows.util.ResponseUtils;
-import org.geoserver.platform.GeoServerExtensions;
 import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.data.CloseableIterator;
 import org.geotools.data.FileGroup;
 import org.geotools.data.FileResourceInfo;
 import org.geotools.data.ResourceInfo;
 import org.geotools.factory.GeoTools;
+import org.geotools.resources.coverage.FeatureUtilities;
+import org.opengis.filter.FilterFactory2;
 
-public class DownloadLinkGenerator {
+public class DownloadLinkHandler {
 
+    FilterFactory2 ff = FeatureUtilities.DEFAULT_FILTER_FACTORY;
+    
     class CloseableLinksIterator implements CloseableIterator<String> {
 
         public CloseableLinksIterator(String baseLink, CloseableIterator<FileGroup> dataIterator) {
@@ -48,9 +50,9 @@ public class DownloadLinkGenerator {
             try {
                 canonicalPath = mainFile.getCanonicalPath();
                 String mainFilePath = FilenameUtils.getPath(canonicalPath);
-                MessageDigest md = MessageDigest.getInstance("SHA-1");
-                md.update(mainFilePath.getBytes());
-                return baseLink.replace("${file}", (convertToHex(md.digest()) + "-" + mainFile.getName())); 
+                String hashFile = hashFile(mainFile);
+                
+                return baseLink.replace("${file}", hashFile); 
             } catch (IOException e) {
                 throw new RuntimeException("Unable to encode the specified file:" + canonicalPath,
                         e.getCause());
@@ -66,8 +68,13 @@ public class DownloadLinkGenerator {
         }
     }
 
-    private static String LINK = "ows?service=CSW&version=${version}&request=DirectDownload&resourceId=${layerName}:${file}";
+    private static String LINK = "ows?service=CSW&version=${version}&request=DirectDownload&resourceId=${nameSpace}:${layerName}:${file}";
 
+    /**
+     * Generate download links for the specified info object.
+     * @param info
+     * @return
+     */
     public Iterator<String> generateDownloadLinks(CatalogInfo info) {
         Request request = Dispatcher.REQUEST.get();
         String baseURL = null;
@@ -84,7 +91,6 @@ public class DownloadLinkGenerator {
         
         if (info instanceof CoverageInfo) {
             CoverageInfo coverageInfo = ((CoverageInfo) info);
-            
             GridCoverage2DReader reader;
             try {
                 reader = (GridCoverage2DReader) coverageInfo.getGridCoverageReader(null,
@@ -92,7 +98,9 @@ public class DownloadLinkGenerator {
                 ResourceInfo resourceInfo = reader.getInfo(coverageInfo.getNativeCoverageName());
                 if (resourceInfo instanceof FileResourceInfo) {
                     resourceInfo = (FileResourceInfo) resourceInfo;
-                    String baseLink = baseURL.replace("${layerName}", coverageInfo.getName())
+                    String baseLink = baseURL
+                            .replace("${nameSpace}", coverageInfo.getNamespace().getName())
+                            .replace("${layerName}", coverageInfo.getName())
                             .replace("${version}", request.getVersion());
                     return new CloseableLinksIterator(baseLink, ((FileResourceInfo) resourceInfo).getFiles());
 
@@ -104,7 +112,21 @@ public class DownloadLinkGenerator {
         return null;
     }
 
-    public static String convertToHex(byte[] data) {
+    /** 
+     * Return a SHA-1 based hash for the specified file, by appending the file's
+     * base name to the hashed full path.
+     * This allows to hide the underlying file system structure.
+     */ 
+    public String hashFile(File mainFile) throws IOException, NoSuchAlgorithmException {
+        String canonicalPath = mainFile.getCanonicalPath();
+        String mainFilePath = FilenameUtils.getPath(canonicalPath);
+        
+        MessageDigest md = MessageDigest.getInstance("SHA-1");
+        md.update(mainFilePath.getBytes());
+        return convertToHex(md.digest()) + "-" + mainFile.getName();
+    }
+
+    private static String convertToHex(byte[] data) {
         StringBuilder buf = new StringBuilder();
         for (byte b : data) {
             int halfbyte = (b >>> 4) & 0x0F;

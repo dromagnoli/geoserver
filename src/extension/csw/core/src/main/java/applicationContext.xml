@@ -98,7 +98,7 @@
     <bean id="cswGetRepositoryItemKvpRequestReader" class="org.geoserver.csw.kvp.GetRepositoryItemKvpRequestReader">
     	<constructor-arg ref="cswService-2.0.2" />
     </bean>
-    
+
     <!-- XML Configuration -->
     <bean id="cswXmlConfiguration-2.0.2"
         class="org.geoserver.csw.xml.CSWConfiguration" >
@@ -227,17 +227,21 @@
 
 
     <!--  DirectDownload extensions -->
-    <bean id="DownloadLinkGenerator" class="org.geoserver.csw.store.internal.DownloadLinkGenerator" />
+    <bean id="DownloadLinkHandler" class="org.geoserver.csw.store.internal.DownloadLinkHandler" />
 
     <bean id="FeatureCustomizerMetadata" class="org.geoserver.csw.store.internal.MetadataCustomizer" >
         <property name="linkGenerator">
-            <ref bean="DownloadLinkGenerator" />
+            <ref bean="DownloadLinkHandler" />
         </property>
     </bean>
 
     <bean id="FeatureCustomizerRecord" class="org.geoserver.csw.store.internal.RecordCustomizer">
         <property name="linkGenerator">
-            <ref bean="DownloadLinkGenerator" />
+            <ref bean="DownloadLinkHandler" />
         </property>
     </bean>
+
+    <bean id="cswDirectDownloadKvpRequestReader" class="org.geoserver.csw.kvp.DirectDownloadKvpRequestReader" />
+
+    <bean id="zipResponse" class="org.geoserver.csw.response.ZipOutputFormat" />
  </beans>

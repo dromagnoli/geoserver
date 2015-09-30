@@ -1,3 +1,7 @@
+/* (c) 2015 Open Source Geospatial Foundation - all rights reserved
+ * This code is licensed under the GPL 2.0 license, available at the root
+ * application directory.
+ */
 package org.geoserver.csw.store.internal;
 
 import java.util.ArrayList;
@@ -50,15 +54,15 @@ public class MetadataCustomizer extends FeatureCustomizer {
         LINKAGE_URL_ATTRIBUTE_DESCRIPTOR = (AttributeDescriptor) urlPropType.getDescriptor("URL");
     }
 
-    /** An instance of DownloadLinkGenerator, used to create download links */
-    private DownloadLinkGenerator linkGenerator;
+    /** An instance of {@link DownloadLinkHandler}, used to deal with download links */
+    private DownloadLinkHandler downloadLinkHandler;
 
-    public DownloadLinkGenerator getLinkGenerator() {
-        return linkGenerator;
+    public DownloadLinkHandler getDownloadLinkHandler() {
+        return downloadLinkHandler;
     }
 
-    public void setLinkGenerator(DownloadLinkGenerator linkGenerator) {
-        this.linkGenerator = linkGenerator;
+    public void setDownloadLinkHandler(DownloadLinkHandler downloadLinkHandler) {
+        this.downloadLinkHandler = downloadLinkHandler;
     }
 
     public MetadataCustomizer() {
@@ -94,7 +98,7 @@ public class MetadataCustomizer extends FeatureCustomizer {
                 (Collection<ComplexAttribute>) onlineValues);
 
         // Invoke the DownloadLinkGenerator to generate links for the specified resource
-        Iterator<String> links = linkGenerator.generateDownloadLinks(resource);
+        Iterator<String> links = downloadLinkHandler.generateDownloadLinks(resource);
         while (links.hasNext()) {
             String link = links.next();
             // Setting new URL attribute
