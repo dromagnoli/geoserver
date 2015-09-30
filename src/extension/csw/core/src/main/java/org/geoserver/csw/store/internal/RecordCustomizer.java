@@ -37,10 +37,6 @@ public class RecordCustomizer extends FeatureCustomizer {
     /** An instance of {@link DownloadLinkHandler}, used to deal with download links */
     private DownloadLinkHandler downloadLinkHandler;
 
-    public DownloadLinkHandler getDownloadLinkHandler() {
-        return downloadLinkHandler;
-    }
-
     public void setDownloadLinkHandler(DownloadLinkHandler downloadLinkHandler) {
         this.downloadLinkHandler = downloadLinkHandler;
     }

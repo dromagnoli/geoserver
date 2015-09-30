@@ -12,6 +12,4 @@ public class DirectDownloadType {
         this.resourceId = resourceId;
     }
     
-    
-    
 }

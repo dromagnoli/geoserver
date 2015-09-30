@@ -230,13 +230,13 @@
     <bean id="DownloadLinkHandler" class="org.geoserver.csw.store.internal.DownloadLinkHandler" />
 
     <bean id="FeatureCustomizerMetadata" class="org.geoserver.csw.store.internal.MetadataCustomizer" >
-        <property name="linkGenerator">
+        <property name="downloadLinkHandler">
             <ref bean="DownloadLinkHandler" />
         </property>
     </bean>
 
     <bean id="FeatureCustomizerRecord" class="org.geoserver.csw.store.internal.RecordCustomizer">
-        <property name="linkGenerator">
+        <property name="downloadLinkHandler">
             <ref bean="DownloadLinkHandler" />
         </property>
     </bean>

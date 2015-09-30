@@ -5,6 +5,7 @@
 
 package org.geoserver.csw.kvp;
 
+import java.util.List;
 import java.util.Map;
 
 import org.geoserver.csw.DirectDownloadType;
@@ -18,6 +19,7 @@ import org.geoserver.platform.ServiceException;
  */
 public class DirectDownloadKvpRequestReader extends KvpRequestReader {
 
+    private final static String RESOURCE_ID = "resourceId"; 
     public DirectDownloadKvpRequestReader() {
         super(DirectDownloadType.class);
     }
@@ -25,6 +27,8 @@ public class DirectDownloadKvpRequestReader extends KvpRequestReader {
     @Override
     public Object read(Object req, Map kvp, Map rawKvp) throws Exception {
 
+        // Force the ResourceID element to be a simple String instead of an array
+        kvp.put(RESOURCE_ID, ((List)kvp.get(RESOURCE_ID)).get(0));
         DirectDownloadType request = (DirectDownloadType) super.read(req, kvp, rawKvp);
 
         if (request.getResourceId() == null) {

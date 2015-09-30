@@ -16,7 +16,7 @@ import org.geoserver.ows.util.RequestUtils;
 import org.geoserver.ows.util.ResponseUtils;
 import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.data.CloseableIterator;
-import org.geotools.data.FileGroup;
+import org.geotools.data.FileGroupProvider.FileGroup;
 import org.geotools.data.FileResourceInfo;
 import org.geotools.data.ResourceInfo;
 import org.geotools.factory.GeoTools;
@@ -26,7 +26,7 @@ import org.opengis.filter.FilterFactory2;
 public class DownloadLinkHandler {
 
     FilterFactory2 ff = FeatureUtilities.DEFAULT_FILTER_FACTORY;
-    
+
     class CloseableLinksIterator implements CloseableIterator<String> {
 
         public CloseableLinksIterator(String baseLink, CloseableIterator<FileGroup> dataIterator) {
@@ -35,6 +35,7 @@ public class DownloadLinkHandler {
         }
 
         String baseLink;
+
         CloseableIterator<FileGroup> dataIterator;
 
         @Override
@@ -49,10 +50,8 @@ public class DownloadLinkHandler {
             String canonicalPath = null;
             try {
                 canonicalPath = mainFile.getCanonicalPath();
-                String mainFilePath = FilenameUtils.getPath(canonicalPath);
                 String hashFile = hashFile(mainFile);
-                
-                return baseLink.replace("${file}", hashFile); 
+                return baseLink.replace("${file}", hashFile);
             } catch (IOException e) {
                 throw new RuntimeException("Unable to encode the specified file:" + canonicalPath,
                         e.getCause());
@@ -72,23 +71,24 @@ public class DownloadLinkHandler {
 
     /**
      * Generate download links for the specified info object.
+     * 
      * @param info
      * @return
      */
     public Iterator<String> generateDownloadLinks(CatalogInfo info) {
         Request request = Dispatcher.REQUEST.get();
         String baseURL = null;
-        
+
         try {
             if (baseURL == null) {
                 baseURL = RequestUtils.baseURL(request.getHttpRequest());
             }
-            
+
             baseURL = ResponseUtils.buildURL(baseURL, "/", null, URLType.SERVICE);
         } catch (Exception e) {
         }
         baseURL += LINK;
-        
+
         if (info instanceof CoverageInfo) {
             CoverageInfo coverageInfo = ((CoverageInfo) info);
             GridCoverage2DReader reader;
@@ -97,12 +97,14 @@ public class DownloadLinkHandler {
                         GeoTools.getDefaultHints());
                 ResourceInfo resourceInfo = reader.getInfo(coverageInfo.getNativeCoverageName());
                 if (resourceInfo instanceof FileResourceInfo) {
-                    resourceInfo = (FileResourceInfo) resourceInfo;
+                    FileResourceInfo fileResourceInfo = (FileResourceInfo) resourceInfo;
                     String baseLink = baseURL
                             .replace("${nameSpace}", coverageInfo.getNamespace().getName())
                             .replace("${layerName}", coverageInfo.getName())
                             .replace("${version}", request.getVersion());
-                    return new CloseableLinksIterator(baseLink, ((FileResourceInfo) resourceInfo).getFiles());
+                    CloseableIterator<org.geotools.data.FileGroupProvider.FileGroup> dataIterator = fileResourceInfo
+                            .getFiles().getFiles(null);
+                    return new CloseableLinksIterator(baseLink, dataIterator);
 
                 }
             } catch (IOException e) {
@@ -112,15 +114,14 @@ public class DownloadLinkHandler {
         return null;
     }
 
-    /** 
-     * Return a SHA-1 based hash for the specified file, by appending the file's
-     * base name to the hashed full path.
-     * This allows to hide the underlying file system structure.
-     */ 
+    /**
+     * Return a SHA-1 based hash for the specified file, by appending the file's base name to the hashed full path. This allows to hide the underlying
+     * file system structure.
+     */
     public String hashFile(File mainFile) throws IOException, NoSuchAlgorithmException {
         String canonicalPath = mainFile.getCanonicalPath();
         String mainFilePath = FilenameUtils.getPath(canonicalPath);
-        
+
         MessageDigest md = MessageDigest.getInstance("SHA-1");
         md.update(mainFilePath.getBytes());
         return convertToHex(md.digest()) + "-" + mainFile.getName();
