@@ -6,8 +6,11 @@
 package org.geoserver.csw.web;
 
 import org.apache.wicket.PageParameters;
+import org.apache.wicket.markup.html.form.CheckBox;
 import org.apache.wicket.markup.html.form.Form;
+import org.apache.wicket.markup.html.form.TextField;
 import org.apache.wicket.model.IModel;
+import org.apache.wicket.validation.validator.MinimumValidator;
 import org.geoserver.csw.CSWInfo;
 import org.geoserver.web.services.BaseServiceAdminPage;
 
@@ -32,8 +35,10 @@ public class CSWAdminPage extends BaseServiceAdminPage<CSWInfo> {
     
     @SuppressWarnings({ "rawtypes", "unchecked" })
     protected void build(final IModel info, Form form) {
-        
-        
+        form.add(new CheckBox("directDownloadLinksEnabled"));
+        TextField maxDownloadSize = new TextField("maxDownloadSize");
+        maxDownloadSize.add(new MinimumValidator(0l));
+        form.add(maxDownloadSize);
     }    
     
     protected String getServiceName(){

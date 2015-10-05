@@ -8,7 +8,9 @@ package org.geoserver.csw.kvp;
 import java.util.List;
 import java.util.Map;
 
+import org.geoserver.csw.DirectDownload;
 import org.geoserver.csw.DirectDownloadType;
+import org.geoserver.csw.store.internal.DownloadLinkHandler;
 import org.geoserver.ows.KvpRequestReader;
 import org.geoserver.platform.ServiceException;
 
@@ -19,7 +21,6 @@ import org.geoserver.platform.ServiceException;
  */
 public class DirectDownloadKvpRequestReader extends KvpRequestReader {
 
-    private final static String RESOURCE_ID = "resourceId"; 
     public DirectDownloadKvpRequestReader() {
         super(DirectDownloadType.class);
     }
@@ -28,7 +29,11 @@ public class DirectDownloadKvpRequestReader extends KvpRequestReader {
     public Object read(Object req, Map kvp, Map rawKvp) throws Exception {
 
         // Force the ResourceID element to be a simple String instead of an array
-        kvp.put(RESOURCE_ID, ((List)kvp.get(RESOURCE_ID)).get(0));
+        kvp.put(DownloadLinkHandler.RESOURCE_ID_PARAMETER, ((List)kvp.get(DownloadLinkHandler.RESOURCE_ID_PARAMETER)).get(0));
+        Object fileParameter = kvp.get(DownloadLinkHandler.FILE_PARAMETER);
+        if (fileParameter != null && fileParameter instanceof List && !((List)fileParameter).isEmpty()) {
+            kvp.put(DownloadLinkHandler.FILE_PARAMETER, ((List)fileParameter).get(0));
+        }
         DirectDownloadType request = (DirectDownloadType) super.read(req, kvp, rawKvp);
 
         if (request.getResourceId() == null) {
@@ -36,7 +41,6 @@ public class DirectDownloadKvpRequestReader extends KvpRequestReader {
                     "resourceId parameter not provided for DirectDownload operation",
                     ServiceException.MISSING_PARAMETER_VALUE, "resourceId");
         }
-
         return request;
     }
 

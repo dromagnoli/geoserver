@@ -5,9 +5,9 @@
 package org.geoserver.csw.store.internal;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 
 import org.geoserver.catalog.CatalogInfo;
 import org.geoserver.csw.records.CSWRecordDescriptor;
@@ -18,6 +18,9 @@ import org.opengis.feature.Property;
 import org.opengis.feature.type.AttributeDescriptor;
 import org.opengis.feature.type.ComplexType;
 
+/**
+ * {@link FeatureCustomizer} subclass to deal with CSW DublinCore records
+ */
 public class RecordCustomizer extends FeatureCustomizer {
 
     private final static AttributeDescriptor REFERENCES_DESCRIPTOR;
@@ -48,20 +51,15 @@ public class RecordCustomizer extends FeatureCustomizer {
     @Override
     public void customizeFeature(Feature feature, CatalogInfo resource) {
         Iterator<String> links = downloadLinkHandler.generateDownloadLinks(resource);
-        Collection<Property> newReferencesList = new ArrayList<Property>();
+        List<Property> newReferencesList = new ArrayList<Property>();
+        
+        String link = null;
         while (links.hasNext()) {
-            String link = links.next();
-
-            Property urlAttribute = new AttributeImpl(link, VALUE_DESCRIPTOR, null);
-
-            // Setting references
-            Property references = new ComplexAttributeImpl(Collections.singletonList(urlAttribute),
-                    REFERENCES_DESCRIPTOR, null);
-
-            newReferencesList.add(references);
+            link = links.next();
+            newReferencesList.add(createReferencesElement(link));
         }
-        Collection<Property> propertyList = new ArrayList<Property>();
-        Collection<Property> oldValues = (Collection<Property>) feature.getValue();
+        List<Property> propertyList = new ArrayList<Property>();
+        List<Property> oldValues = (List<Property>) feature.getValue();
         Iterator<Property> oldValuesIterator = oldValues.iterator();
         boolean insertReferences = false;
 
@@ -71,6 +69,10 @@ public class RecordCustomizer extends FeatureCustomizer {
             if (REFERENCES.equalsIgnoreCase(prop.getName().getLocalPart())) {
                 insertReferences = true;
             } else if (insertReferences) {
+
+                // link String should contain the last link generated
+                // let's recycle it to generate the full download link
+                newReferencesList.add(createReferencesElement(downloadLinkHandler.extractFullDownloadLink(link)));
                 // append new references to the current collection
                 // before going to other elements
                 propertyList.addAll(newReferencesList);
@@ -79,5 +81,16 @@ public class RecordCustomizer extends FeatureCustomizer {
             propertyList.add(prop);
         }
         feature.setValue(propertyList);
+    }
+
+    /**
+     * Create a new references element for the link
+     */
+    private Property createReferencesElement(String link) {
+        Property urlAttribute = new AttributeImpl(link, VALUE_DESCRIPTOR, null);
+
+        // Setting references
+        return new ComplexAttributeImpl(Collections.singletonList(urlAttribute),
+                REFERENCES_DESCRIPTOR, null);
     }
 }

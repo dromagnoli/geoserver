@@ -1,3 +1,7 @@
+/* (c) 2015 Open Source Geospatial Foundation - all rights reserved
+ * This code is licensed under the GPL 2.0 license, available at the root
+ * application directory.
+ */
 package org.geoserver.csw.store.internal;
 
 import java.util.HashMap;
@@ -13,7 +17,7 @@ import org.opengis.feature.Feature;
 import org.opengis.filter.FilterFactory2;
 
 /**
- * An implementation of this class allows to customize a Feature. 
+ * Subclasses implementations allow to customize Feature values. 
  */
 abstract class FeatureCustomizer {
 
@@ -32,14 +36,15 @@ abstract class FeatureCustomizer {
     }
 
     /**
-     * Customize the provided feature, looking for additional values to be set 
-     * from the referred resource object.
+     * Customize the provided feature, looking for additional values 
+     * to be retrieved from the referred resource object.
      * 
      * @param feature
      * @param resource
      */
     abstract void customizeFeature(Feature feature, CatalogInfo resource);
 
+    /** Map of all the registered feature customizers */
     static Map<String, FeatureCustomizer> CUSTOMIZERS;
 
     static Map<String, FeatureCustomizer> getCustomizers() {

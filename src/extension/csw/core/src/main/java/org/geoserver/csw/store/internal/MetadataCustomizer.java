@@ -22,6 +22,9 @@ import org.opengis.feature.type.ComplexType;
 import org.opengis.feature.type.FeatureType;
 import org.opengis.filter.expression.PropertyName;
 
+/**
+ * {@link FeatureCustomizer} subclass to deal with ISO Metadata type
+ */
 public class MetadataCustomizer extends FeatureCustomizer {
 
     private static final String TYPENAME = "MD_Metadata_Type";
@@ -65,6 +68,7 @@ public class MetadataCustomizer extends FeatureCustomizer {
         super(TYPENAME);
     }
 
+    @Override
     public void customizeFeature(Feature feature, CatalogInfo resource) {
         PropertyName parentPropertyName = ff.property(ONLINE_PARENT_NODE,
                 MetaDataDescriptor.NAMESPACES);
@@ -95,25 +99,33 @@ public class MetadataCustomizer extends FeatureCustomizer {
 
         // Invoke the DownloadLinkGenerator to generate links for the specified resource
         Iterator<String> links = downloadLinkHandler.generateDownloadLinks(resource);
+        String link = null;
         while (links.hasNext()) {
-            String link = links.next();
-            // Setting new URL attribute
-            Property urlAttribute = new AttributeImpl(link, LINKAGE_URL_ATTRIBUTE_DESCRIPTOR, null);
-
-            // Setting linkageURL
-            Property linkage = new ComplexAttributeImpl(Collections.singletonList(urlAttribute),
-                    LINKAGE_ATTRIBUTE_DESCRIPTOR, null);
-
-            ComplexAttribute onlineResourceElement = new ComplexAttributeImpl(
-                    Collections.singletonList(linkage), ONLINE_RESOURCE_DESCRIPTOR, null);
-
-            // Add the newly created element
-            updatedOnlineResources.add(onlineResourceElement);
+            link = links.next();
+            updatedOnlineResources.add(createOnlineResourceElement(link));
         }
+
+        // link String should contain the last link generated
+        // let's recycle it to generate the full download link
+        updatedOnlineResources.add(createOnlineResourceElement(downloadLinkHandler.extractFullDownloadLink(link)));
 
         // Update the onlineResources
         parentProperty.setValue(updatedOnlineResources);
 
+    }
+
+    /** 
+     * Create a new OnlineResource element for the link 
+     */
+    private ComplexAttribute createOnlineResourceElement(String link) {
+        // Setting new URL attribute
+        Property urlAttribute = new AttributeImpl(link, LINKAGE_URL_ATTRIBUTE_DESCRIPTOR, null);
+
+        // Setting linkageURL
+        Property linkage = new ComplexAttributeImpl(Collections.singletonList(urlAttribute),
+                LINKAGE_ATTRIBUTE_DESCRIPTOR, null);
+
+        return new ComplexAttributeImpl(Collections.singletonList(linkage), ONLINE_RESOURCE_DESCRIPTOR, null);
     }
 
 }
