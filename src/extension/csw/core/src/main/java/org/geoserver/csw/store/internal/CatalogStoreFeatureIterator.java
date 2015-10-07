@@ -26,10 +26,14 @@ import org.geoserver.catalog.LayerGroupInfo;
 import org.geoserver.catalog.MetadataMap;
 import org.geoserver.catalog.ResourceInfo;
 import org.geoserver.catalog.impl.ModificationProxy;
+import org.geoserver.config.GeoServer;
+import org.geoserver.csw.CSWInfo;
+import org.geoserver.csw.DirectDownloadSettings;
 import org.geoserver.csw.feature.sort.CatalogComparatorFactory;
 import org.geoserver.csw.records.GenericRecordBuilder;
 import org.geoserver.csw.records.RecordBuilder;
 import org.geoserver.csw.records.RecordDescriptor;
+import org.geoserver.platform.GeoServerExtensions;
 import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.util.logging.Logging;
@@ -199,16 +203,32 @@ class CatalogStoreFeatureIterator implements Iterator<Feature> {
         }
         return id;
     }
-    
+
+    /**
+     * Get a {@link FeatureCustomizer} for this info.
+     * @param info
+     * @return
+     */
     private FeatureCustomizer getCustomizer(CatalogInfo info) {
         FeatureCustomizer customizer = null;
+
+        // DirectDownload capability is only checked for Coverage layers
         if (info instanceof CoverageInfo) {
             CoverageInfo coverageInfo = ((CoverageInfo) info);
             MetadataMap metadata = coverageInfo.getMetadata();
-            if (metadata != null && !metadata.isEmpty() && metadata.containsKey("DirectDownload") || true) {
-                Object dd = metadata.get("DirectDownload");
+
+            boolean directDownloadEnabled = false;
+            // Look for specific settings for this layer
+            DirectDownloadSettings settings = DirectDownloadSettings
+                    .getSettingsFromMetadata(metadata, GeoServerExtensions.bean(GeoServer.class).getService(
+                            CSWInfo.class));
+            if (settings != null) {
+                directDownloadEnabled = settings.isDirectDownloadEnabled();
+            }
+
+            if (directDownloadEnabled) {
                 String typeName = recordDescriptor.getFeatureType().getName().getLocalPart();
-//                customizer = FeatureCustomizer.getCustomizer(typeName);
+                // customizer = FeatureCustomizer.getCustomizer(typeName);
                 customizer = FeatureCustomizer.getCustomizer(typeName);
                 if (customizer == null) {
                     if (LOGGER.isLoggable(Level.WARNING)) {
@@ -222,10 +242,10 @@ class CatalogStoreFeatureIterator implements Iterator<Feature> {
     }
 
     private Feature convertToFeature(ResourceInfo resource) {
-        
+
         String id = mapProperties(resource);
-        
-        // move on to the bounding boxes      
+
+        // move on to the bounding boxes
         if (mapping.isIncludeEnvelope()) {
             ReferencedEnvelope bbox = null;
             try {
@@ -235,15 +255,13 @@ class CatalogStoreFeatureIterator implements Iterator<Feature> {
             }
             if (bbox != null) {
                 builder.addBoundingBox(bbox);
-            }          
+            }
         }
         Feature feature = builder.build(id);
-        
-        CatalogInfo info = ModificationProxy.unwrap(resource);
-      FeatureCustomizer customizer = getCustomizer(resource);
-      if (customizer != null) {
-        customizer.customizeFeature(feature, info);
-      }
+        FeatureCustomizer customizer = getCustomizer(resource);
+        if (customizer != null) {
+            customizer.customizeFeature(feature, ModificationProxy.unwrap(resource));
+        }
         return feature;
     }
     

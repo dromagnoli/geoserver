@@ -79,6 +79,7 @@ public class ZipOutputFormat extends Response {
     @Override
     public String[][] getHeaders(Object value, Operation operation) throws ServiceException {
         long size = 0;
+        // Add the Content-Length header
         if (value != null && value instanceof List) {
             List<File> files = (List<File>) value;
             if (!files.isEmpty()) {

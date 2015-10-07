@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.logging.Level;
 
 import org.geoserver.catalog.CatalogInfo;
+import org.geoserver.csw.DownloadLinkHandler;
 import org.geoserver.csw.records.iso.MetaDataDescriptor;
 import org.geotools.feature.AttributeImpl;
 import org.geotools.feature.ComplexAttributeImpl;

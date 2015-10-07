@@ -227,7 +227,7 @@
 
 
     <!--  DirectDownload extensions -->
-    <bean id="DownloadLinkHandler" class="org.geoserver.csw.store.internal.DownloadLinkHandler" />
+    <bean id="DownloadLinkHandler" class="org.geoserver.csw.DownloadLinkHandler" />
 
     <bean id="FeatureCustomizerMetadata" class="org.geoserver.csw.store.internal.MetadataCustomizer" >
         <property name="downloadLinkHandler">
@@ -244,4 +244,6 @@
     <bean id="cswDirectDownloadKvpRequestReader" class="org.geoserver.csw.kvp.DirectDownloadKvpRequestReader" />
 
     <bean id="zipResponse" class="org.geoserver.csw.response.ZipOutputFormat" />
+    
+    <bean id="DirectDownloadXStreamInitializer" class="org.geoserver.csw.DirectDownloadSettingsXStreamInitializer" />
  </beans>

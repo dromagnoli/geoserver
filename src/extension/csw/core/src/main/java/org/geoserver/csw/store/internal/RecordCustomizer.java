@@ -10,6 +10,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.geoserver.catalog.CatalogInfo;
+import org.geoserver.csw.DownloadLinkHandler;
 import org.geoserver.csw.records.CSWRecordDescriptor;
 import org.geotools.feature.AttributeImpl;
 import org.geotools.feature.ComplexAttributeImpl;

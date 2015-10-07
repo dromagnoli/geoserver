@@ -10,7 +10,7 @@ import java.util.Map;
 
 import org.geoserver.csw.DirectDownload;
 import org.geoserver.csw.DirectDownloadType;
-import org.geoserver.csw.store.internal.DownloadLinkHandler;
+import org.geoserver.csw.DownloadLinkHandler;
 import org.geoserver.ows.KvpRequestReader;
 import org.geoserver.platform.ServiceException;
 

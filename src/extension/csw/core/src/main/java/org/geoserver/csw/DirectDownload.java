@@ -16,7 +16,6 @@ import java.util.logging.Logger;
 import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.config.GeoServer;
 import org.geoserver.csw.store.CatalogStore;
-import org.geoserver.csw.store.internal.DownloadLinkHandler;
 import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.platform.ServiceException;
 import org.geotools.coverage.grid.io.GridCoverage2DReader;
@@ -193,7 +192,7 @@ public class DirectDownload {
             throw new ServiceException("Unable to get any data for resourceId=" + resourceId
                     + " and file=" + fileId);
         }
-        checkSizeLimit(result);
+        checkSizeLimit(result, info);
         return result;
 
     }
@@ -253,9 +252,12 @@ public class DirectDownload {
     /** 
      * Check the current download is not exceeding the maxDownloadSize limit (if activated).
      * Throws a {@link CSWException} in case the limit is exceeded
+     * @param info 
      */
-    private void checkSizeLimit(List<File> fileList) {
-        long sizeLimit = csw.getMaxDownloadSize() * 1024;
+    private void checkSizeLimit(List<File> fileList, CoverageInfo info) {
+        DirectDownloadSettings settings = DirectDownloadSettings.getSettingsFromMetadata(info.getMetadata(), csw);
+        long maxSize = settings != null ? settings.getMaxDownloadSize() : 0;
+        long sizeLimit = maxSize * 1024;
         if (fileList != null && !fileList.isEmpty() && sizeLimit > 0) {
             long cumulativeSize = 0;
             for (File file : fileList) {

@@ -2,13 +2,14 @@
  * This code is licensed under the GPL 2.0 license, available at the root
  * application directory.
  */
-package org.geoserver.csw.store.internal;
+package org.geoserver.csw;
 
 import java.io.File;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -31,6 +32,7 @@ import org.geotools.data.FileResourceInfo;
 import org.geotools.data.ResourceInfo;
 import org.geotools.factory.GeoTools;
 import org.geotools.gce.imagemosaic.Utils;
+import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.util.DateRange;
 import org.geotools.util.NumberRange;
 import org.geotools.util.Range;
@@ -42,12 +44,21 @@ import org.geotools.util.logging.Logging;
  */
 public class DownloadLinkHandler {
 
+    private static Set<String> STANDARD_DOMAINS;
     public final static String RESOURCE_ID_PARAMETER = "resourceId";
     public final static String FILE_PARAMETER = "file"; 
     public final static String FILE_TEMPLATE = "${" + FILE_PARAMETER + "}";
 
     static final Logger LOGGER = Logging.getLogger(DownloadLinkHandler.class);
 
+    static {
+        STANDARD_DOMAINS = new HashSet<String>();
+        STANDARD_DOMAINS.add(Utils.TIME_DOMAIN);
+        STANDARD_DOMAINS.add(Utils.ELEVATION_DOMAIN);
+        STANDARD_DOMAINS.add(Utils.BBOX);
+        
+    }
+    
     /** An implementation of {@link CloseableIterator} for links creation */
     class CloseableLinksIterator implements CloseableIterator<String> {
 
@@ -92,7 +103,13 @@ public class DownloadLinkHandler {
                 if (metadata != null && !metadata.isEmpty()) {
                     
                     Set<String> keys = metadata.keySet();
-                    // Set time and elevation as first elements in the link
+
+                    // Set bbox in the link
+                    if (keys.contains(Utils.BBOX)) {
+                        Object bbox = metadata.get(Utils.BBOX);
+                        appendBBOXToLink((ReferencedEnvelope) bbox, builder);
+                    }
+                    // Set time and elevation as first domain elements in the link
                     if (keys.contains(Utils.TIME_DOMAIN)) {
                         Object time = metadata.get(Utils.TIME_DOMAIN);
                         appendRangeToLink(Utils.TIME_DOMAIN, time, builder);
@@ -102,7 +119,7 @@ public class DownloadLinkHandler {
                         appendRangeToLink(Utils.ELEVATION_DOMAIN, elevation, builder);
                     }
                     for (String key: keys) {
-                        if (!Utils.TIME_DOMAIN.equalsIgnoreCase(key) && !Utils.ELEVATION_DOMAIN.equalsIgnoreCase(key)) {
+                        if (!STANDARD_DOMAINS.contains(key)) {
                             Object additional = metadata.get(key);
                             appendRangeToLink(key, additional, builder);
                         }
@@ -118,6 +135,28 @@ public class DownloadLinkHandler {
             }
         }
 
+        /**
+         * Append the BBOX parameter to the directDownload link
+         * @param envelope
+         * @param builder
+         */
+        private void appendBBOXToLink(ReferencedEnvelope envelope, StringBuilder builder) {
+            if (envelope == null) {
+                throw new IllegalArgumentException("Envelope can't be null");
+            }
+            builder.append("&").append(Utils.BBOX).append("=")
+            .append(envelope.getMinX()).append(",")
+            .append(envelope.getMinY()).append(",")
+            .append(envelope.getMaxX()).append(",")
+            .append(envelope.getMaxY());
+        }
+
+        /**
+         * Append a coverage domain (time, elevation, custom) to the direct download link.
+         * @param key the name of the parameter domain to be added
+         * @param domain the value of the domain
+         * @param builder the builder currently used for Link construction
+         */
         private void appendRangeToLink(String key, Object domain, StringBuilder builder) {
             String value = null;
             builder.append("&").append(key).append("=");
