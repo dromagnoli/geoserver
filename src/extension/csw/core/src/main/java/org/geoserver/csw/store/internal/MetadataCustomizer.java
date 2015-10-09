@@ -4,15 +4,16 @@
  */
 package org.geoserver.csw.store.internal;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.logging.Level;
 
 import org.geoserver.catalog.CatalogInfo;
 import org.geoserver.csw.DownloadLinkHandler;
 import org.geoserver.csw.records.iso.MetaDataDescriptor;
+import org.geotools.data.CloseableIterator;
 import org.geotools.feature.AttributeImpl;
 import org.geotools.feature.ComplexAttributeImpl;
 import org.opengis.feature.ComplexAttribute;
@@ -99,11 +100,22 @@ public class MetadataCustomizer extends FeatureCustomizer {
                 (Collection<ComplexAttribute>) onlineValues);
 
         // Invoke the DownloadLinkGenerator to generate links for the specified resource
-        Iterator<String> links = downloadLinkHandler.generateDownloadLinks(resource);
+        CloseableIterator<String> links = null;
         String link = null;
-        while (links.hasNext()) {
-            link = links.next();
-            updatedOnlineResources.add(createOnlineResourceElement(link));
+        try {
+            links = downloadLinkHandler.generateDownloadLinks(resource);
+            while (links.hasNext()) {
+                link = links.next();
+                updatedOnlineResources.add(createOnlineResourceElement(link));
+            }
+        } finally {
+            if (links != null) {
+                try {
+                    links.close();
+                } catch (IOException e) {
+                    // ignore it
+                }
+            }
         }
 
         // link String should contain the last link generated

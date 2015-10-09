@@ -158,7 +158,6 @@ public class DownloadLinkHandler {
          * @param builder the builder currently used for Link construction
          */
         private void appendRangeToLink(String key, Object domain, StringBuilder builder) {
-            String value = null;
             builder.append("&").append(key).append("=");
             if (domain instanceof DateRange) {
                 // instantiate a new DateFormat instead of using a static one since
@@ -201,7 +200,7 @@ public class DownloadLinkHandler {
      * @param info
      * @return
      */
-    public Iterator<String> generateDownloadLinks(CatalogInfo info) {
+    public CloseableIterator<String> generateDownloadLinks(CatalogInfo info) {
         Request request = Dispatcher.REQUEST.get();
         String baseURL = null;
 
@@ -236,7 +235,7 @@ public class DownloadLinkHandler {
      * @param coverageInfo
      * @return
      */
-    private Iterator<String> linksFromCoverage(String baseURL, CoverageInfo coverageInfo) {
+    private CloseableIterator<String> linksFromCoverage(String baseURL, CoverageInfo coverageInfo) {
         GridCoverage2DReader reader;
         try {
             reader = (GridCoverage2DReader) coverageInfo.getGridCoverageReader(null,

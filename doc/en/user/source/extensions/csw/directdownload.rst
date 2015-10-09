@@ -16,7 +16,7 @@ The download links (one for each data file composing the layer plus a link to ge
 * as additional **term-references** element for a Dublin Core schema 
 * as additional **OnlineResource** for ISO Metadata
 
-That link also contains domain validity for that file such as envelope, time, elevation (and custom) dimensions for multidimensional layers.
+That link also contains validity domain for that file such as envelope/time/elevation/custom dimensions (when presents) for multidimensional layers.
 
 Configuration
 =============
@@ -46,3 +46,22 @@ Go to the *publishing* tab of the layer where you can find the *DirectDownload s
    *DirectDownload configuration (Layer level)*
    
 The configuration of this parameters follows the same rules explained before for the CSW configuration panel.  
+
+GetRecords example
+^^^^^^^^^^^^^^^^^^
+
+A GetRecords response containing a layer with DirectDownload enabled, may result having a piece like this (using ISO Metadata output schema)::
+
+    ...
+    <gmd:CI_OnlineResource>
+      <gmd:linkage>
+        <gmd:URL>
+        http://localhost:8080/geoserver/ows?service=CSW&version=2.0.2&request=DirectDownload&resourceId=geosolutions:Reflectivity_height_above_ground&file=82643c5bf682f67ef8b7de737b90ada759965cd8-samplefile.grib2&ENVELOPE=-2699073.2421875,-1588806.0302734375,2697926.7578125,1588193.9697265625&TIME=2015-06-23T00:00:00.000Z/2015-06-23T00:00:00.000Z&HEIGHT_ABOVE_GROUND=1000.0/4000.0
+        </gmd:URL>
+      </gmd:linkage>
+    </gmd:CI_OnlineResource>
+    ...
+
+That URL allows the direct download of the indicated file. Note that the filename has a SHA-1 header to avoid publishing the underlying file system structure paths.
+
+

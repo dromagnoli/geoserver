@@ -4,6 +4,7 @@
  */
 package org.geoserver.csw.store.internal;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -12,6 +13,7 @@ import java.util.List;
 import org.geoserver.catalog.CatalogInfo;
 import org.geoserver.csw.DownloadLinkHandler;
 import org.geoserver.csw.records.CSWRecordDescriptor;
+import org.geotools.data.CloseableIterator;
 import org.geotools.feature.AttributeImpl;
 import org.geotools.feature.ComplexAttributeImpl;
 import org.opengis.feature.Feature;
@@ -51,14 +53,25 @@ public class RecordCustomizer extends FeatureCustomizer {
 
     @Override
     public void customizeFeature(Feature feature, CatalogInfo resource) {
-        Iterator<String> links = downloadLinkHandler.generateDownloadLinks(resource);
+        CloseableIterator<String> links = null; 
         List<Property> newReferencesList = new ArrayList<Property>();
-        
         String link = null;
-        while (links.hasNext()) {
-            link = links.next();
-            newReferencesList.add(createReferencesElement(link));
+        try {
+            links = downloadLinkHandler.generateDownloadLinks(resource);
+            while (links.hasNext()) {
+                link = links.next();
+                newReferencesList.add(createReferencesElement(link));
+            }
+        } finally {
+            if (links != null) {
+                try {
+                    links.close();
+                } catch (IOException e) {
+                    // ignore it
+                }
+            }
         }
+
         List<Property> propertyList = new ArrayList<Property>();
         List<Property> oldValues = (List<Property>) feature.getValue();
         Iterator<Property> oldValuesIterator = oldValues.iterator();
