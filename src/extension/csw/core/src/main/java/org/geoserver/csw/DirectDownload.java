@@ -45,7 +45,8 @@ public class DirectDownload {
     private final static FilterFactory2 FF = FeatureUtilities.DEFAULT_FILTER_FACTORY;
 
     /**
-     * Files collector class which populates a {@link File}s {@link List} by accessing a {@link FileGroupProvider} instance.
+     * Files collector class which populates a {@link File}s {@link List} 
+     * by accessing a {@link FileGroupProvider} instance.
      */
     class FilesCollector {
 
@@ -54,16 +55,16 @@ public class DirectDownload {
         }
 
         /** The underlying FileGroupProvider used to collect the files */
-        FileGroupProvider fileGroupProvider;
+        private FileGroupProvider fileGroupProvider;
 
         /** 
          * Only collect the subset of files available from the fileGroupProvider,
          * which match the provided fileId.
          * 
-         * a FileId is composed of "hash-baseName".
+         * a File Identifier is composed of "hash-baseName".
          * Only the files having same baseName and matching hash will be added to the list
          */
-        void collectSubset(String fileId, List<File> result) {
+        private void collectSubset(String fileId, List<File> result) {
             CloseableIterator<FileGroup> files = null;
             try {
                 String hash = fileId;
