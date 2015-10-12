@@ -1,15 +1,14 @@
-/* (c) 2014 - 2015 Open Source Geospatial Foundation - all rights reserved
+/* (c) 2014 Open Source Geospatial Foundation - all rights reserved
  * (c) 2001 - 2013 OpenPlans
  * This code is licensed under the GPL 2.0 license, available at the root
  * application directory.
  */
 package org.geoserver.catalog.util;
 
+import java.io.Closeable;
+import java.util.Iterator;
 
-/**
- * @deprecated use {@link org.geotools.data.CloseableIterator}
- */
-public interface CloseableIterator<T> extends org.geotools.data.CloseableIterator<T> {
+public interface CloseableIterator<T> extends Iterator<T>, Closeable {
 
     /**
      * Closes this stream and releases any system resources associated with it. This method is
@@ -19,7 +18,6 @@ public interface CloseableIterator<T> extends org.geotools.data.CloseableIterato
      *             if an I/O error occurs
      */
     @Override
-    @Deprecated
     public void close();
 
 }

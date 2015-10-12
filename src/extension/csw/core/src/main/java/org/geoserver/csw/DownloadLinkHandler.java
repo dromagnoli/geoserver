@@ -250,7 +250,7 @@ public class DownloadLinkHandler {
                         .replace("${layerName}", coverageInfo.getName());
 
                 CloseableIterator<org.geotools.data.FileGroupProvider.FileGroup> dataIterator = fileResourceInfo
-                        .getFiles().getFiles(null);
+                        .getFiles(null);
                 return new CloseableLinksIterator(baseLink, dataIterator);
 
             } else {
