@@ -59,7 +59,6 @@ import org.geotools.util.logging.Logging;
 import org.opengis.referencing.AuthorityFactory;
 import org.opengis.referencing.FactoryException;
 
-import com.google.common.collect.Lists;
 
 import it.geosolutions.concurrent.ConcurrentTileCacheMultiMap;
 
