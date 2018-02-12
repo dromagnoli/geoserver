@@ -90,7 +90,6 @@ import org.xml.sax.helpers.AttributesImpl;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.sun.xml.internal.bind.annotation.OverrideAnnotationOf;
 import com.vividsolutions.jts.geom.Envelope;
 
 /**
@@ -103,20 +102,6 @@ import com.vividsolutions.jts.geom.Envelope;
  *      org.geoserver.platform.Operation)
  */
 public class Capabilities_1_3_0_Transformer extends TransformerBase {
-
-    static class CapabilitiesTransformerProjectionHandler extends ProjectionHandler {
-
-        public CapabilitiesTransformerProjectionHandler(ProjectionHandler inner)
-                throws FactoryException {
-            super(inner.getSourceCRS(), inner.getValidAreaBounds(), inner.getRenderingEnvelope());
-        }
-
-        @Override
-        protected ReferencedEnvelope transformEnvelope(ReferencedEnvelope envelope,
-                CoordinateReferenceSystem targetCRS) throws TransformException, FactoryException {
-            return super.transformEnvelope(envelope, targetCRS);
-        }
-    }
 
     private static final String NAMESPACE = "http://www.opengis.net/wms";
 
@@ -1531,8 +1516,8 @@ public class Capabilities_1_3_0_Transformer extends TransformerBase {
                         // An exception is occurred during transformation. Try using a ProjectionHandler 
                         try {
                             // Try transformation with a ProjectionHandler
-                            ProjectionHandler handler = ProjectionHandlerFinder.getHandler(new ReferencedEnvelope(targetCrs),
-                                    bbox.getCoordinateReferenceSystem(), false);
+                            CapabilitiesTransformerProjectionHandler handler = CapabilitiesTransformerProjectionHandler.
+                                    create(targetCrs, bbox.getCoordinateReferenceSystem());
                             if (handler == null) {
                                 // Still no luck. Report the original issue
                                 LOGGER.warning(String.format(
@@ -1542,8 +1527,7 @@ public class Capabilities_1_3_0_Transformer extends TransformerBase {
                                     LOGGER.log(Level.FINE, e.getLocalizedMessage(), e);
                                 }
                             } else {
-                                CapabilitiesTransformerProjectionHandler myHandler = new CapabilitiesTransformerProjectionHandler(handler);
-                                ReferencedEnvelope tbbox = myHandler.transformEnvelope(bbox, targetCrs);
+                                ReferencedEnvelope tbbox = handler.transformEnvelope(bbox, targetCrs);
                                 handleBBox(tbbox, srs);
                             }
                         } catch (FactoryException | TransformException e1) {
