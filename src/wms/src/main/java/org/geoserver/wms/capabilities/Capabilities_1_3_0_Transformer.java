@@ -29,7 +29,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -38,7 +37,6 @@ import org.geoserver.catalog.AttributionInfo;
 import org.geoserver.catalog.AuthorityURLInfo;
 import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.DataLinkInfo;
-import org.geoserver.catalog.FeatureTypeInfo;
 import org.geoserver.catalog.KeywordInfo;
 import org.geoserver.catalog.LayerGroupInfo;
 import org.geoserver.catalog.LayerIdentifierInfo;
@@ -48,7 +46,6 @@ import org.geoserver.catalog.MetadataLinkInfo;
 import org.geoserver.catalog.Predicates;
 import org.geoserver.catalog.PublishedInfo;
 import org.geoserver.catalog.PublishedType;
-import org.geoserver.catalog.ResourceInfo;
 import org.geoserver.catalog.StyleInfo;
 import org.geoserver.catalog.WMSLayerInfo;
 import org.geoserver.catalog.WorkspaceInfo;
@@ -59,6 +56,7 @@ import org.geoserver.config.ResourceErrorHandling;
 import org.geoserver.ows.URLMangler.URLType;
 import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.platform.ServiceException;
+import org.geoserver.wfs.json.JSONType;
 import org.geoserver.wms.ExtendedCapabilitiesProvider;
 import org.geoserver.wms.GetCapabilities;
 import org.geoserver.wms.GetCapabilitiesRequest;
@@ -71,6 +69,8 @@ import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.CRS.AxisOrder;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
+import org.geotools.renderer.crs.ProjectionHandler;
+import org.geotools.renderer.crs.ProjectionHandlerFinder;
 import org.geotools.styling.Style;
 import org.geotools.util.NumberRange;
 import org.geotools.util.logging.Logging;
@@ -90,8 +90,8 @@ import org.xml.sax.helpers.AttributesImpl;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.sun.xml.internal.bind.annotation.OverrideAnnotationOf;
 import com.vividsolutions.jts.geom.Envelope;
-import org.geoserver.wfs.json.JSONType;
 
 /**
  * Geotools xml framework based encoder for a Capabilities WMS 1.3.0 document.
@@ -103,6 +103,20 @@ import org.geoserver.wfs.json.JSONType;
  *      org.geoserver.platform.Operation)
  */
 public class Capabilities_1_3_0_Transformer extends TransformerBase {
+
+    static class CapabilitiesTransformerProjectionHandler extends ProjectionHandler {
+
+        public CapabilitiesTransformerProjectionHandler(ProjectionHandler inner)
+                throws FactoryException {
+            super(inner.getSourceCRS(), inner.getValidAreaBounds(), inner.getRenderingEnvelope());
+        }
+
+        @Override
+        protected ReferencedEnvelope transformEnvelope(ReferencedEnvelope envelope,
+                CoordinateReferenceSystem targetCRS) throws TransformException, FactoryException {
+            return super.transformEnvelope(envelope, targetCRS);
+        }
+    }
 
     private static final String NAMESPACE = "http://www.opengis.net/wms";
 
@@ -1508,15 +1522,37 @@ public class Capabilities_1_3_0_Transformer extends TransformerBase {
                         continue; //already did this one
                     }
 
+                    CoordinateReferenceSystem targetCrs = null;
                     try {
-                        ReferencedEnvelope tbbox = bbox.transform(CRS.decode(srs), true);
+                        targetCrs = CRS.decode(srs);
+                        ReferencedEnvelope tbbox = bbox.transform(targetCrs, true);
                         handleBBox(tbbox, srs);
-                    } 
-                    catch(Exception e) {
-                        LOGGER.warning(String.format("Unable to transform bounding box for '%s' layer" +
-                            " to %s", layer != null ? layer.getName() : "root", srs));
-                        if (LOGGER.isLoggable(Level.FINE)) {
-                            LOGGER.log(Level.FINE, e.getLocalizedMessage(), e);
+                    }  catch(Exception e) {
+                        // An exception is occurred during transformation. Try using a ProjectionHandler 
+                        try {
+                            // Try transformation with a ProjectionHandler
+                            ProjectionHandler handler = ProjectionHandlerFinder.getHandler(new ReferencedEnvelope(targetCrs),
+                                    bbox.getCoordinateReferenceSystem(), false);
+                            if (handler == null) {
+                                // Still no luck. Report the original issue
+                                LOGGER.warning(String.format(
+                                        "Unable to transform bounding box for '%s' layer"
+                                                + " to %s", layer != null ? layer.getName() : "root", srs));
+                                if (LOGGER.isLoggable(Level.FINE)) {
+                                    LOGGER.log(Level.FINE, e.getLocalizedMessage(), e);
+                                }
+                            } else {
+                                CapabilitiesTransformerProjectionHandler myHandler = new CapabilitiesTransformerProjectionHandler(handler);
+                                ReferencedEnvelope tbbox = myHandler.transformEnvelope(bbox, targetCrs);
+                                handleBBox(tbbox, srs);
+                            }
+                        } catch (FactoryException | TransformException e1) {
+                            LOGGER.warning(String.format(
+                                    "Unable to transform bounding box for '%s' layer" + " to %s",
+                                    layer != null ? layer.getName() : "root", srs));
+                            if (LOGGER.isLoggable(Level.FINE)) {
+                                LOGGER.log(Level.FINE, e1.getLocalizedMessage(), e1);
+                            }
                         }
                     }
                 }
