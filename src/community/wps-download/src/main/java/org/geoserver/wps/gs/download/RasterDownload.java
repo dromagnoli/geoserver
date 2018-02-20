@@ -195,48 +195,51 @@ class RasterDownload {
             // read GridGeometry preparation and scaling setup if needed
             GridGeometry2D requestedGridGeometry = null;
             ReferencedEnvelope targetEnvelope = null;
-            boolean isImposedTargetSize = false;
+            boolean isImposedTargetSize = targetSizeX != null || targetSizeY != null;
 
             ROIManager roiManager = null;
             if (roi != null) {
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "Pushing ROI to native CRS");
-                }
-                final CoordinateReferenceSystem roiCRS = (CoordinateReferenceSystem) roi.getUserData();
-                roiManager = new ROIManager(roi, roiCRS);
+                roiManager = new ROIManager(roi, (CoordinateReferenceSystem) roi.getUserData());
                 
                 // set crs in roi manager
                 roiManager.useNativeCRS(reader.getCoordinateReferenceSystem());
                 roiManager.useTargetCRS(targetCRS);
                 targetEnvelope = new ReferencedEnvelope(
                         roiManager.getRoiInTargetCRS().getEnvelopeInternal(), targetCRS);
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "Preparing the GridGeometry for cropping input layer with ROI");
+            } else {
+                targetEnvelope = new ReferencedEnvelope(reader.getOriginalEnvelope());
+                if (reproject) {
+                    targetEnvelope = targetEnvelope.transform(targetCRS, true);
                 }
-                if (targetSizeX == null && targetSizeY == null) {
-                    // No size is specified. Just do a read and reproject (if needed) + a final crop
-                    GridGeometryProvider provider = new GridGeometryProvider(reader, roiManager, filter);
-                    GridGeometry2D gg2D = provider.getGridGeometry();
-                    
-                    readParameters = CoverageUtils.mergeParameter(parameterDescriptors, readParameters, gg2D,
-                            AbstractGridFormat.READ_GRIDGEOMETRY2D.getName().getCode());
-                } else {
-                    if (targetSizeX == null || targetSizeY == null) {
-                        // one of the 2 sizes is not specified. Delegate
-                        // scaleToTarget to compute the second one.
-                        ScaleToTarget scaling = new ScaleToTarget(reader);
-                        scaling.setTargetSize(targetSizeX, targetSizeY);
-                        Integer[] computedSizes = scaling.getTargetSize();
-                        targetSizeX = computedSizes[0];
-                        targetSizeY = computedSizes[1];
-                    }
-                    isImposedTargetSize = true;
+            }
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "Preparing the GridGeometry for cropping input layer with ROI");
+            }
 
-                    // Since we have imposed a target size, delegate GridCoverageRenderer to do all 
-                    // the dirty job
-                    requestedGridGeometry = new GridGeometry2D(
-                            new GridEnvelope2D(0, 0, targetSizeX, targetSizeY), targetEnvelope);
+            if (targetSizeX == null && targetSizeY == null) {
+                // No size is specified. Just do a read and reproject (if needed) + a final crop
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, "Pushing ROI to native CRS");
                 }
+                GridGeometryProvider provider = new GridGeometryProvider(reader, roiManager, filter);
+                GridGeometry2D gg2D = provider.getGridGeometry();
+                
+                readParameters = CoverageUtils.mergeParameter(parameterDescriptors, readParameters, gg2D,
+                        AbstractGridFormat.READ_GRIDGEOMETRY2D.getName().getCode());
+            } else {
+                if (targetSizeX == null || targetSizeY == null) {
+                    // one of the 2 sizes is not specified. Delegate
+                    // scaleToTarget to compute the second one.
+                    ScaleToTarget scaling = new ScaleToTarget(reader);
+                    scaling.setTargetSize(targetSizeX, targetSizeY);
+                    Integer[] computedSizes = scaling.getTargetSize();
+                    targetSizeX = computedSizes[0];
+                    targetSizeY = computedSizes[1];
+                }
+
+                // Since we have imposed a target size, delegate GridCoverageRenderer to do all the dirty job
+                requestedGridGeometry = new GridGeometry2D(
+                        new GridEnvelope2D(0, 0, targetSizeX, targetSizeY), targetEnvelope);
             }
 
             readParameters = updateReadParams(readParameters, parameterDescriptors, bandIndices, filter);
