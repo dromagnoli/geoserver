@@ -212,20 +212,21 @@ class RasterDownload {
                     targetEnvelope = targetEnvelope.transform(targetCRS, true);
                 }
             }
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "Preparing the GridGeometry for cropping input layer with ROI");
-            }
 
             if (targetSizeX == null && targetSizeY == null) {
                 // No size is specified. Just do a read and reproject (if needed) + a final crop
                 if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "Pushing ROI to native CRS");
+                    LOGGER.log(Level.FINE, "No Target size has been specified. Requested GridGeometry "
+                            + "will be automatically computed");
                 }
                 GridGeometryProvider provider = new GridGeometryProvider(reader, roiManager, filter);
-                GridGeometry2D gg2D = provider.getGridGeometry();
+                requestedGridGeometry = provider.getGridGeometry();
                 
-                readParameters = CoverageUtils.mergeParameter(parameterDescriptors, readParameters, gg2D,
-                        AbstractGridFormat.READ_GRIDGEOMETRY2D.getName().getCode());
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, "Computed requested GridGeometry: " + requestedGridGeometry.toString());
+                }
+                readParameters = CoverageUtils.mergeParameter(parameterDescriptors, readParameters, 
+                        requestedGridGeometry, AbstractGridFormat.READ_GRIDGEOMETRY2D.getName().getCode());
             } else {
                 if (targetSizeX == null || targetSizeY == null) {
                     // one of the 2 sizes is not specified. Delegate
@@ -240,6 +241,10 @@ class RasterDownload {
                 // Since we have imposed a target size, delegate GridCoverageRenderer to do all the dirty job
                 requestedGridGeometry = new GridGeometry2D(
                         new GridEnvelope2D(0, 0, targetSizeX, targetSizeY), targetEnvelope);
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, "Target size has been specified. Setting up requested GridGeometry: "
+                                    + requestedGridGeometry.toString());
+                }
             }
 
             readParameters = updateReadParams(readParameters, parameterDescriptors, bandIndices, filter);

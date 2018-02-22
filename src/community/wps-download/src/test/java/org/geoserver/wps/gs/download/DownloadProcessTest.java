@@ -939,11 +939,11 @@ public class DownloadProcessTest extends WPSTestSupport {
             // check envelope
             Assert.assertEquals(-130.88669845369998,
                     gc.getEnvelope().getLowerCorner().getOrdinate(0), 1E-6);
-            Assert.assertEquals(48.611129008700004, gc.getEnvelope().getLowerCorner()
+            Assert.assertEquals(48.5552612829, gc.getEnvelope().getLowerCorner()
                     .getOrdinate(1), 1E-6);
-            Assert.assertEquals(-123.95304462109999,
+            Assert.assertEquals(-124.05382943906582,
                     gc.getEnvelope().getUpperCorner().getOrdinate(0), 1E-6);
-            Assert.assertEquals(54.0861661371, gc.getEnvelope().getUpperCorner().getOrdinate(1),
+            Assert.assertEquals(54.00577111704634, gc.getEnvelope().getUpperCorner().getOrdinate(1),
                     1E-6);
             
         } finally {
@@ -1125,8 +1125,8 @@ public class DownloadProcessTest extends WPSTestSupport {
             // check envelope
             Assert.assertEquals(-130.88669845369998,
                     gc.getEnvelope().getLowerCorner().getOrdinate(0), 1E-6);
-//            Assert.assertEquals(48.611129008700004, gc.getEnvelope().getLowerCorner()
-//                    .getOrdinate(1), 1E-6);
+            Assert.assertEquals(48.623544058877776, gc.getEnvelope().getLowerCorner()
+                    .getOrdinate(1), 1E-6);
             Assert.assertEquals(-123.95304462109999,
                     gc.getEnvelope().getUpperCorner().getOrdinate(0), 1E-6);
             Assert.assertEquals(54.0861661371, gc.getEnvelope().getUpperCorner().getOrdinate(1),
