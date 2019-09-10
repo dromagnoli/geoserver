@@ -76,59 +76,52 @@ public class NcWmsService {
     }
 
     enum DateFinder {
-        PASS_THROUGH {
+        NEAREST {
             // This is used when nearest match is supported.
-            // Let's simply return the time list as is 
-            // and delegate the incoming getFeatureInfo call
-            // to leverage on the nearest match
             @Override
             List<DateRange> findDates(WMS wms, CoverageInfo coverage, List<Object> times)
                     throws IOException {
-                return times.stream()
-                        .map(
-                                date -> {
-                                    return date instanceof DateRange
-                                            ? (DateRange) date
-                                            : new DateRange((Date) date, (Date) date);
-                                })
+                TreeSet<Date> availableDates = wms.queryCoverageNearestMatchTimes(coverage, times);
+                return availableDates
+                        .stream()
+                        .map(date -> new DateRange(date, date))
                         .collect(Collectors.toList());
             }
         },
         QUERY {
+            // When nearest match isn't enabled, let's query the coverage to identify
+            // available dates only
             @Override
             List<DateRange> findDates(WMS wms, CoverageInfo coverage, List<Object> times)
                     throws IOException {
                 TreeSet<Date> availableDates = new TreeSet<Date>();
-                boolean isRange = times.get(0) instanceof DateRange;
-                DateRange queryRange = null;
+                final boolean isRange = times.get(0) instanceof DateRange;
                 for (Object time : times) {
-                    queryRange =
-                            isRange ? (DateRange) time : new DateRange((Date) time, (Date) time);
-
-                    // The outer code will always cast to date, so make sure we are providing back
-                    // dates
                     TreeSet<Object> foundTimes =
-                            wms.queryCoverageTimes(coverage, queryRange, Query.DEFAULT_MAX);
-                    Iterator<Object> timesIterator = foundTimes.iterator();
-                    while (timesIterator.hasNext()) {
-                        time = timesIterator.next();
-                        // Use this to avoid duplicates
-                        if (!availableDates.contains(time)) {
-                            availableDates.add((Date) time);
+                            wms.queryCoverageTimes(coverage, getAsRange(time, isRange), Query.DEFAULT_MAX);
+                    foundTimes.stream()
+                    .sequential().forEach(d -> {
+                        Date date = (Date) d;
+                        if (!availableDates.contains(date)) {
+                            availableDates.add(date);
                         }
-                    }
-                }
-
+                    });
+              }
                 return availableDates
                         .stream()
                         .map(date -> new DateRange(date, date))
                         .collect(Collectors.toList());
             }
         };
+        
 
         // times should be a not null List. (Null Check is made before calling this method)
         abstract List<DateRange> findDates(WMS wms, CoverageInfo coverage, List<Object> times)
                 throws IOException;
+
+        protected DateRange getAsRange(Object time, boolean isRange) {
+            return isRange ? (DateRange) time : new DateRange((Date) time, (Date) time);
+        }
     }
 
     public NcWmsService(final WMS wms) {
@@ -166,8 +159,7 @@ public class NcWmsService {
         // Process the request only if we have a time range
         List<Object> times = request.getGetMapRequest().getTime();
         if (times == null || times.size() == 0) {
-            throw new ServiceException(
-                    "The TIME parameter was missing");
+            throw new ServiceException("The TIME parameter was missing");
         }
 
         final List<MapLayerInfo> requestedLayers = request.getQueryLayers();
@@ -227,7 +219,7 @@ public class NcWmsService {
                                 if (propIter.hasNext()) {
                                     Property prop = propIter.next();
                                     Date dateValue = date.getMinValue();
-                                    // check for duplicates
+                                    // check for duplicates while updating the collection
                                     if (!addedDates.contains(dateValue)) {
                                         featureBuilder.add(dateValue);
                                         featureBuilder.add(prop.getValue());
@@ -273,16 +265,14 @@ public class NcWmsService {
         }
 
         // We have already checked before invoking this method that the list isn't null nor empty
-        final boolean singleElement = times.size() == 1;
         final boolean nearestMatch = timeDimension.isNearestMatchEnabled();
 
         // if nearestMatch is enabled and there are multiple items, pass through the values and
-        // delegate
-        // the search to the getFeatureInfo call.
-        DateFinder finder =
-                (!singleElement && nearestMatch) ? DateFinder.PASS_THROUGH : DateFinder.QUERY;
+        // delegate the search to the getFeatureInfo call.
+        DateFinder finder = nearestMatch ? DateFinder.NEAREST : DateFinder.QUERY; 
         return finder.findDates(wms, coverage, times);
     }
+
 
     public String buildTypeDescription(MapLayerInfo layer) {
         String name = layer.getName();
