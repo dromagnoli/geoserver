@@ -275,6 +275,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                         null, // Writing params
                         false,
                         false,
+                        null,
                         new NullProgressListener() // progressListener
                         );
 
@@ -348,6 +349,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                             null, // Writing params
                             false,
                             false,
+                            null,
                             new NullProgressListener() // progressListener
                             );
 
@@ -413,6 +415,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                         null, // Writing params
                         false,
                         false,
+                        null,
                         new NullProgressListener() // progressListener
                         );
 
@@ -445,6 +448,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                         null, // Writing params
                         false,
                         false,
+                        null,
                         new NullProgressListener() // progressListener
                         );
 
@@ -513,6 +517,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                         null, // Writing params
                         false,
                         false,
+                        null,
                         new NullProgressListener() // progressListener
                         );
 
@@ -577,6 +582,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                         null, // Writing params
                         false,
                         false,
+                        null,
                         new NullProgressListener() // progressListener
                         );
 
@@ -650,6 +656,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                         null, // Writing params
                         false,
                         false,
+                        null,
                         new NullProgressListener() // progressListener
                         );
 
@@ -721,6 +728,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                         null, // Writing params
                         false,
                         false,
+                        null,
                         new NullProgressListener() // progressListener
                         );
 
@@ -838,6 +846,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                         parameters, // Writing params
                         false,
                         false,
+                        null,
                         new NullProgressListener() // progressListener
                         );
 
@@ -950,6 +959,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                         null, // Writing params
                         false,
                         false,
+                        null,
                         new NullProgressListener() // progressListener
                         );
 
@@ -1041,6 +1051,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                         null, // Writing params
                         false,
                         false,
+                        null,
                         new NullProgressListener() // progressListener
                         );
 
@@ -1119,6 +1130,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                         null, // Writing params
                         false,
                         false,
+                        null,
                         new NullProgressListener() // progressListener
                         );
 
@@ -1183,6 +1195,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                         null, // Writing params
                         false,
                         false,
+                        null,
                         new NullProgressListener() // progressListener
                         );
 
@@ -1241,6 +1254,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                         null, // Writing params
                         false,
                         false,
+                        null,
                         new NullProgressListener() // progressListener
                         );
 
@@ -1312,6 +1326,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                         null, // Writing params
                         false,
                         false,
+                        null,
                         new NullProgressListener() // progressListener
                         );
 
@@ -1364,6 +1379,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                         null, // Writing params
                         false,
                         false,
+                        null,
                         new NullProgressListener() // progressListener
                         );
 
@@ -1441,6 +1457,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                             parameters, // Writing params
                             true,
                             false,
+                            null,
                             new NullProgressListener() // progressListener
                             );
 
@@ -1525,6 +1542,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                             parameters, // Writing params
                             true,
                             true,
+                            null,
                             new NullProgressListener() // progressListener
                             );
 
@@ -1608,6 +1626,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                             parameters, // Writing params
                             true,
                             true,
+                            null,
                             new NullProgressListener() // progressListener
                             );
 
@@ -1701,6 +1720,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                             parameters, // Writing params
                             true,
                             true,
+                            null,
                             new NullProgressListener() // progressListener
                             );
 
@@ -1832,6 +1852,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                         null, // Writing params
                         false,
                         false,
+                        null,
                         new NullProgressListener() // progressListener
                         );
 
@@ -1901,6 +1922,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                     null, // Writing params
                     false,
                     false,
+                    null,
                     new NullProgressListener() // progressListener
                     );
 
@@ -1962,6 +1984,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                     null, // Writing params
                     false,
                     false,
+                    null,
                     new NullProgressListener() // progressListener
                     );
 
@@ -2016,6 +2039,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                         null, // Writing params
                         false,
                         false,
+                        null,
                         new NullProgressListener() // progressListener
                         );
 
@@ -2050,6 +2074,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                     null, // Writing params
                     false,
                     false,
+                    null,
                     new NullProgressListener() // progressListener
                     );
 
@@ -2109,6 +2134,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                             null, // Writing params
                             false,
                             false,
+                            null,
                             new NullProgressListener() // progressListener
                             );
 
@@ -2172,6 +2198,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                     null, // Writing params
                     false,
                     false,
+                    null,
                     new NullProgressListener() // progressListener
                     );
 
@@ -2262,6 +2289,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                     null, // Writing params
                     false,
                     false,
+                    null,
                     new NullProgressListener() // progressListener
                     );
 
@@ -2325,6 +2353,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                     null, // Writing params
                     false,
                     false,
+                    null,
                     listener // progressListener
                     );
 
@@ -2386,6 +2415,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                     null, // Writing params
                     false,
                     false,
+                    null,
                     listener // progressListener
                     );
 
@@ -2439,6 +2469,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                     null, // Writing params
                     false,
                     false,
+                    null,
                     progressListener // progressListener
                     );
 
@@ -2523,6 +2554,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                         null, // Writing params
                         false,
                         false,
+                        null,
                         new NullProgressListener() // progressListener
                         );
 
@@ -2579,6 +2611,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                         null, // Writing params
                         false,
                         false,
+                        null,
                         new NullProgressListener() // progressListener
                         );
 
@@ -2670,6 +2703,7 @@ public class DownloadProcessTest extends WPSTestSupport {
                         null, // Writing params
                         false,
                         false,
+                        null,
                         new NullProgressListener() // progressListener
                         );
 
