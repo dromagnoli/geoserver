@@ -319,4 +319,8 @@
   <bean id="coverageReaderFileConverter" class="org.geoserver.catalog.CoverageReaderFileConverter">
     <constructor-arg ref="catalog"/>
   </bean>
+  <bean id="coverageReaderInputObjectCogConverter" class="org.geoserver.catalog.CoverageReaderInputObjectCOGConverter">
+        <constructor-arg ref="catalog"/>
+    </bean>
+
 </beans>
