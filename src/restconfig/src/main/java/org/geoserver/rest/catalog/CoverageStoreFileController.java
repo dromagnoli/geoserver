@@ -6,6 +6,7 @@ package org.geoserver.rest.catalog;
 
 import java.awt.RenderingHints;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.net.URL;
