@@ -24,7 +24,7 @@ We need a couple of configuration files to have an ImageMosaic propertly set. Co
 * The ImageMosaic will be initially created empty without any data. Data will be harvested as a second step.
 * A Time dimension will be enabled, based on the acquisition date reported in the filename
 
-More details on ImageMosaic configuration are available on the dedicated documentation section: :ref:`_data_imagemosaic_config`
+More details on ImageMosaic configuration are available on the dedicated documentation section: :ref:`data_imagemosaic_config`
 
 Based on the above key points, we can setup the following configuration files:
 
@@ -67,10 +67,11 @@ You are now ready to use REST calls to start the ImageMosaic creation.
 
 ImageMosaic Store creation via REST
 """""""""""""""""""""""""""""""""""
-On these steps we assume a workspace named "test" exists and admin credentials are user=admin password=geoserver. Update them accordingly based on your installation.
+On the next steps we assume a workspace named "test" exists and REST credentials are user=admin password=geoserver. Update them accordingly based on your installation. Moreover, make sure a default aws region is defined on JAVA System Property, using the flag -Diio.https.aws.region=us-west-2
 
-* Create an empty ImageMosaic without configuring it*
-*Request*
+**Create an empty ImageMosaic without configuring it**
+
+* Request*
 
 .. admonition:: curl
 
@@ -82,73 +83,60 @@ On these steps we assume a workspace named "test" exists and admin credentials a
 
 ::
 
-   200 OK
+   201 OK
 
-Updating an image mosaic contents
+**Providing sample prototyping granules**
+
+Next step is providing a prototype dataset for each band to be supported. Let's suppose we want to support all of the twelve bands (B1 to B12) to be lately selected through a style containing a channel select.
+
+.. admonition:: curl
+
+   ::
+
+       curl -u admin:geoserver -XPOST -H "Content-type: text/plain" --write-out %{http_code} -d "https://landsat-pds.s3.amazonaws.com/c1/L8/007/008/LC08_L1GT_007008_20170814_20170814_01_RT/LC08_L1GT_007008_20170814_20170814_01_RT_B1.TIF" "http://localhost:8080/geoserver/rest/workspaces/test/coveragestores/landsat8/remote.imagemosaic"
+
+*Response*
+
+::
+
+   202 Accepted
+
+And repeat from B2 to B12 (or just add the only bands you want to be supported).
+
+   curl -u admin:geoserver -XPOST -H "Content-type: text/plain" --write-out %{http_code} -d "https://landsat-pds.s3.amazonaws.com/c1/L8/007/008/LC08_L1GT_007008_20170814_20170814_01_RT/LC08_L1GT_007008_20170814_20170814_01_RT_B2.TIF" "http://localhost:8080/geoserver/rest/workspaces/test/coveragestores/landsat8/remote.imagemosaic"
+   
+   curl -u admin:geoserver -XPOST -H "Content-type: text/plain" --write-out %{http_code} -d "https://landsat-pds.s3.amazonaws.com/c1/L8/007/008/LC08_L1GT_007008_20170814_20170814_01_RT/LC08_L1GT_007008_20170814_20170814_01_RT_B3.TIF" "http://localhost:8080/geoserver/rest/workspaces/test/coveragestores/landsat8/remote.imagemosaic"
+   
+   ...
+  
+**Initializing the store (Listing available coverages)**
+  
+Once a prototype has been provided for each band, we need to initialize the store by querying it for the available coverages.
 
 
+.. admonition:: curl
 
+   ::
 
+       curl -v -u admin:geoserver -XGET http://localhost:8080/geoserver/rest/workspaces/test/coveragestores/landsat8/coverages.xml?list=all
 
-
-
-
-
-
-
-
-curl -u admin:Geos -XPUT --write-out %{http_code} -H "Content-type:application/zip" --data-binary @Landsat8.zip http://localhost:8084/geoserver/rest/workspaces/test/coveragestores/landsat8/file.imagemosaic?configure=none
-
+*Response*
 
 .. code-block:: xml
 
-	<Dimension name="time" default="current" units="ISO8601">
-		2013-03-10T00:00:00.000Z,2013-03-11T00:00:00.000Z,2013-03-12T00:00:00.000Z,2013-03-13T00:00:00.000Z,2013-03-14T00:00:00.000Z,2013-03-15T00:00:00.000Z,2013-03-16T00:00:00.000Z,2013-03-17T00:00:00.000Z,2013-03-18T00:00:00.000Z
-	</Dimension>
-	<Dimension name="elevation" default="200.0" units="EPSG:5030" unitSymbol="m">
-		200.0,300.0,500.0,600.0,700.0,850.0,925.0,1000.0
-	</Dimension>
-
-The table on postgres
-"""""""""""""""""""""
-
-With the elevation support enabled the table on postgres has, for each image, the field **elevation** filled with the elevation value.
-
-.. figure:: images/elevationTable.png
-   :align: center
-
-
-.. note:: The user must create manually the index on the table in order to speed up the search by attribute.
+       <List>
+           <coverageName>B2</coverageName>
+           <coverageName>B3</coverageName>
+           <coverageName>B10</coverageName>
+           <coverageName>B4</coverageName>
+           <coverageName>B11</coverageName>
+           <coverageName>B5</coverageName>
+           <coverageName>B6</coverageName>
+           <coverageName>B7</coverageName>
+           <coverageName>B8</coverageName>
+           <coverageName>B9</coverageName>
+           <coverageName>B1</coverageName>
+      </list>
 
 
-Query layer on timestamp: 
-`````````````````````````````````
-
-In order to display a snapshot of the map at a specific time instant and elevation you have to pass in the request those parameters.
-
-* **&time=** < **pattern** > , as shown before,
-
-* **&elevation=** < **pattern** > where you pass the value of the elevation.
-
-For example if an user wants to obtain the temperature coverage images for the day **2013-03-10 at 6 PM** at elevation **200 meters** must append to the request::
-
-&time=2013-03-10T00:00:00.000Z&elevation=200.0
-
-.. figure:: images/temperature1.png
-   :align: center
-   
-Same day at elevation **300.0 meters**::
-   
-&time=2013-03-10T00:00:00.000Z&elevation=300.0
-
-.. figure:: images/temperature2.png
-   :align: center
-
-Note that if just the time dimension is append to the request will be displayed the elevation **200 meters** (if present) because of the **default** attribute of the tag ``<Dimension name="elevation" ...`` in the WMS Capabilities document is set to **200**
-   
-   
-   
-   
-   
-   
-   
+TO BE CONTINUED
