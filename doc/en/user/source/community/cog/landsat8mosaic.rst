@@ -56,19 +56,49 @@ The previous indexer refers to a time dimension and the related time column in t
 datastore.properties:
 """""""""""""""""""""
 
-Due to the amount of available datasets, it's better to store the ImageMosaic index on a DBMS, i.e. a PostGIS DB. Below a datastore.properties containing a sample DB connection parameters configuration. See :ref:`mosaic_datastore_properties` for more info. 
+Due to the amount of available datasets, it's better to store the ImageMosaic index on a DBMS, i.e. a PostGIS DB. See :ref:`mosaic_datastore_properties` for more info. 
 
 .. include:: src/datastore.properties
    :literal:
 
-   
+Once the 3 files have been created, create a zip archive with them. Let's name it Landsat8.zip. (Note: the files need to be in the root of the zip files, not into a subdirectory)
 
-The steps needed are the same shown the previous chapter. After the store is loaded and a layer published note the differences in WMS Capabilities document and in the table on postgres.
+You are now ready to use REST calls to start the ImageMosaic creation.
 
-WMS Capabilities document
-"""""""""""""""""""""""""
+ImageMosaic Store creation via REST
+"""""""""""""""""""""""""""""""""""
+On these steps we assume a workspace named "test" exists and admin credentials are user=admin password=geoserver. Update them accordingly based on your installation.
 
-The WMS Capabilities document is a bit different, now there is also the dimension **elevation**. In this example both time and elevation dimension are set to **List** .
+* Create an empty ImageMosaic without configuring it*
+*Request*
+
+.. admonition:: curl
+
+   ::
+
+       curl -u admin:geoserver -XPUT --write-out %{http_code} -H "Content-type:application/zip" --data-binary @Landsat8.zip http://localhost:8080/geoserver/rest/workspaces/test/coveragestores/landsat8/file.imagemosaic?configure=none
+
+*Response*
+
+::
+
+   200 OK
+
+Updating an image mosaic contents
+
+
+
+
+
+
+
+
+
+
+
+
+curl -u admin:Geos -XPUT --write-out %{http_code} -H "Content-type:application/zip" --data-binary @Landsat8.zip http://localhost:8084/geoserver/rest/workspaces/test/coveragestores/landsat8/file.imagemosaic?configure=none
+
 
 .. code-block:: xml
 
