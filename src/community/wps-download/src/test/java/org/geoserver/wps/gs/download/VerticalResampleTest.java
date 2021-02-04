@@ -26,15 +26,12 @@ import org.geoserver.wps.resource.WPSResourceManager;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.data.util.NullProgressListener;
 import org.geotools.gce.geotiff.GeoTiffReader;
-import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.WKTReader2;
 import org.geotools.process.ProcessException;
 import org.geotools.referencing.CRS;
-import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.function.ThrowingRunnable;
 import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.io.ParseException;
 import org.opengis.referencing.FactoryException;
@@ -43,11 +40,6 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
 public class VerticalResampleTest extends WPSTestSupport {
 
     private static final double DELTA = 1E-6;
-
-    @Rule public ExpectedException thrown = ExpectedException.none();
-
-    private CoordinateReferenceSystem sourceVerticalCRS;
-    private GeneralEnvelope verticalGridEnvelope;
 
     private static QName HETEROGENEOUS_CRS2 = new QName(WCS_URI, "hcrs2", WCS_PREFIX);
 
@@ -89,14 +81,12 @@ public class VerticalResampleTest extends WPSTestSupport {
 
         testData.addRasterLayer(HETEROGENEOUS_CRS2, "heterogeneous_crs2.zip", null, getCatalog());
         CRS.reset("all");
-        sourceVerticalCRS = CRS.decode("EPSG:5778");
         setVerticalCRS();
         final File file =
                 new File(
                         this.getTestData().getDataDirectoryRoot(),
                         "user_projections/verticalgrid.tif");
         GeoTiffReader reader = new GeoTiffReader(file);
-        verticalGridEnvelope = reader.getOriginalEnvelope();
         reader.dispose();
     }
 
@@ -118,29 +108,35 @@ public class VerticalResampleTest extends WPSTestSupport {
             Parameters parameters = new Parameters();
             List<Parameter> parametersList = parameters.getParameters();
             parametersList.add(new Parameter("writenodata", "false"));
-            thrown.expect(ProcessException.class);
-            thrown.expectMessage(CoreMatchers.containsString("no source VerticalCRS"));
-            File rasterZip =
-                    downloadProcess.execute(
-                            getLayerId(HETEROGENEOUS_CRS2), // layerName
-                            null, // filter
-                            "image/tiff", // outputFormat
-                            targetCRS, // targetCRS
-                            targetCRS,
-                            bboxRoi, // roi
-                            false, // cropToGeometry
-                            null, // interpolation
-                            null, // targetSizeX
-                            null, // targetSizeY
-                            null, // bandSelectIndices
-                            parameters, // Writing params
-                            false,
-                            false,
-                            0d,
-                            CRS.decode("EPSG:9999", true),
-                            new NullProgressListener() // progressListener
-                            );
+            ProcessException e =
+                    Assert.assertThrows(
+                            ProcessException.class,
+                            new ThrowingRunnable() {
 
+                                @Override
+                                public void run() throws Throwable {
+                                    downloadProcess.execute(
+                                            getLayerId(HETEROGENEOUS_CRS2), // layerName
+                                            null, // filter
+                                            "image/tiff", // outputFormat
+                                            targetCRS, // targetCRS
+                                            targetCRS,
+                                            bboxRoi, // roi
+                                            false, // cropToGeometry
+                                            null, // interpolation
+                                            null, // targetSizeX
+                                            null, // targetSizeY
+                                            null, // bandSelectIndices
+                                            parameters, // Writing params
+                                            false,
+                                            false,
+                                            0d,
+                                            CRS.decode("EPSG:9999", true),
+                                            new NullProgressListener() // progressListener
+                                            );
+                                }
+                            });
+            assertTrue(e.getMessage().contains("no source VerticalCRS"));
         } finally {
             // clean up process
             resourceManager.finished(resourceManager.getExecutionId(true));

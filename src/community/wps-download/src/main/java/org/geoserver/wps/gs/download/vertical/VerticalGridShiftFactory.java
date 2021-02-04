@@ -5,7 +5,6 @@
 package org.geoserver.wps.gs.download.vertical;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.util.logging.Level;
@@ -111,13 +110,7 @@ public class VerticalGridShiftFactory extends ReferencingFactory implements Buff
             }
             throw new FactoryException(
                     "URL " + url + " doesn't refer a supported Vertical Grid file");
-        } catch (FileNotFoundException e) {
-            LOGGER.log(Level.SEVERE, e.getLocalizedMessage(), e);
-            throw new FactoryException(e.getLocalizedMessage(), e);
-        } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, e.getLocalizedMessage(), e);
-            throw new FactoryException(e.getLocalizedMessage(), e);
-        } catch (IllegalArgumentException e) {
+        } catch (IOException | IllegalArgumentException e) {
             LOGGER.log(Level.SEVERE, e.getLocalizedMessage(), e);
             throw new FactoryException(e.getLocalizedMessage(), e);
         }
