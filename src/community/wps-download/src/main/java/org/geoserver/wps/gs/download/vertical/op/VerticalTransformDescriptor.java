@@ -5,9 +5,12 @@
 package org.geoserver.wps.gs.download.vertical.op;
 
 import it.geosolutions.jaiext.range.Range;
-import java.awt.*;
+import java.awt.RenderingHints;
 import java.awt.image.RenderedImage;
-import javax.media.jai.*;
+import javax.media.jai.JAI;
+import javax.media.jai.OperationDescriptorImpl;
+import javax.media.jai.ParameterBlockJAI;
+import javax.media.jai.RenderedOp;
 import javax.media.jai.registry.RenderedRegistryMode;
 import org.opengis.referencing.operation.MathTransform;
 
