@@ -50,14 +50,9 @@ public class VerticalGridShiftFactory extends ReferencingFactory implements Buff
     public VerticalGridShiftFactory(final int priority) {
         super(priority);
         verticalGridCache =
-                new SoftValueHashMap<String, VerticalGridShift>(
+                new SoftValueHashMap<>(
                         GRID_CACHE_HARD_REFERENCES,
-                        new SoftValueHashMap.ValueCleaner() {
-                            @Override
-                            public void clean(Object key, Object object) {
-                                ((VerticalGridShift) object).dispose();
-                            }
-                        });
+                        (key, object) -> ((VerticalGridShift) object).dispose());
     }
 
     /**
