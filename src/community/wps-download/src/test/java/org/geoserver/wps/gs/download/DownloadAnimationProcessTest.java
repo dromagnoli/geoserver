@@ -140,10 +140,6 @@ public class DownloadAnimationProcessTest extends BaseDownloadImageProcessTest {
                 "//wps:Output[ows:Identifier='metadata']/wps:Data/wps:ComplexData/AnimationMetadata/WarningsFound",
                 dom);
     }
-    /** Strips a full URL to a reduced version that works with the test harness */
-    private String getTestReference(String fullLocation) {
-        return fullLocation.substring(fullLocation.indexOf('?') - 3);
-    }
 
     @Test
     public void testAnimateBmTimeMetadataWarnings() throws Exception {
