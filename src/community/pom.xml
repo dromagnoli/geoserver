@@ -90,6 +90,7 @@
             <descriptor>release/ext-gwc-mbtiles.xml</descriptor>
             <descriptor>release/ext-vsi.xml</descriptor>
             <descriptor>release/ext-teradata.xml</descriptor>
+            <descriptor>release/ext-libdeflate.xml</descriptor>
           </descriptors>
         </configuration>
       </plugin>
@@ -255,6 +256,7 @@
         <module>gwc-mbtiles</module>
         <module>vsi</module>
         <module>teradata</module>
+        <module>libdeflate</module>
       </modules>
     </profile>
     <profile>
@@ -688,5 +690,11 @@
         <module>teradata</module>
       </modules>
     </profile>
+    <profile>
+      <id>libdeflate</id>
+      <modules>
+        <module>libdeflate</module>
+      </modules>
+    </profile
   </profiles>
 </project>
