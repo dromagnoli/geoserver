@@ -695,6 +695,6 @@
       <modules>
         <module>libdeflate</module>
       </modules>
-    </profile
+    </profile>
   </profiles>
 </project>
