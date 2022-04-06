@@ -1,0 +1,45 @@
+<html xmlns:wicket="http://wicket.apache.org/">
+<head></head>
+<body>
+<wicket:panel>
+    <fieldset>
+        <div><legend>
+        <wicket:message key="Libdeflate.advancedSettings">Libdeflate Plugin Settings</wicket:message>
+        </legend>
+        </div>
+        <div wicket:id="container">
+        <ul>
+            <li>
+                <label for="compressionPriority" class="text">
+                    <wicket:message key="Libdeflate.compressionPriority">Compression priority</wicket:message>
+                </label>
+                <input id="compressionPriority" class="field text" type="text"
+                       wicket:id="compressionPriority" />
+            </li>
+            <li>
+                <label for="decompressionPriority" class="text">
+                    <wicket:message key="Libdeflate.decompressionPriority">Decompression priority</wicket:message>
+                </label>
+                <input id="decompressionPriority" class="field text" type="text"
+                       wicket:id="compressionPriority" />
+            </li>
+            <li>
+                <label for="minLevel" class="text">
+                    <wicket:message key="Libdeflate.minLevel">Minimum supported Compression Level</wicket:message>
+                </label>
+                <input id="minLevel" class="field text" type="text"
+                       wicket:id="minLevel" />
+            </li>
+            <li>
+                <label for="maxLevel" class="text">
+                    <wicket:message key="Libdeflate.maxLevel">Maximum supported Compression Level</wicket:message>
+                </label>
+                <input id="maxLevel" class="field text" type="text"
+                       wicket:id="maxLevel" />
+            </li>
+        </ul>
+    </div>
+        </fieldset>
+</wicket:panel>
+</body>
+</html>
