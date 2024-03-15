@@ -41,6 +41,7 @@ import ucar.ma2.DataType;
 import ucar.nc2.Attribute;
 import ucar.nc2.Variable;
 import ucar.nc2.dataset.NetcdfDataset;
+import ucar.nc2.dataset.NetcdfDatasets;
 
 /**
  * Base support class for NetCDF wcs tests.
@@ -120,6 +121,7 @@ public class GHRSSTWCSTest extends WCSKVPTestSupport {
 
     /** Test NetCDF output from a coverage view having the required GHRSST bands/variables */
     @Test
+    @SuppressWarnings("deprecation") // cannot enhance on the flight on a dataset
     public void testGHRSST() throws Exception {
         MockHttpServletResponse response =
                 getAsServletResponse(
@@ -139,7 +141,7 @@ public class GHRSSTWCSTest extends WCSKVPTestSupport {
         File file = File.createTempFile("ghrsst", ".nc", new File("./target"));
         FileUtils.writeByteArrayToFile(file, responseBytes);
         try (NetcdfDataset dataset =
-                NetcdfDataset.openDataset(file.getAbsolutePath(), true, null)) {
+                NetcdfDatasets.openDataset(file.getAbsolutePath(), true, null)) {
             assertNotNull(dataset);
 
             // check global attributes
