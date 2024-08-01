@@ -17,4 +17,3 @@ The MapML module for GeoServer adds new MapML resources to access WMS, WMTS and 
    
    installation
    template
-
