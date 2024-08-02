@@ -8,6 +8,7 @@ import static org.apache.commons.text.StringEscapeUtils.escapeHtml4;
 import static org.geoserver.mapml.MapMLConstants.DATE_FORMAT;
 import static org.geoserver.mapml.MapMLConstants.MAPML_FEATURE_FO;
 import static org.geoserver.mapml.MapMLConstants.MAPML_MIME_TYPE;
+import static org.geoserver.mapml.MapMLConstants.MAPML_USE_REMOTE;
 import static org.geoserver.mapml.MapMLConstants.MAPML_SKIP_ATTRIBUTES_FO;
 import static org.geoserver.mapml.MapMLConstants.MAPML_SKIP_STYLES_FO;
 import static org.geoserver.mapml.MapMLConstants.MAPML_USE_FEATURES;
@@ -32,6 +33,8 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
+
+import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.DimensionInfo;
 import org.geoserver.catalog.FeatureTypeInfo;
 import org.geoserver.catalog.LayerGroupInfo;
@@ -68,12 +71,20 @@ import org.geoserver.mapml.xml.UnitType;
 import org.geoserver.ows.Dispatcher;
 import org.geoserver.ows.URLMangler;
 import org.geoserver.ows.util.ResponseUtils;
+import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.platform.ServiceException;
+import org.geoserver.security.CoverageAccessLimits;
+import org.geoserver.security.DataAccessLimits;
+import org.geoserver.security.ResourceAccessManager;
+import org.geoserver.security.VectorAccessLimits;
+import org.geoserver.security.WMSAccessLimits;
+import org.geoserver.security.WMTSAccessLimits;
 import org.geoserver.wms.GetMapRequest;
 import org.geoserver.wms.WMS;
 import org.geoserver.wms.WMSInfo;
 import org.geoserver.wms.WMSMapContent;
 import org.geoserver.wms.capabilities.CapabilityUtil;
+import org.geotools.api.filter.Filter;
 import org.geotools.api.referencing.FactoryException;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.api.referencing.operation.TransformException;
@@ -87,6 +98,8 @@ import org.geotools.util.NumberRange;
 import org.geotools.util.logging.Logging;
 import org.geowebcache.grid.GridSubset;
 import org.locationtech.jts.geom.Envelope;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 /** Builds a MapML document from a WMSMapContent object */
 public class MapMLDocumentBuilder {
@@ -564,6 +577,7 @@ public class MapMLDocumentBuilder {
                                         .getGridSubset(projType.value())
                                 != null;
         boolean useTiles = Boolean.TRUE.equals(layerMeta.get(MAPML_USE_TILES, Boolean.class));
+        boolean useRemote = Boolean.TRUE.equals(layerMeta.get(MAPML_USE_REMOTE, Boolean.class));
         boolean useFeatures = useFeatures(layer, layerMeta);
 
         return new MapMLLayerMetadata(
@@ -581,6 +595,7 @@ public class MapMLDocumentBuilder {
                 styleName,
                 tileLayerExists,
                 useTiles,
+                useRemote,
                 useFeatures,
                 cqlFilter,
                 defaultMimeType);
@@ -1056,6 +1071,7 @@ public class MapMLDocumentBuilder {
         // emit MapML extent that uses TileMatrix coordinates, allowing
         // client requests for WMTS tiles (GetTile)
         LayerInfo layerInfo = mapMLLayerMetadata.getLayerInfo();
+        
 
         GeoServerTileLayer gstl =
                 gwc.getTileLayer(
@@ -1414,15 +1430,23 @@ public class MapMLDocumentBuilder {
         params.put("height", "{h}");
         String urlTemplate = "";
         try {
-            urlTemplate =
-                    URLDecoder.decode(
-                            ResponseUtils.buildURL(
-                                    baseUrlPattern, path, params, URLMangler.URLType.SERVICE),
-                            "UTF-8");
+            if (!cascadeIt(mapMLLayerMetadata, layerInfo)) {
+                urlTemplate =
+                        URLDecoder.decode(
+                                ResponseUtils.buildURL(
+                                        baseUrlPattern, path, params, URLMangler.URLType.SERVICE),
+                                "UTF-8");
+            } else {
+                urlTemplate = cascade(path, params);
+            }
         } catch (UnsupportedEncodingException uee) {
         }
         imageLink.setTref(urlTemplate);
         extentList.add(imageLink);
+    }
+
+    private String cascade(String path, HashMap<String, String> params) {
+        return "";
     }
 
     private void createMinAndMaxWidthHeight() {
@@ -1662,6 +1686,46 @@ public class MapMLDocumentBuilder {
         return htmlOutput.toHTML();
     }
 
+    private boolean cascadeIt(MapMLLayerMetadata metadata, LayerInfo layerInfo) {
+        if (metadata.useRemote) {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            ResourceAccessManager resourceAccessManager = GeoServerExtensions.bean(ResourceAccessManager.class);
+            DataAccessLimits accessLimits = resourceAccessManager.getAccessLimits(auth, layerInfo);
+            if (accessLimits != null) {
+                Filter readFilter = accessLimits.getReadFilter();
+                if (readFilter != null && readFilter != Filter.INCLUDE) {
+                    return false;
+                }
+                if (accessLimits instanceof WMSAccessLimits){
+                    WMSAccessLimits limits = (WMSAccessLimits) accessLimits;
+                    if (limits.getRasterFilter() != null) {
+                        return false;
+                    }
+                }
+                if (accessLimits instanceof WMTSAccessLimits){
+                    WMTSAccessLimits limits = (WMTSAccessLimits) accessLimits;
+                    if (limits.getRasterFilter() != null) {
+                        return false;
+                    }
+                }
+                if (accessLimits instanceof VectorAccessLimits){
+                    VectorAccessLimits limits = (VectorAccessLimits) accessLimits;
+                    if (limits.getClipVectorFilter() != null) {
+                        return false;
+                    }
+                    // TODO: How to check attributes filtering
+                }
+                if (accessLimits instanceof CoverageAccessLimits){
+                    CoverageAccessLimits limits = (CoverageAccessLimits) accessLimits;
+                    if (limits.getRasterFilter() != null) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     /** Builds the GetMap backlink to get MapML */
     private String buildGetMap(
             String layer,
@@ -1825,6 +1889,7 @@ public class MapMLDocumentBuilder {
         private boolean tileLayerExists;
 
         private boolean useTiles;
+        private boolean useRemote;
 
         private boolean timeEnabled;
         private boolean elevationEnabled;
@@ -1886,6 +1951,7 @@ public class MapMLDocumentBuilder {
                 String styleName,
                 boolean tileLayerExists,
                 boolean useTiles,
+                boolean useRemote,
                 boolean useFeatures,
                 String cqFilter,
                 String defaultMimeType) {
@@ -1903,6 +1969,7 @@ public class MapMLDocumentBuilder {
             this.isTransparent = isTransparent;
             this.tileLayerExists = tileLayerExists;
             this.useTiles = useTiles;
+            this.useRemote = useRemote;
             this.useFeatures = useFeatures;
             this.cqlFilter = cqFilter;
             this.defaultMimeType = defaultMimeType;
@@ -2210,6 +2277,25 @@ public class MapMLDocumentBuilder {
         public void setUseTiles(boolean useTiles) {
             this.useTiles = useTiles;
         }
+
+        /**
+         * get if the layer uses remote
+         *
+         * @return boolean
+         */
+        public boolean isUseRemote() {
+            return useRemote;
+        }
+
+        /**
+         * set if the layer uses remote
+         *
+         * @param useRemote boolean
+         */
+        public void setUseRemote(boolean useRemote) {
+            this.useRemote = useRemote;
+        }
+
 
         /**
          * get the ReferencedEnvelope object
