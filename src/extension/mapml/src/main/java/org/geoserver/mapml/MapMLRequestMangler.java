@@ -1,5 +1,16 @@
 package org.geoserver.mapml;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Logger;
 import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.ResourceInfo;
 import org.geoserver.catalog.SLDHandler;
@@ -24,18 +35,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLDecoder;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Logger;
-
 public class MapMLRequestMangler {
 
     static class CRSMapper {
@@ -56,24 +55,28 @@ public class MapMLRequestMangler {
         String getOutputCRS() {
             return outputCRS;
         }
-
-
-
     }
 
     private static final Set<CRSMapper> crsMappers;
 
     static {
         crsMappers = new HashSet<>();
-        crsMappers.add(new CRSMapper(Set.of("EPSG:4326", "urn:ogc:def:crs:EPSG::4326", "urn:ogc:def:crs:MapML::WGS84"), "EPSG:4326"));
-        crsMappers.add(new CRSMapper(Set.of("EPSG:3857", "urn:ogc:def:crs:EPSG::3857"), "EPSG:3857"));
-        crsMappers.add(new CRSMapper(Set.of("EPSG:5936", "urn:ogc:def:crs:EPSG::5936"), "EPSG:5936"));
-        crsMappers.add(new CRSMapper(Set.of("EPSG:3978", "urn:ogc:def:crs:EPSG::3978"), "EPSG:3978"));
-
+        crsMappers.add(
+                new CRSMapper(
+                        Set.of(
+                                "EPSG:4326",
+                                "urn:ogc:def:crs:EPSG::4326",
+                                "urn:ogc:def:crs:MapML::WGS84"),
+                        "EPSG:4326"));
+        crsMappers.add(
+                new CRSMapper(Set.of("EPSG:3857", "urn:ogc:def:crs:EPSG::3857"), "EPSG:3857"));
+        crsMappers.add(
+                new CRSMapper(Set.of("EPSG:5936", "urn:ogc:def:crs:EPSG::5936"), "EPSG:5936"));
+        crsMappers.add(
+                new CRSMapper(Set.of("EPSG:3978", "urn:ogc:def:crs:EPSG::3978"), "EPSG:3978"));
     }
 
-
-    private final static String WMS_1_3_0 = "1.3.0";
+    private static final String WMS_1_3_0 = "1.3.0";
 
     private static final Logger LOGGER = Logging.getLogger(MapMLRequestMangler.class);
     private final MapMLDocumentBuilder.MapMLLayerMetadata mapMLLayerMetadata;
@@ -83,15 +86,19 @@ public class MapMLRequestMangler {
     private final HashMap<String, String> params;
     private final WMSMapContent mapContent;
 
-    public MapMLRequestMangler(WMSMapContent mapContent, MapMLDocumentBuilder.MapMLLayerMetadata mapMLLayerMetadata,
-                               String baseUrlPattern, String path, HashMap<String, String> params, String proj) {
+    public MapMLRequestMangler(
+            WMSMapContent mapContent,
+            MapMLDocumentBuilder.MapMLLayerMetadata mapMLLayerMetadata,
+            String baseUrlPattern,
+            String path,
+            HashMap<String, String> params,
+            String proj) {
         this.mapContent = mapContent;
         this.mapMLLayerMetadata = mapMLLayerMetadata;
         this.path = path;
         this.params = params;
         this.baseUrlPattern = baseUrlPattern;
         this.proj = proj;
-
     }
 
     public String getUrlTemplate() {
@@ -109,14 +116,15 @@ public class MapMLRequestMangler {
             }
         } catch (UnsupportedEncodingException uee) {
         }
-        return  urlTemplate;
+        return urlTemplate;
     }
 
     /**
-     * Try cascading to the remote Server unless any condition is preventing that
-     * (i.e. CRS not supported on the remote server)
+     * Try cascading to the remote Server unless any condition is preventing that (i.e. CRS not
+     * supported on the remote server)
      */
-    private String tryCascading(String path, HashMap<String, String> params, LayerInfo layerInfo) throws UnsupportedEncodingException {
+    private String tryCascading(String path, HashMap<String, String> params, LayerInfo layerInfo)
+            throws UnsupportedEncodingException {
         String baseUrl = baseUrlPattern;
         String version = "1.3.0";
         boolean doCascade = false;
@@ -126,7 +134,7 @@ public class MapMLRequestMangler {
 
             String requestedCRS = proj;
             String outputCRS = null;
-            for (CRSMapper mapper: crsMappers) {
+            for (CRSMapper mapper : crsMappers) {
                 if (mapper.isSupporting(requestedCRS)) {
                     outputCRS = mapper.getOutputCRS();
                     requestedCRS = outputCRS;
@@ -138,7 +146,8 @@ public class MapMLRequestMangler {
                 if (storeInfo instanceof WMSStoreInfo) {
                     WMSStoreInfo wmsStoreInfo = (WMSStoreInfo) storeInfo;
                     try {
-                        WMSCapabilities capabilities = wmsStoreInfo.getWebMapServer(null).getCapabilities();
+                        WMSCapabilities capabilities =
+                                wmsStoreInfo.getWebMapServer(null).getCapabilities();
                         version = capabilities.getVersion();
 
                         if (!WMS_1_3_0.equals(version)) {
@@ -155,12 +164,13 @@ public class MapMLRequestMangler {
                         isSupportedCrs |= (outputCRS != null);
                         doCascade = isSupportedCrs;
                     } catch (IOException e) {
-                        LOGGER.warning("Unable to extract the WMS remote capabilities. Cascading won't be performed");
+                        LOGGER.warning(
+                                "Unable to extract the WMS remote capabilities. Cascading won't be performed");
                         doCascade = false;
                     }
                     if (doCascade) {
                         // Update the params
-                        baseUrl =  getBaseUrl(wmsStoreInfo.getCapabilitiesURL());
+                        baseUrl = getBaseUrl(wmsStoreInfo.getCapabilitiesURL());
                         params.put("version", version);
                         boolean cleanupCrs = params.containsKey("crs") || params.containsKey("srs");
                         if (params.containsKey("layer")) {
@@ -168,7 +178,7 @@ public class MapMLRequestMangler {
                         } else if (params.containsKey("layers")) {
                             params.put("layers", layerName);
                         }
-                        if (params.containsKey("tilematrixset")){
+                        if (params.containsKey("tilematrixset")) {
                             params.put("tilematrixset", requestedCRS);
                         }
 
@@ -178,23 +188,20 @@ public class MapMLRequestMangler {
                             String crsName = WMS_1_3_0.equals(version) ? "crs" : "srs";
                             params.put(crsName, requestedCRS);
                         }
-
                     }
-
                 }
             }
         }
 
-
-        URLMangler.URLType urlType = doCascade ? URLMangler.URLType.EXTERNAL : URLMangler.URLType.SERVICE;
-        String urlTemplate = URLDecoder.decode(
-                ResponseUtils.buildURL(baseUrl, path, params, urlType),
-                "UTF-8");
+        URLMangler.URLType urlType =
+                doCascade ? URLMangler.URLType.EXTERNAL : URLMangler.URLType.SERVICE;
+        String urlTemplate =
+                URLDecoder.decode(ResponseUtils.buildURL(baseUrl, path, params, urlType), "UTF-8");
         return urlTemplate;
     }
 
-
-    private boolean canCascade(MapMLDocumentBuilder.MapMLLayerMetadata metadata, LayerInfo layerInfo) {
+    private boolean canCascade(
+            MapMLDocumentBuilder.MapMLLayerMetadata metadata, LayerInfo layerInfo) {
         if (metadata.isUseRemote()) {
             if (hasRestrictingAccessLimits(layerInfo)) return false;
             return !hasVendorParams();
@@ -209,10 +216,11 @@ public class MapMLRequestMangler {
         // The following vendor params have been retrieved from the WMSRequests class.
         // format options
         Map<String, Object> formatOptions = req.getFormatOptions();
-        if (formatOptions != null && formatOptions.size() >= 1 &&
-                ! formatOptions.containsKey(MapMLConstants.MAPML_WMS_MIME_TYPE_OPTION.toUpperCase())) {
+        if (formatOptions != null
+                && formatOptions.size() >= 1
+                && !formatOptions.containsKey(
+                        MapMLConstants.MAPML_WMS_MIME_TYPE_OPTION.toUpperCase())) {
             return true;
-
         }
 
         // view params
@@ -223,11 +231,11 @@ public class MapMLRequestMangler {
             return true;
         }
 
-        if (req.getMaxFeatures() != null ||
-                req.getRemoteOwsType() != null
-                ||req.getRemoteOwsURL() != null
-                ||req.getScaleMethod() != null
-                ||req.getStartIndex() != null){
+        if (req.getMaxFeatures() != null
+                || req.getRemoteOwsType() != null
+                || req.getRemoteOwsURL() != null
+                || req.getScaleMethod() != null
+                || req.getStartIndex() != null) {
             return true;
         }
 
@@ -256,7 +264,7 @@ public class MapMLRequestMangler {
     }
 
     private boolean hasProperty(Map<String, String> kvpMap, String... properties) {
-        for (String property: properties) {
+        for (String property : properties) {
             String prop = kvpMap.get(property);
             if (StringUtils.hasText(prop)) {
                 return true;
@@ -267,32 +275,33 @@ public class MapMLRequestMangler {
 
     private boolean hasRestrictingAccessLimits(LayerInfo layerInfo) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        ResourceAccessManager resourceAccessManager = GeoServerExtensions.bean(ResourceAccessManager.class);
+        ResourceAccessManager resourceAccessManager =
+                GeoServerExtensions.bean(ResourceAccessManager.class);
         DataAccessLimits accessLimits = resourceAccessManager.getAccessLimits(auth, layerInfo);
         if (accessLimits != null) {
             Filter readFilter = accessLimits.getReadFilter();
             if (readFilter != null && readFilter != Filter.INCLUDE) {
                 return true;
             }
-            if (accessLimits instanceof WMSAccessLimits){
+            if (accessLimits instanceof WMSAccessLimits) {
                 WMSAccessLimits limits = (WMSAccessLimits) accessLimits;
                 if (limits.getRasterFilter() != null) {
                     return true;
                 }
             }
-            if (accessLimits instanceof WMTSAccessLimits){
+            if (accessLimits instanceof WMTSAccessLimits) {
                 WMTSAccessLimits limits = (WMTSAccessLimits) accessLimits;
                 if (limits.getRasterFilter() != null) {
                     return true;
                 }
             }
-            if (accessLimits instanceof VectorAccessLimits){
+            if (accessLimits instanceof VectorAccessLimits) {
                 VectorAccessLimits limits = (VectorAccessLimits) accessLimits;
                 if (limits.getClipVectorFilter() != null) {
                     return true;
                 }
             }
-            if (accessLimits instanceof CoverageAccessLimits){
+            if (accessLimits instanceof CoverageAccessLimits) {
                 CoverageAccessLimits limits = (CoverageAccessLimits) accessLimits;
                 if (limits.getRasterFilter() != null) {
                     return true;
