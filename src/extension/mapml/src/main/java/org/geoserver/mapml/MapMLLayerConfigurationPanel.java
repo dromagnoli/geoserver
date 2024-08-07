@@ -192,12 +192,11 @@ public class MapMLLayerConfigurationPanel extends PublishedConfigurationPanel<La
         TextArea<String> featureCaptionTemplate =
                 new TextArea<>(MapMLConstants.FEATURE_CAPTION_TEMPLATE, featureCaptionModel);
         add(featureCaptionTemplate);
-
-
     }
 
     private WebMarkupContainer setupRemoteClientRequestContainer(IModel<LayerInfo> model) {
-        WebMarkupContainer remoteClientRequestContainer = new WebMarkupContainer("RemoteClientRequestsConfiguration");
+        WebMarkupContainer remoteClientRequestContainer =
+                new WebMarkupContainer("RemoteClientRequestsConfiguration");
         LayerInfo layerInfo = model.getObject();
         MapModel<Boolean> useRemoteModel =
                 new MapModel<>(
@@ -207,7 +206,7 @@ public class MapMLLayerConfigurationPanel extends PublishedConfigurationPanel<La
         remoteClientRequestContainer.setOutputMarkupId(true);
         remoteClientRequestContainer.setVisible(isWMSOrWMTSStore(layerInfo));
         remoteClientRequestContainer.add(useRemote);
-        return  remoteClientRequestContainer;
+        return remoteClientRequestContainer;
     }
 
     /**
@@ -336,4 +335,3 @@ public class MapMLLayerConfigurationPanel extends PublishedConfigurationPanel<La
         return false;
     }
 }
-

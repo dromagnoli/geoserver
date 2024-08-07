@@ -8,10 +8,10 @@ import static org.apache.commons.text.StringEscapeUtils.escapeHtml4;
 import static org.geoserver.mapml.MapMLConstants.DATE_FORMAT;
 import static org.geoserver.mapml.MapMLConstants.MAPML_FEATURE_FO;
 import static org.geoserver.mapml.MapMLConstants.MAPML_MIME_TYPE;
-import static org.geoserver.mapml.MapMLConstants.MAPML_USE_REMOTE;
 import static org.geoserver.mapml.MapMLConstants.MAPML_SKIP_ATTRIBUTES_FO;
 import static org.geoserver.mapml.MapMLConstants.MAPML_SKIP_STYLES_FO;
 import static org.geoserver.mapml.MapMLConstants.MAPML_USE_FEATURES;
+import static org.geoserver.mapml.MapMLConstants.MAPML_USE_REMOTE;
 import static org.geoserver.mapml.MapMLConstants.MAPML_USE_TILES;
 import static org.geoserver.mapml.MapMLHTMLOutput.PREVIEW_TCRS_MAP;
 import static org.geoserver.mapml.template.MapMLMapTemplate.MAPML_PREVIEW_HEAD_FTL;
@@ -20,8 +20,6 @@ import static org.geoserver.mapml.template.MapMLMapTemplate.MAPML_XML_HEAD_FTL;
 import freemarker.template.TemplateMethodModelEx;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -42,7 +40,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
-
 import org.geoserver.catalog.DimensionInfo;
 import org.geoserver.catalog.FeatureTypeInfo;
 import org.geoserver.catalog.LayerGroupInfo;
@@ -81,14 +78,7 @@ import org.geoserver.ows.Dispatcher;
 import org.geoserver.ows.Request;
 import org.geoserver.ows.URLMangler;
 import org.geoserver.ows.util.ResponseUtils;
-import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.platform.ServiceException;
-import org.geoserver.security.CoverageAccessLimits;
-import org.geoserver.security.DataAccessLimits;
-import org.geoserver.security.ResourceAccessManager;
-import org.geoserver.security.VectorAccessLimits;
-import org.geoserver.security.WMSAccessLimits;
-import org.geoserver.security.WMTSAccessLimits;
 import org.geoserver.wms.GetMapRequest;
 import org.geoserver.wms.MapLayerInfo;
 import org.geoserver.wms.WMS;
@@ -103,8 +93,6 @@ import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.api.referencing.operation.TransformException;
 import org.geotools.api.style.Style;
 import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.geotools.ows.wms.Layer;
-import org.geotools.ows.wms.WMSCapabilities;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.geotools.renderer.crs.ProjectionHandler;
@@ -113,9 +101,6 @@ import org.geotools.util.NumberRange;
 import org.geotools.util.logging.Logging;
 import org.geowebcache.grid.GridSubset;
 import org.locationtech.jts.geom.Envelope;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.util.StringUtils;
 
 /** Builds a MapML document from a WMSMapContent object */
 public class MapMLDocumentBuilder {
@@ -1174,7 +1159,6 @@ public class MapMLDocumentBuilder {
         // emit MapML extent that uses TileMatrix coordinates, allowing
         // client requests for WMTS tiles (GetTile)
         LayerInfo layerInfo = mapMLLayerMetadata.getLayerInfo();
-        
 
         GeoServerTileLayer gstl =
                 gwc.getTileLayer(
@@ -1249,8 +1233,10 @@ public class MapMLDocumentBuilder {
             params.put("elevation", "{elevation}");
         }
         if (cqlFilter.isPresent()) params.put("cql_filter", mapMLLayerMetadata.getCqlFilter());
-        MapMLRequestMangler mangler = new MapMLRequestMangler(mapContent, mapMLLayerMetadata, baseUrlPattern, path, params, proj);
-        String urlTemplate =  mangler.getUrlTemplate();
+        MapMLRequestMangler mangler =
+                new MapMLRequestMangler(
+                        mapContent, mapMLLayerMetadata, baseUrlPattern, path, params, proj);
+        String urlTemplate = mangler.getUrlTemplate();
         tileLink.setTref(urlTemplate);
         extentList.add(tileLink);
     }
@@ -1383,8 +1369,10 @@ public class MapMLDocumentBuilder {
         params.put("transparent", Boolean.toString(mapMLLayerMetadata.isTransparent()));
         params.put("width", "256");
         params.put("height", "256");
-        MapMLRequestMangler mangler = new MapMLRequestMangler(mapContent, mapMLLayerMetadata, baseUrlPattern, path, params, proj);
-        String urlTemplate =  mangler.getUrlTemplate();
+        MapMLRequestMangler mangler =
+                new MapMLRequestMangler(
+                        mapContent, mapMLLayerMetadata, baseUrlPattern, path, params, proj);
+        String urlTemplate = mangler.getUrlTemplate();
         tileLink.setTref(urlTemplate);
         extentList.add(tileLink);
     }
@@ -1517,8 +1505,10 @@ public class MapMLDocumentBuilder {
         params.put("language", this.request.getLocale().getLanguage());
         params.put("width", "{w}");
         params.put("height", "{h}");
-        MapMLRequestMangler mangler = new MapMLRequestMangler(mapContent, mapMLLayerMetadata, baseUrlPattern, path, params, proj);
-        String urlTemplate =  mangler.getUrlTemplate();
+        MapMLRequestMangler mangler =
+                new MapMLRequestMangler(
+                        mapContent, mapMLLayerMetadata, baseUrlPattern, path, params, proj);
+        String urlTemplate = mangler.getUrlTemplate();
         imageLink.setTref(urlTemplate);
         extentList.add(imageLink);
     }
@@ -1665,8 +1655,10 @@ public class MapMLDocumentBuilder {
         params.put("transparent", Boolean.toString(mapMLLayerMetadata.isTransparent()));
         params.put("x", "{i}");
         params.put("y", "{j}");
-        MapMLRequestMangler mangler = new MapMLRequestMangler(mapContent, mapMLLayerMetadata, baseUrlPattern, path, params, proj);
-        String urlTemplate =  mangler.getUrlTemplate();
+        MapMLRequestMangler mangler =
+                new MapMLRequestMangler(
+                        mapContent, mapMLLayerMetadata, baseUrlPattern, path, params, proj);
+        String urlTemplate = mangler.getUrlTemplate();
         queryLink.setTref(urlTemplate);
         extentList.add(queryLink);
     }
@@ -2544,7 +2536,6 @@ public class MapMLDocumentBuilder {
         public void setUseRemote(boolean useRemote) {
             this.useRemote = useRemote;
         }
-
 
         /**
          * get the ReferencedEnvelope object
