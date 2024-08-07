@@ -17,6 +17,8 @@ import static org.geoserver.mapml.MapMLHTMLOutput.PREVIEW_TCRS_MAP;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.URLDecoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -34,7 +36,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 
-import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.DimensionInfo;
 import org.geoserver.catalog.FeatureTypeInfo;
 import org.geoserver.catalog.LayerGroupInfo;
@@ -90,6 +91,8 @@ import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.api.referencing.operation.TransformException;
 import org.geotools.api.style.Style;
 import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.geotools.ows.wms.Layer;
+import org.geotools.ows.wms.WMSCapabilities;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.geotools.renderer.crs.ProjectionHandler;
@@ -100,6 +103,7 @@ import org.geowebcache.grid.GridSubset;
 import org.locationtech.jts.geom.Envelope;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.StringUtils;
 
 /** Builds a MapML document from a WMSMapContent object */
 public class MapMLDocumentBuilder {
@@ -1146,15 +1150,8 @@ public class MapMLDocumentBuilder {
             params.put("elevation", "{elevation}");
         }
         if (cqlFilter.isPresent()) params.put("cql_filter", mapMLLayerMetadata.getCqlFilter());
-        String urlTemplate = "";
-        try {
-            urlTemplate =
-                    URLDecoder.decode(
-                            ResponseUtils.buildURL(
-                                    baseUrlPattern, path, params, URLMangler.URLType.SERVICE),
-                            "UTF-8");
-        } catch (UnsupportedEncodingException uee) {
-        }
+        MapMLRequestMangler mangler = new MapMLRequestMangler(mapContent, mapMLLayerMetadata, baseUrlPattern, path, params, proj);
+        String urlTemplate =  mangler.getUrlTemplate();
         tileLink.setTref(urlTemplate);
         extentList.add(tileLink);
     }
@@ -1287,15 +1284,8 @@ public class MapMLDocumentBuilder {
         params.put("transparent", Boolean.toString(mapMLLayerMetadata.isTransparent()));
         params.put("width", "256");
         params.put("height", "256");
-        String urlTemplate = "";
-        try {
-            urlTemplate =
-                    URLDecoder.decode(
-                            ResponseUtils.buildURL(
-                                    baseUrlPattern, path, params, URLMangler.URLType.SERVICE),
-                            "UTF-8");
-        } catch (UnsupportedEncodingException uee) {
-        }
+        MapMLRequestMangler mangler = new MapMLRequestMangler(mapContent, mapMLLayerMetadata, baseUrlPattern, path, params, proj);
+        String urlTemplate =  mangler.getUrlTemplate();
         tileLink.setTref(urlTemplate);
         extentList.add(tileLink);
     }
@@ -1428,25 +1418,10 @@ public class MapMLDocumentBuilder {
         params.put("language", this.request.getLocale().getLanguage());
         params.put("width", "{w}");
         params.put("height", "{h}");
-        String urlTemplate = "";
-        try {
-            if (!cascadeIt(mapMLLayerMetadata, layerInfo)) {
-                urlTemplate =
-                        URLDecoder.decode(
-                                ResponseUtils.buildURL(
-                                        baseUrlPattern, path, params, URLMangler.URLType.SERVICE),
-                                "UTF-8");
-            } else {
-                urlTemplate = cascade(path, params);
-            }
-        } catch (UnsupportedEncodingException uee) {
-        }
+        MapMLRequestMangler mangler = new MapMLRequestMangler(mapContent, mapMLLayerMetadata, baseUrlPattern, path, params, proj);
+        String urlTemplate =  mangler.getUrlTemplate();
         imageLink.setTref(urlTemplate);
         extentList.add(imageLink);
-    }
-
-    private String cascade(String path, HashMap<String, String> params) {
-        return "";
     }
 
     private void createMinAndMaxWidthHeight() {
@@ -1591,15 +1566,8 @@ public class MapMLDocumentBuilder {
         params.put("transparent", Boolean.toString(mapMLLayerMetadata.isTransparent()));
         params.put("x", "{i}");
         params.put("y", "{j}");
-        String urlTemplate = "";
-        try {
-            urlTemplate =
-                    URLDecoder.decode(
-                            ResponseUtils.buildURL(
-                                    baseUrlPattern, path, params, URLMangler.URLType.SERVICE),
-                            "UTF-8");
-        } catch (UnsupportedEncodingException uee) {
-        }
+        MapMLRequestMangler mangler = new MapMLRequestMangler(mapContent, mapMLLayerMetadata, baseUrlPattern, path, params, proj);
+        String urlTemplate =  mangler.getUrlTemplate();
         queryLink.setTref(urlTemplate);
         extentList.add(queryLink);
     }
@@ -1684,46 +1652,6 @@ public class MapMLDocumentBuilder {
                         .setLayerLabel(layerLabel)
                         .build();
         return htmlOutput.toHTML();
-    }
-
-    private boolean cascadeIt(MapMLLayerMetadata metadata, LayerInfo layerInfo) {
-        if (metadata.useRemote) {
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            ResourceAccessManager resourceAccessManager = GeoServerExtensions.bean(ResourceAccessManager.class);
-            DataAccessLimits accessLimits = resourceAccessManager.getAccessLimits(auth, layerInfo);
-            if (accessLimits != null) {
-                Filter readFilter = accessLimits.getReadFilter();
-                if (readFilter != null && readFilter != Filter.INCLUDE) {
-                    return false;
-                }
-                if (accessLimits instanceof WMSAccessLimits){
-                    WMSAccessLimits limits = (WMSAccessLimits) accessLimits;
-                    if (limits.getRasterFilter() != null) {
-                        return false;
-                    }
-                }
-                if (accessLimits instanceof WMTSAccessLimits){
-                    WMTSAccessLimits limits = (WMTSAccessLimits) accessLimits;
-                    if (limits.getRasterFilter() != null) {
-                        return false;
-                    }
-                }
-                if (accessLimits instanceof VectorAccessLimits){
-                    VectorAccessLimits limits = (VectorAccessLimits) accessLimits;
-                    if (limits.getClipVectorFilter() != null) {
-                        return false;
-                    }
-                    // TODO: How to check attributes filtering
-                }
-                if (accessLimits instanceof CoverageAccessLimits){
-                    CoverageAccessLimits limits = (CoverageAccessLimits) accessLimits;
-                    if (limits.getRasterFilter() != null) {
-                        return false;
-                    }
-                }
-            }
-        }
-        return false;
     }
 
     /** Builds the GetMap backlink to get MapML */
