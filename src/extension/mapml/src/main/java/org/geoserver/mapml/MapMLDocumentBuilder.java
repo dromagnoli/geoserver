@@ -78,7 +78,14 @@ import org.geoserver.ows.Dispatcher;
 import org.geoserver.ows.Request;
 import org.geoserver.ows.URLMangler;
 import org.geoserver.ows.util.ResponseUtils;
+import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.platform.ServiceException;
+import org.geoserver.security.CoverageAccessLimits;
+import org.geoserver.security.DataAccessLimits;
+import org.geoserver.security.ResourceAccessManager;
+import org.geoserver.security.VectorAccessLimits;
+import org.geoserver.security.WMSAccessLimits;
+import org.geoserver.security.WMTSAccessLimits;
 import org.geoserver.wms.GetMapRequest;
 import org.geoserver.wms.MapLayerInfo;
 import org.geoserver.wms.WMS;
@@ -101,6 +108,8 @@ import org.geotools.util.NumberRange;
 import org.geotools.util.logging.Logging;
 import org.geowebcache.grid.GridSubset;
 import org.locationtech.jts.geom.Envelope;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 /** Builds a MapML document from a WMSMapContent object */
 public class MapMLDocumentBuilder {
@@ -172,13 +181,6 @@ public class MapMLDocumentBuilder {
 
     private Boolean isMultiExtent = MAPML_MULTILAYER_AS_MULTIEXTENT_DEFAULT;
     private MapMLMapTemplate mapMLMapTemplate = new MapMLMapTemplate();
-
-    static {
-        PREVIEW_TCRS_MAP.put("OSMTILE", new TiledCRS("OSMTILE"));
-        PREVIEW_TCRS_MAP.put("CBMTILE", new TiledCRS("CBMTILE"));
-        PREVIEW_TCRS_MAP.put("APSTILE", new TiledCRS("APSTILE"));
-        PREVIEW_TCRS_MAP.put("WGS84", new TiledCRS("WGS84"));
-    }
 
     /**
      * Constructor
@@ -1833,37 +1835,39 @@ public class MapMLDocumentBuilder {
             }
         }
         return templates;
+    }
 
     private boolean cascadeIt(MapMLLayerMetadata metadata, LayerInfo layerInfo) {
         if (metadata.useRemote) {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            ResourceAccessManager resourceAccessManager = GeoServerExtensions.bean(ResourceAccessManager.class);
+            ResourceAccessManager resourceAccessManager =
+                    GeoServerExtensions.bean(ResourceAccessManager.class);
             DataAccessLimits accessLimits = resourceAccessManager.getAccessLimits(auth, layerInfo);
             if (accessLimits != null) {
                 Filter readFilter = accessLimits.getReadFilter();
                 if (readFilter != null && readFilter != Filter.INCLUDE) {
                     return false;
                 }
-                if (accessLimits instanceof WMSAccessLimits){
+                if (accessLimits instanceof WMSAccessLimits) {
                     WMSAccessLimits limits = (WMSAccessLimits) accessLimits;
                     if (limits.getRasterFilter() != null) {
                         return false;
                     }
                 }
-                if (accessLimits instanceof WMTSAccessLimits){
+                if (accessLimits instanceof WMTSAccessLimits) {
                     WMTSAccessLimits limits = (WMTSAccessLimits) accessLimits;
                     if (limits.getRasterFilter() != null) {
                         return false;
                     }
                 }
-                if (accessLimits instanceof VectorAccessLimits){
+                if (accessLimits instanceof VectorAccessLimits) {
                     VectorAccessLimits limits = (VectorAccessLimits) accessLimits;
                     if (limits.getClipVectorFilter() != null) {
                         return false;
                     }
                     // TODO: How to check attributes filtering
                 }
-                if (accessLimits instanceof CoverageAccessLimits){
+                if (accessLimits instanceof CoverageAccessLimits) {
                     CoverageAccessLimits limits = (CoverageAccessLimits) accessLimits;
                     if (limits.getRasterFilter() != null) {
                         return false;
