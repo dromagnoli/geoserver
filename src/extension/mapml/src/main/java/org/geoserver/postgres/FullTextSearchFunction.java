@@ -1,3 +1,7 @@
+/* (c) 2024 Open Source Geospatial Foundation - all rights reserved
+ * This code is licensed under the GPL 2.0 license, available at the root
+ * application directory.
+ */
 package org.geoserver.postgres;
 
 import org.geotools.api.filter.expression.Expression;
@@ -10,7 +14,7 @@ import java.util.List;
 public class FullTextSearchFunction extends FunctionExpressionImpl implements VolatileFunction {
 
     public FullTextSearchFunction() {
-        super("full_text_search");
+        super("fullTextSearch");
     }
 
     @Override
@@ -23,7 +27,7 @@ public class FullTextSearchFunction extends FunctionExpressionImpl implements Vo
     @Override
     public void setParameters(List<Expression> parameters) {
         if (parameters.size() != 1) {
-            throw new IllegalArgumentException("full_text_search function expects exactly one argument.");
+            throw new IllegalArgumentException("FullTextSearchFunction expects exactly one argument.");
         }
         super.setParameters(parameters);
     }

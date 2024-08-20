@@ -1,9 +1,11 @@
+/* (c) 2024 Open Source Geospatial Foundation - all rights reserved
+ * This code is licensed under the GPL 2.0 license, available at the root
+ * application directory.
+ */
 package org.geoserver.postgres;
 
-import org.geotools.api.data.DataAccessFactory;
 import org.geotools.data.postgis.PostgisNGDataStoreFactory;
 import org.geotools.jdbc.JDBCDataStore;
-import org.geotools.jdbc.JDBCDataStoreFactory;
 import org.geotools.jdbc.SQLDialect;
 
 import java.util.Collections;
@@ -23,7 +25,6 @@ public class EMSAPostgresDataStoreFactory extends PostgisNGDataStoreFactory {
     protected void setupParameters(Map<String, Object> parameters) {
         super.setupParameters(parameters);
         parameters.put(DBTYPE.key, DBTYPE);
-
     }
 
     @Override
