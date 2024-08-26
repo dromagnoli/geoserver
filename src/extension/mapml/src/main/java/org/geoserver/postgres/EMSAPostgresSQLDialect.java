@@ -4,15 +4,12 @@
  */
 package org.geoserver.postgres;
 
+import java.util.Map;
 import org.geotools.data.jdbc.FilterToSQL;
 import org.geotools.data.postgis.PostGISDialect;
 import org.geotools.jdbc.JDBCDataStore;
 
-import java.util.Map;
-
-/**
- * TODO: Should we factor out from PostgreSqlDialect from rtmps storage
- * */
+/** TODO: Should we factor out from PostgreSqlDialect from rtmps storage */
 public class EMSAPostgresSQLDialect extends PostGISDialect {
 
     private JDBCDataStore jdbcDataStore;
@@ -22,11 +19,8 @@ public class EMSAPostgresSQLDialect extends PostGISDialect {
         this.jdbcDataStore = dataStore;
     }
 
-
-
     @Override
     public FilterToSQL createFilterToSQL() {
         return new EMSAPostgresFilterToSQL(this, jdbcDataStore);
     }
-
 }

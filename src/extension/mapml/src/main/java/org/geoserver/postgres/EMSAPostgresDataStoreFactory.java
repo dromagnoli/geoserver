@@ -4,17 +4,22 @@
  */
 package org.geoserver.postgres;
 
+import java.util.Collections;
+import java.util.Map;
 import org.geotools.data.postgis.PostgisNGDataStoreFactory;
 import org.geotools.jdbc.JDBCDataStore;
 import org.geotools.jdbc.SQLDialect;
 
-import java.util.Collections;
-import java.util.Map;
-
 public class EMSAPostgresDataStoreFactory extends PostgisNGDataStoreFactory {
 
-    public static final Param DBTYPE = new Param("dbtype", String.class, "Type", true, "emsapostgis", Collections.singletonMap("level", "program"));
-
+    public static final Param DBTYPE =
+            new Param(
+                    "dbtype",
+                    String.class,
+                    "Type",
+                    true,
+                    "emsapostgis",
+                    Collections.singletonMap("level", "program"));
 
     @Override
     protected SQLDialect createSQLDialect(JDBCDataStore dataStore, Map<String, ?> params) {
@@ -34,7 +39,11 @@ public class EMSAPostgresDataStoreFactory extends PostgisNGDataStoreFactory {
 
     @Override
     public String getDescription() {
-        return "Postgres EMSA extended database";
+        return "EMSA PostGIS extended database";
     }
 
+    @Override
+    public String getDisplayName() {
+        return "EMSA PostGIS";
+    }
 }

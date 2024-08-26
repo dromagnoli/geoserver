@@ -4,6 +4,14 @@
  */
 package org.geoserver.postgres;
 
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
 import org.geotools.api.data.Transaction;
 import org.geotools.api.filter.PropertyIsEqualTo;
 import org.geotools.api.filter.expression.Expression;
@@ -13,19 +21,12 @@ import org.geotools.data.postgis.PostgisFilterToSQL;
 import org.geotools.filter.FilterCapabilities;
 import org.geotools.jdbc.JDBCDataStore;
 
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Level;
-
 public class EMSAPostgresFilterToSQL extends PostgisFilterToSQL {
 
     public enum SearchType {
-        TEXT, NUMERIC, MIXED
+        TEXT,
+        NUMERIC,
+        MIXED
     }
 
     private JDBCDataStore datastore;
@@ -58,13 +59,15 @@ public class EMSAPostgresFilterToSQL extends PostgisFilterToSQL {
             try {
                 String searchText = function.getParameters().get(0).evaluate(null, String.class);
                 // Replace : and " " so that we can retrieve timestamps
-                //searchText = searchText.replaceAll("[: ]", "_");
-                //out.write(String.format("(tsv_content @@ to_tsquery('english', '%s')", searchText));
+                // searchText = searchText.replaceAll("[: ]", "_");
+                // out.write(String.format("(tsv_content @@ to_tsquery('english', '%s')",
+                // searchText));
                 out.write("(");
                 // Append additional WHERE clause for numeric columns
-                String likeClause = generateLikeClause((FullTextSearchFunction) function, searchText);
+                String likeClause =
+                        generateLikeClause((FullTextSearchFunction) function, searchText);
                 if (!likeClause.isEmpty()) {
-                    //out.write(" OR ");
+                    // out.write(" OR ");
                     out.write(likeClause);
                     if (LOGGER.isLoggable(Level.FINE)) {
                         LOGGER.fine("LIKE clause: " + likeClause);
@@ -88,7 +91,9 @@ public class EMSAPostgresFilterToSQL extends PostgisFilterToSQL {
             if (i > 0) {
                 likeClause.append(" OR ");
             }
-            likeClause.append(String.format("CAST(%s AS TEXT) ILIKE '%%%s%%'", castedColumns.get(i), searchText));
+            likeClause.append(
+                    String.format(
+                            "CAST(%s AS TEXT) ILIKE '%%%s%%'", castedColumns.get(i), searchText));
         }
         return likeClause.toString();
     }
@@ -99,16 +104,18 @@ public class EMSAPostgresFilterToSQL extends PostgisFilterToSQL {
 
         try (Connection connection = datastore.getConnection(Transaction.AUTO_COMMIT)) {
             DatabaseMetaData metaData = connection.getMetaData();
-            try (ResultSet columns = metaData.getColumns(null, datastore.getDatabaseSchema(), tableName, null)) {
+            try (ResultSet columns =
+                    metaData.getColumns(null, datastore.getDatabaseSchema(), tableName, null)) {
                 while (columns.next()) {
                     String columnName = columns.getString("COLUMN_NAME");
                     String columnType = columns.getString("TYPE_NAME").toLowerCase();
                     // casting varchars to text has no significant impact on performances.
 
-                    if (columnType.startsWith("varchar") || columnType.startsWith("text")
-                        || (type == SearchType.NUMERIC && isNumericType(columnType))
-                        || (type != SearchType.TEXT && columnType.startsWith("timestamp"))) {
-                            castedColumns.add(columnName);
+                    if (columnType.startsWith("varchar")
+                            || columnType.startsWith("text")
+                            || (type == SearchType.NUMERIC && isNumericType(columnType))
+                            || (type != SearchType.TEXT && columnType.startsWith("timestamp"))) {
+                        castedColumns.add(columnName);
                     }
                 }
             }
@@ -124,18 +131,21 @@ public class EMSAPostgresFilterToSQL extends PostgisFilterToSQL {
         }
         if (str.matches("-?\\d+(\\.\\d+)?")) {
             return SearchType.NUMERIC;
-        } else if (str.matches(".*\\d+.*")){
+        } else if (str.matches(".*\\d+.*")) {
             return SearchType.MIXED;
         }
-        return  SearchType.TEXT;
+        return SearchType.TEXT;
     }
 
     private boolean isNumericType(String columnType) {
-        return columnType.startsWith("int") ||
-            columnType.equals("smallint") || columnType.equals("bigint") ||
-            columnType.equals("decimal") || columnType.equals("numeric") ||
-            columnType.equals("real") || columnType.startsWith("float") ||
-            columnType.equals("double precision");
+        return columnType.startsWith("int")
+                || columnType.equals("smallint")
+                || columnType.equals("bigint")
+                || columnType.equals("decimal")
+                || columnType.equals("numeric")
+                || columnType.equals("real")
+                || columnType.startsWith("float")
+                || columnType.equals("double precision");
     }
 
     private FullTextSearchFunction getSelectedFullTextSearchFunction(PropertyIsEqualTo filter) {
