@@ -76,6 +76,8 @@ public class TiledCRSConstants {
         return outputCRS;
     }
 
+    public static final String TCRS_METADATA_KEY = "MapMLTCRSList.Key";
+
     static {
         final String WGS84_NAME = "WGS84";
         final String WGS84_CODE = "urn:ogc:def:crs:OGC:1.3:CRS84";
