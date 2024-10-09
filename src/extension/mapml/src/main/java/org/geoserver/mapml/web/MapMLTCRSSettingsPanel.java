@@ -1,5 +1,7 @@
 package org.geoserver.mapml.web;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.wicket.Component;
 import org.apache.wicket.extensions.markup.html.form.palette.Palette;
 import org.apache.wicket.extensions.markup.html.form.palette.theme.DefaultTheme;
@@ -8,45 +10,40 @@ import org.apache.wicket.markup.html.form.ChoiceRenderer;
 import org.apache.wicket.markup.html.panel.Panel;
 import org.apache.wicket.model.AbstractReadOnlyModel;
 import org.apache.wicket.model.IModel;
-import org.apache.wicket.model.Model;
 import org.apache.wicket.model.PropertyModel;
 import org.apache.wicket.model.ResourceModel;
 import org.geoserver.catalog.MetadataMap;
+import org.geoserver.config.GeoServerInfo;
+import org.geoserver.config.SettingsInfo;
 import org.geoserver.gwc.GWC;
 import org.geoserver.mapml.tcrs.TiledCRSConstants;
 import org.geoserver.web.util.MetadataMapModel;
 import org.geoserver.web.wicket.LiveCollectionModel;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class MapMLTCRSSettingsPanel extends Panel {
-    /*public MapMLTCRSSettingsPanel(String id, IModel<GeoServerInfo> globalInfoModel)*/
-    public MapMLTCRSSettingsPanel(String id, Model<MetadataMap> metadataMapIModel) {
+    public MapMLTCRSSettingsPanel(String id, IModel<SettingsInfo> settingsInfoIModel){
+    //public MapMLTCRSSettingsPanel(String id, LiveCollectionModel<String, List<String>> metadataMapIModel) {
+        super(id, settingsInfoIModel);
 
-        super(id, metadataMapIModel);
-/*
-        final PropertyModel<MetadataMap> metadata = new PropertyModel<>(globalInfoModel, "metadata");
+        final PropertyModel<MetadataMap> metadata = new PropertyModel<>(settingsInfoIModel, "metadata");
 
-        MetadataMapModel<Object> metadataModel = new MetadataMapModel<>(
-                metadata,
-                TiledCRSConstants.TCRS_METADATA_KEY,
-                List.class);
-*/
+                MetadataMapModel metadataModel = new MetadataMapModel<>(
+                        metadata,
+                        TiledCRSConstants.TCRS_METADATA_KEY,
+                        List.class);
+
         List<String> names = new ArrayList<>(GWC.get().getGridSetBroker().getGridSetNames());
-        IModel<List<String>> availableGridSetsModel = new AbstractReadOnlyModel<List<String>>() {
-            @Override
-            public List<String> getObject() {
-                return names; // Return the list of gridsets
-            }
-        };
+        IModel<List<String>> availableGridSetsModel =
+                new AbstractReadOnlyModel<List<String>>() {
+                    @Override
+                    public List<String> getObject() {
+                        return names; // Return the list of gridsets
+                    }
+                };
         @SuppressWarnings("unchecked")
         Palette tcrsSelector =
                 new Palette<String>(
-                        "tcrspalette",
-                        LiveCollectionModel.set(availableGridSetsModel),
-                        LiveCollectionModel.set(new PropertyModel(metadataMapIModel, TiledCRSConstants.TCRS_METADATA_KEY)),
-                        //LiveCollectionModel.set(new PropertyModel(metadataModel, TiledCRSConstants.TCRS_METADATA_KEY)),
+                        "tcrspalette", availableGridSetsModel, metadataModel,
                         new MapMLTCRSSettingsPanel.TCSRenderer(),
                         7,
                         false) {
@@ -67,10 +64,7 @@ public class MapMLTCRSSettingsPanel extends Panel {
                 };
         tcrsSelector.add(new DefaultTheme());
         add(tcrsSelector);
-
-
     }
-
 
     static class TCSRenderer extends ChoiceRenderer<String> {
         /*@Override
