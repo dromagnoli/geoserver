@@ -64,6 +64,10 @@ import org.geoserver.gwc.config.GWCConfig;
 import org.geoserver.gwc.layer.GeoServerTileLayer;
 import org.geoserver.mapml.gwc.gridset.MapMLGridsets;
 import org.geoserver.mapml.tcrs.Bounds;
+import org.geoserver.mapml.tcrs.GridSetToTCRSProvider;
+import org.geoserver.mapml.tcrs.TiledCRS;
+import org.geoserver.mapml.tcrs.TiledCRSConstants;
+import org.geoserver.mapml.tcrs.TiledCRSParams;
 import org.geoserver.mapml.xml.AxisType;
 import org.geoserver.mapml.xml.BodyContent;
 import org.geoserver.mapml.xml.Extent;
@@ -102,6 +106,15 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 public class MapMLWMSTest extends MapMLTestSupport {
+
+    @Test
+    public void testGridSet() throws Exception {
+        GridSetToTCRSProvider tcrsProvider = new GridSetToTCRSProvider(GWC.get().getGridSetBroker());
+        TiledCRS tiledCRS = tcrsProvider.mapGWCGridSetToTiledCRS(tcrsProvider.getGridSetByName("EPSG:4326"));
+        TiledCRSParams params = TiledCRSConstants.tiledCRSBySrsName.get("CRS:84");
+        TiledCRSParams generatedParams = tiledCRS.getParams();
+        boolean equals = params.equals(generatedParams);
+    }
 
     private XpathEngine xpath;
 

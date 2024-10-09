@@ -1,15 +1,10 @@
 package org.geoserver.mapml.tcrs;
 
+import java.util.ArrayList;
 import org.geoserver.catalog.MetadataMap;
 import org.geoserver.config.GeoServer;
 import org.geoserver.config.GeoServerInfo;
 import org.geoserver.config.GeoServerInitializer;
-import org.geowebcache.config.DefaultGridsets;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 public class TiledCRSListInitializer implements GeoServerInitializer {
     @Override
