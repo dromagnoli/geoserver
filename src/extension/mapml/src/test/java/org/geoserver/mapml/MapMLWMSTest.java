@@ -111,8 +111,10 @@ public class MapMLWMSTest extends MapMLTestSupport {
 
     @Test
     public void testGridSet() throws Exception {
-        GridSetToTCRSProvider tcrsProvider = new GridSetToTCRSProvider(GWC.get().getGridSetBroker());
-        TiledCRS tiledCRS = tcrsProvider.mapGWCGridSetToTiledCRS(tcrsProvider.getGridSetByName("EPSG:4326"));
+        GridSetToTCRSProvider tcrsProvider =
+                new GridSetToTCRSProvider(GWC.get().getGridSetBroker());
+        TiledCRS tiledCRS =
+                tcrsProvider.mapGWCGridSetToTiledCRS(tcrsProvider.getGridSetByName("EPSG:4326"));
         TiledCRSParams params = TiledCRSConstants.tiledCRSBySrsName.get("CRS:84");
         TiledCRSParams generatedParams = tiledCRS.getParams();
         boolean equals = params.equals(generatedParams);

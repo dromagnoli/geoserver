@@ -150,9 +150,6 @@ public class Point implements Cloneable {
 
     @Override
     public String toString() {
-        return "Point{" +
-                "x=" + x +
-                ", y=" + y +
-                '}';
+        return "Point{" + "x=" + x + ", y=" + y + '}';
     }
 }

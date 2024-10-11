@@ -13,26 +13,23 @@ import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.PropertyModel;
 import org.apache.wicket.model.ResourceModel;
 import org.geoserver.catalog.MetadataMap;
-import org.geoserver.config.GeoServerInfo;
 import org.geoserver.config.SettingsInfo;
 import org.geoserver.gwc.GWC;
+import org.geoserver.mapml.tcrs.GridSetToTCRSProvider;
 import org.geoserver.mapml.tcrs.TiledCRSConstants;
 import org.geoserver.web.util.MetadataMapModel;
-import org.geoserver.web.wicket.LiveCollectionModel;
 
 public class MapMLTCRSSettingsPanel extends Panel {
-    public MapMLTCRSSettingsPanel(String id, IModel<SettingsInfo> settingsInfoIModel){
-    //public MapMLTCRSSettingsPanel(String id, LiveCollectionModel<String, List<String>> metadataMapIModel) {
+    public MapMLTCRSSettingsPanel(String id, IModel<SettingsInfo> settingsInfoIModel) {
         super(id, settingsInfoIModel);
 
-        final PropertyModel<MetadataMap> metadata = new PropertyModel<>(settingsInfoIModel, "metadata");
+        final PropertyModel<MetadataMap> metadata =
+                new PropertyModel<>(settingsInfoIModel, "metadata");
 
-                MetadataMapModel metadataModel = new MetadataMapModel<>(
-                        metadata,
-                        TiledCRSConstants.TCRS_METADATA_KEY,
-                        List.class);
+        MetadataMapModel metadataModel =
+                new MetadataMapModel<>(metadata, TiledCRSConstants.TCRS_METADATA_KEY, List.class);
 
-        List<String> names = new ArrayList<>(GWC.get().getGridSetBroker().getGridSetNames());
+        List<String> names = GridSetToTCRSProvider.filterOut(GWC.get().getGridSetBroker().getGridSetNames());
         IModel<List<String>> availableGridSetsModel =
                 new AbstractReadOnlyModel<List<String>>() {
                     @Override
@@ -43,7 +40,9 @@ public class MapMLTCRSSettingsPanel extends Panel {
         @SuppressWarnings("unchecked")
         Palette tcrsSelector =
                 new Palette<String>(
-                        "tcrspalette", availableGridSetsModel, metadataModel,
+                        "tcrspalette",
+                        metadataModel,
+                        availableGridSetsModel,
                         new MapMLTCRSSettingsPanel.TCSRenderer(),
                         7,
                         false) {
