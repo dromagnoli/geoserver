@@ -158,7 +158,7 @@ public class MapMLDocumentBuilder {
     private String imageFormat = DEFAULT_MIME_TYPE;
     private String baseUrl;
     private String baseUrlPattern;
-    private WrappingProjType projType;
+    private ProjType projType;
     private MetadataMap layerMeta;
     private int height;
     private int width;
@@ -2315,7 +2315,7 @@ public class MapMLDocumentBuilder {
         private boolean isTransparent;
         private String layerName;
         private String layerTitle;
-        private WrappingProjType projType;
+        private ProjType projType;
         private String styleName;
         private boolean tileLayerExists;
 
@@ -2362,7 +2362,7 @@ public class MapMLDocumentBuilder {
          * @param isTransparent boolean
          * @param layerName String
          * @param layerTitle String
-         * @param projType WrappingProjType
+         * @param projType ProjType
          * @param styleName String
          * @param tileLayerExists boolean
          * @param useTiles boolean
@@ -2379,7 +2379,7 @@ public class MapMLDocumentBuilder {
                 boolean isTransparent,
                 String layerName,
                 String layerTitle,
-                WrappingProjType projType,
+                ProjType projType,
                 String styleName,
                 boolean tileLayerExists,
                 boolean useTiles,
@@ -2677,9 +2677,9 @@ public class MapMLDocumentBuilder {
         /**
          * get the projection type
          *
-         * @return WrappingProjType
+         * @return ProjType
          */
-        public WrappingProjType getProjType() {
+        public ProjType getProjType() {
             return projType;
         }
 
@@ -2688,7 +2688,7 @@ public class MapMLDocumentBuilder {
          *
          * @param projType ProjType
          */
-        public void setProjType(WrappingProjType projType) {
+        public void setProjType(ProjType projType) {
             this.projType = projType;
         }
 
