@@ -79,7 +79,12 @@ public class TiledCRSParams {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         TiledCRSParams that = (TiledCRSParams) o;
-        return TILE_SIZE == that.TILE_SIZE && Objects.equals(name, that.name) && Objects.equals(code, that.code) && Objects.equals(bounds, that.bounds) && Objects.deepEquals(scales, that.scales) && Objects.equals(origin, that.origin);
+        return TILE_SIZE == that.TILE_SIZE
+                && Objects.equals(name, that.name)
+                && Objects.equals(code, that.code)
+                && Objects.equals(bounds, that.bounds)
+                && Objects.deepEquals(scales, that.scales)
+                && Objects.equals(origin, that.origin);
     }
 
     @Override

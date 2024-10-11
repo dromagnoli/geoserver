@@ -506,11 +506,32 @@ public class TiledCRS {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         TiledCRS tiledCRS = (TiledCRS) o;
-        return TILESIZE == tiledCRS.TILESIZE && pageSize == tiledCRS.pageSize && Objects.equals(transformation, tiledCRS.transformation) && Objects.equals(projection, tiledCRS.projection) && Objects.deepEquals(scales, tiledCRS.scales) && Objects.equals(name, tiledCRS.name) && Objects.equals(TILE_ORIGIN, tiledCRS.TILE_ORIGIN) && Objects.equals(code, tiledCRS.code) && Objects.equals(tileBounds, tiledCRS.tileBounds) && Objects.equals(bounds, tiledCRS.bounds) && Objects.equals(params, tiledCRS.params);
+        return TILESIZE == tiledCRS.TILESIZE
+                && pageSize == tiledCRS.pageSize
+                && Objects.equals(transformation, tiledCRS.transformation)
+                && Objects.equals(projection, tiledCRS.projection)
+                && Objects.deepEquals(scales, tiledCRS.scales)
+                && Objects.equals(name, tiledCRS.name)
+                && Objects.equals(TILE_ORIGIN, tiledCRS.TILE_ORIGIN)
+                && Objects.equals(code, tiledCRS.code)
+                && Objects.equals(tileBounds, tiledCRS.tileBounds)
+                && Objects.equals(bounds, tiledCRS.bounds)
+                && Objects.equals(params, tiledCRS.params);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(transformation, projection, Arrays.hashCode(scales), name, TILESIZE, TILE_ORIGIN, pageSize, code, tileBounds, bounds, params);
+        return Objects.hash(
+                transformation,
+                projection,
+                Arrays.hashCode(scales),
+                name,
+                TILESIZE,
+                TILE_ORIGIN,
+                pageSize,
+                code,
+                tileBounds,
+                bounds,
+                params);
     }
 }

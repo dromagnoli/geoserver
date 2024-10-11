@@ -144,9 +144,6 @@ public class Bounds {
 
     @Override
     public String toString() {
-        return "Bounds{" +
-                "min=" + min +
-                ", max=" + max +
-                '}';
+        return "Bounds{" + "min=" + min + ", max=" + max + '}';
     }
 }
