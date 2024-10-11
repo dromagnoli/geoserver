@@ -118,8 +118,8 @@ public class TiledCRSFactory extends AuthorityFactoryAdapter implements CRSAutho
      */
     private String getIdentifier(String code) {
         String identifier = trimAuthority(code).toUpperCase();
-        if (identifier.startsWith(AUTHORITY)) {
-            identifier = identifier.substring(AUTHORITY.length());
+        if (identifier.startsWith(AUTHORITY.toUpperCase())) {
+            identifier = identifier.substring(AUTHORITY.length() + 1);
         }
         return identifier;
     }

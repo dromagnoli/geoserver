@@ -4,9 +4,17 @@
  */
 package org.geoserver.mapml.tcrs;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+
+import org.geoserver.catalog.MetadataMap;
+import org.geoserver.config.GeoServer;
+import org.geoserver.mapml.gwc.gridset.MapMLGridsets;
+import org.geoserver.platform.GeoServerExtensions;
 import org.geotools.api.geometry.MismatchedDimensionException;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.api.referencing.operation.TransformException;
@@ -79,6 +87,12 @@ public class TiledCRSConstants {
     public static final String TCRS_METADATA_KEY = "MapMLTCRSList.Key";
 
     static {
+        reloadDefinitions();
+    }
+
+    public static void initFixedCRSDefinitions() {
+        tiledCRSBySrsName.clear();
+        tiledCRSDefinitions.clear();
         final String WGS84_NAME = "WGS84";
         final String WGS84_CODE = "urn:ogc:def:crs:OGC:1.3:CRS84";
         final CoordinateReferenceSystem CRS_WGS84;
@@ -293,6 +307,8 @@ public class TiledCRSConstants {
         tiledCRSDefinitions.put(APSTILE_SRSNAME, tiledCRSDefinitions.get(APSTILE_NAME));
         tiledCRSDefinitions.put(APSTILE_CODE, tiledCRSDefinitions.get(APSTILE_NAME));
         tiledCRSBySrsName.put(APSTILE_SRSNAME, tiledCRSDefinitions.get(APSTILE_NAME));
+
+
     }
     /**
      * @param identifier - an official CRS code / srsName OR TCRS NAME to look up
@@ -308,5 +324,24 @@ public class TiledCRSConstants {
     public static String lookupTCRSName(String code) {
         TiledCRSParams tcrs = lookupTCRS(code);
         return tcrs != null ? tcrs.getName() : null;
+    }
+
+    public static void reloadDefinitions() {
+        initFixedCRSDefinitions();
+        GeoServer config = GeoServerExtensions.bean(GeoServer.class);
+        MetadataMap metadata = config.getGlobal().getSettings().getMetadata();
+        if (metadata.containsKey(TCRS_METADATA_KEY)) {
+            Serializable gridSetList = metadata.get(TCRS_METADATA_KEY);
+            if (gridSetList instanceof List) {
+                Map<String, TiledCRSParams> additionalTiledCRS = MapMLGridsets.getTiledCRSs((List<String>) gridSetList);
+
+                for (String name : additionalTiledCRS.keySet()) {
+                    TiledCRSParams param = additionalTiledCRS.get(name);
+                    tiledCRSDefinitions.put(name.toUpperCase(), param);
+                    tiledCRSDefinitions.put(param.getCode(), param);
+                    tiledCRSBySrsName.put(param.getCode(), param);
+                }
+            }
+        }
     }
 }

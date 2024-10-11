@@ -50,7 +50,7 @@
       <xs:attribute name="href" type="xs:anyURI"/>
       <xs:attribute name="tref"/>
       <xs:attribute name="rel" use="required" type="linkRelType"/>
-      <xs:attribute name="projection" type="projType"/>
+      <xs:attribute name="projection" />
       <xs:attribute name="title"/>
       <xs:attribute name="type" type="mimeType"/>
       <xs:attribute name="hreflang"/>

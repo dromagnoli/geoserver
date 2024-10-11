@@ -66,6 +66,7 @@ import org.geoserver.gwc.GWC;
 import org.geoserver.gwc.layer.GeoServerTileLayer;
 import org.geoserver.mapml.tcrs.Bounds;
 import org.geoserver.mapml.tcrs.TiledCRS;
+import org.geoserver.mapml.tcrs.WrappingProjType;
 import org.geoserver.mapml.template.MapMLMapTemplate;
 import org.geoserver.mapml.xml.AxisType;
 import org.geoserver.mapml.xml.Base;
@@ -157,7 +158,7 @@ public class MapMLDocumentBuilder {
     private String imageFormat = DEFAULT_MIME_TYPE;
     private String baseUrl;
     private String baseUrlPattern;
-    private ProjType projType;
+    private WrappingProjType projType;
     private MetadataMap layerMeta;
     private int height;
     private int width;
@@ -2314,7 +2315,7 @@ public class MapMLDocumentBuilder {
         private boolean isTransparent;
         private String layerName;
         private String layerTitle;
-        private ProjType projType;
+        private WrappingProjType projType;
         private String styleName;
         private boolean tileLayerExists;
 
@@ -2361,7 +2362,7 @@ public class MapMLDocumentBuilder {
          * @param isTransparent boolean
          * @param layerName String
          * @param layerTitle String
-         * @param projType ProjType object
+         * @param projType WrappingProjType
          * @param styleName String
          * @param tileLayerExists boolean
          * @param useTiles boolean
@@ -2378,7 +2379,7 @@ public class MapMLDocumentBuilder {
                 boolean isTransparent,
                 String layerName,
                 String layerTitle,
-                ProjType projType,
+                WrappingProjType projType,
                 String styleName,
                 boolean tileLayerExists,
                 boolean useTiles,
@@ -2676,9 +2677,9 @@ public class MapMLDocumentBuilder {
         /**
          * get the projection type
          *
-         * @return ProjType
+         * @return WrappingProjType
          */
-        public ProjType getProjType() {
+        public WrappingProjType getProjType() {
             return projType;
         }
 
@@ -2687,7 +2688,7 @@ public class MapMLDocumentBuilder {
          *
          * @param projType ProjType
          */
-        public void setProjType(ProjType projType) {
+        public void setProjType(WrappingProjType projType) {
             this.projType = projType;
         }
 

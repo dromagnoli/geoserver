@@ -4,27 +4,25 @@ import org.apache.wicket.markup.html.form.Button;
 import org.apache.wicket.markup.html.form.Form;
 import org.apache.wicket.model.CompoundPropertyModel;
 import org.apache.wicket.model.IModel;
-import org.apache.wicket.model.Model;
-import org.geoserver.catalog.MetadataMap;
+import org.apache.wicket.model.PropertyModel;
 import org.geoserver.config.GeoServer;
 import org.geoserver.config.GeoServerInfo;
 import org.geoserver.config.SettingsInfo;
+import org.geoserver.mapml.tcrs.TiledCRSConstants;
 import org.geoserver.web.admin.ServerAdminPage;
 
 public class MapMLTCRSSettingsPage extends ServerAdminPage {
 
-    private final IModel<GeoServer> geoserverModel;
-    Model<SettingsInfo> settingsModel;
+    private final IModel<GeoServerInfo> globalInfoModel;
 
     public MapMLTCRSSettingsPage() {
 
-        geoserverModel = getGeoServerModel();
-
-        Form<GeoServer> form = new Form<>("form", new CompoundPropertyModel<>(geoserverModel));
+        globalInfoModel = getGlobalInfoModel();
+        Form<GeoServerInfo> form = new Form<>("form", new CompoundPropertyModel<>(globalInfoModel));
         add(form);
 
-        SettingsInfo settings = getGeoServerApplication().getGeoServer().getSettings();
-        settingsModel = new Model<>(settings);
+        PropertyModel<SettingsInfo> settingsModel = new PropertyModel<>(globalInfoModel, "settings");
+
         MapMLTCRSSettingsPanel panel = new MapMLTCRSSettingsPanel("mapMLTCRS", settingsModel);
         form.add(panel);
 
@@ -51,9 +49,8 @@ public class MapMLTCRSSettingsPage extends ServerAdminPage {
 
     private void save(boolean doReturn) {
         GeoServer gs = getGeoServer();
-        GeoServerInfo settingsInfo = geoserverModel.getObject().getGlobal();
-        gs.save(settingsInfo);
-        //gs.save(settingsModel.getObject());
+        gs.save(globalInfoModel.getObject());
+        TiledCRSConstants.reloadDefinitions();
         if (doReturn) doReturn();
     }
 }
