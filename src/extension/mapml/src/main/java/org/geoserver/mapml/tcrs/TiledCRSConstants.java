@@ -23,10 +23,26 @@ import org.geotools.referencing.CRS;
 /** @author prushforth */
 public class TiledCRSConstants {
 
-    /** */
+    private static final HashMap<String, TiledCRSParams> BUILT_IN_TILED_CRS_DEFINITIONS = new HashMap<>();
+
+    private static final HashMap<String, TiledCRSParams> BUILT_IN_TILED_CRS_BY_SRS_NAME = new HashMap<>();
+
     public static final HashMap<String, TiledCRSParams> tiledCRSDefinitions = new HashMap<>();
 
     public static final HashMap<String, TiledCRSParams> tiledCRSBySrsName = new HashMap<>();
+
+    public static final HashMap<String, TiledCRS> BUILT_IN_TILED_CRS = new HashMap<>();
+
+    public static final HashMap<String, TiledCRS> TILED_CRS = new HashMap<>();
+
+   /* public static final HashMap<String, TiledCRS> PREVIEW_TCRS_MAP = new HashMap<>();
+
+    static {
+
+        PREVIEW_TCRS_MAP.put("CBMTILE", new TiledCRS("CBMTILE"));
+        PREVIEW_TCRS_MAP.put("APSTILE", new TiledCRS("APSTILE"));
+
+    }*/
 
     static class CRSMapper {
 
@@ -87,12 +103,11 @@ public class TiledCRSConstants {
     public static final String TCRS_METADATA_KEY = "MapMLTCRSList.Key";
 
     static {
+        createBuiltInDefinitions();
         reloadDefinitions();
     }
 
-    public static void initFixedCRSDefinitions() {
-        tiledCRSBySrsName.clear();
-        tiledCRSDefinitions.clear();
+    private static void createBuiltInDefinitions() {
         final String WGS84_NAME = "WGS84";
         final String WGS84_CODE = "urn:ogc:def:crs:OGC:1.3:CRS84";
         final CoordinateReferenceSystem CRS_WGS84;
@@ -131,18 +146,18 @@ public class TiledCRSConstants {
             1 / 0.0000003352761269D
         };
         final Point WGS84_TILE_ORIGIN = new Point(-180.0D, 90.0D);
-        tiledCRSDefinitions.put(
+        TiledCRSParams wgs84TiledCrsParams = new TiledCRSParams(
                 WGS84_NAME,
-                new TiledCRSParams(
-                        WGS84_NAME,
-                        WGS84_CODE,
-                        WGS84_BOUNDS,
-                        WGS84_TILE_SIZE,
-                        WGS84_TILE_ORIGIN,
-                        WGS84_SCALES));
-        tiledCRSDefinitions.put(WGS84_SRSNAME, tiledCRSDefinitions.get(WGS84_NAME));
-        tiledCRSDefinitions.put(WGS84_CODE, tiledCRSDefinitions.get(WGS84_NAME));
-        tiledCRSBySrsName.put(WGS84_SRSNAME, tiledCRSDefinitions.get(WGS84_NAME));
+                WGS84_CODE,
+                WGS84_BOUNDS,
+                WGS84_TILE_SIZE,
+                WGS84_TILE_ORIGIN,
+                WGS84_SCALES);
+        BUILT_IN_TILED_CRS_DEFINITIONS.put(WGS84_NAME, wgs84TiledCrsParams);
+        BUILT_IN_TILED_CRS_DEFINITIONS.put(WGS84_SRSNAME, wgs84TiledCrsParams);
+        BUILT_IN_TILED_CRS_DEFINITIONS.put(WGS84_CODE, wgs84TiledCrsParams);
+        BUILT_IN_TILED_CRS_BY_SRS_NAME.put(WGS84_SRSNAME, wgs84TiledCrsParams);
+        BUILT_IN_TILED_CRS.put(WGS84_NAME, new TiledCRS(WGS84_NAME, wgs84TiledCrsParams));
 
         final String OSMTILE_NAME = "OSMTILE";
         final String OSMTILE_CODE = "urn:x-ogc:def:crs:EPSG:3857";
@@ -187,18 +202,18 @@ public class TiledCRSConstants {
             1 / 0.59716428337097D
         };
         final Point OSMTILE_TILE_ORIGIN = new Point(-20037508.342787D, 20037508.342787D);
-        tiledCRSDefinitions.put(
+        TiledCRSParams osmTiledCrsParams = new TiledCRSParams(
                 OSMTILE_NAME,
-                new TiledCRSParams(
-                        OSMTILE_NAME,
-                        OSMTILE_CODE,
-                        OSMTILE_BOUNDS,
-                        OSMTILE_TILE_SIZE,
-                        OSMTILE_TILE_ORIGIN,
-                        OSMTILE_SCALES));
-        tiledCRSDefinitions.put(OSMTILE_SRSNAME, tiledCRSDefinitions.get(OSMTILE_NAME));
-        tiledCRSDefinitions.put(OSMTILE_CODE, tiledCRSDefinitions.get(OSMTILE_NAME));
-        tiledCRSBySrsName.put(OSMTILE_SRSNAME, tiledCRSDefinitions.get(OSMTILE_NAME));
+                OSMTILE_CODE,
+                OSMTILE_BOUNDS,
+                OSMTILE_TILE_SIZE,
+                OSMTILE_TILE_ORIGIN,
+                OSMTILE_SCALES);
+        BUILT_IN_TILED_CRS_DEFINITIONS.put(OSMTILE_NAME,osmTiledCrsParams);
+        BUILT_IN_TILED_CRS_DEFINITIONS.put(OSMTILE_SRSNAME, osmTiledCrsParams);
+        BUILT_IN_TILED_CRS_DEFINITIONS.put(OSMTILE_CODE, osmTiledCrsParams);
+        BUILT_IN_TILED_CRS_BY_SRS_NAME.put(OSMTILE_SRSNAME, osmTiledCrsParams);
+        BUILT_IN_TILED_CRS.put(OSMTILE_NAME, new TiledCRS(OSMTILE_NAME, osmTiledCrsParams));
 
         final String CBMTILE_NAME = "CBMTILE";
         final String CBMTILE_CODE = "urn:x-ogc:def:crs:EPSG:3978";
@@ -243,18 +258,18 @@ public class TiledCRSConstants {
             1 / 0.066145965625264591D
         };
         final Point CBMTILE_TILE_ORIGIN = new Point(-34655800D, 39310000D);
-        tiledCRSDefinitions.put(
+        TiledCRSParams cbmTiledCrsParams = new TiledCRSParams(
                 CBMTILE_NAME,
-                new TiledCRSParams(
-                        CBMTILE_NAME,
-                        CBMTILE_CODE,
-                        CBMTILE_BOUNDS,
-                        CBMTILE_TILE_SIZE,
-                        CBMTILE_TILE_ORIGIN,
-                        CBMTILE_SCALES));
-        tiledCRSDefinitions.put(CBMTILE_SRSNAME, tiledCRSDefinitions.get(CBMTILE_NAME));
-        tiledCRSDefinitions.put(CBMTILE_CODE, tiledCRSDefinitions.get(CBMTILE_NAME));
-        tiledCRSBySrsName.put(CBMTILE_SRSNAME, tiledCRSDefinitions.get(CBMTILE_NAME));
+                CBMTILE_CODE,
+                CBMTILE_BOUNDS,
+                CBMTILE_TILE_SIZE,
+                CBMTILE_TILE_ORIGIN,
+                CBMTILE_SCALES);
+        BUILT_IN_TILED_CRS_DEFINITIONS.put(CBMTILE_NAME, cbmTiledCrsParams);
+        BUILT_IN_TILED_CRS_DEFINITIONS.put(CBMTILE_SRSNAME, cbmTiledCrsParams);
+        BUILT_IN_TILED_CRS_DEFINITIONS.put(CBMTILE_CODE, cbmTiledCrsParams);
+        BUILT_IN_TILED_CRS_BY_SRS_NAME.put(CBMTILE_SRSNAME, cbmTiledCrsParams);
+        BUILT_IN_TILED_CRS.put(CBMTILE_NAME, new TiledCRS(CBMTILE_NAME, cbmTiledCrsParams));
 
         /* Arctic Polar Stereographic, origin and scales defined by map service at http://maps8.arcgisonline.com/arcgis/rest/services/Arctic_Polar_Ocean_Base/MapServer */
         final String APSTILE_NAME = "APSTILE";
@@ -295,39 +310,56 @@ public class TiledCRSConstants {
             1 / 0.45549547826179D
         };
         final Point APSTILE_TILE_ORIGIN = new Point(-28567784.109255D, 32567784.109255D);
-        tiledCRSDefinitions.put(
+        TiledCRSParams apsTiledCrsParams = new TiledCRSParams(
                 APSTILE_NAME,
-                new TiledCRSParams(
-                        APSTILE_NAME,
-                        APSTILE_CODE,
-                        APSTILE_BOUNDS,
-                        APSTILE_TILE_SIZE,
-                        APSTILE_TILE_ORIGIN,
-                        APSTILE_SCALES));
-        tiledCRSDefinitions.put(APSTILE_SRSNAME, tiledCRSDefinitions.get(APSTILE_NAME));
-        tiledCRSDefinitions.put(APSTILE_CODE, tiledCRSDefinitions.get(APSTILE_NAME));
-        tiledCRSBySrsName.put(APSTILE_SRSNAME, tiledCRSDefinitions.get(APSTILE_NAME));
-
-
+                APSTILE_CODE,
+                APSTILE_BOUNDS,
+                APSTILE_TILE_SIZE,
+                APSTILE_TILE_ORIGIN,
+                APSTILE_SCALES);
+        BUILT_IN_TILED_CRS_DEFINITIONS.put(APSTILE_NAME, apsTiledCrsParams);
+        BUILT_IN_TILED_CRS_DEFINITIONS.put(APSTILE_SRSNAME, apsTiledCrsParams);
+        BUILT_IN_TILED_CRS_DEFINITIONS.put(APSTILE_CODE, apsTiledCrsParams);
+        BUILT_IN_TILED_CRS_BY_SRS_NAME.put(APSTILE_SRSNAME, apsTiledCrsParams);
+        BUILT_IN_TILED_CRS.put(APSTILE_NAME, new TiledCRS(APSTILE_NAME, apsTiledCrsParams));
     }
+
     /**
      * @param identifier - an official CRS code / srsName OR TCRS NAME to look up
      * @return the TCRS corresponding to the code, long or short, or null if not found
      */
-    public static TiledCRSParams lookupTCRS(String identifier) {
+    public static TiledCRSParams lookupTCRSParams(String identifier) {
         return TiledCRSConstants.tiledCRSDefinitions.get(identifier);
     }
+
+    /**
+     * @param identifier - an official CRS code / srsName OR TCRS NAME to look up
+     * @return the TCRS corresponding to the code, long or short, or null if not found
+     */
+    public static TiledCRS lookupTCRS(String identifier) {
+        return TiledCRSConstants.TILED_CRS.get(identifier);
+    }
+
     /**
      * @param code - an official CRS code / srsName OR a TCRS name (e.g. OSMTILE) to look up
      * @return the TCRS name corresponding to the code, long or short, or null if not found
      */
     public static String lookupTCRSName(String code) {
-        TiledCRSParams tcrs = lookupTCRS(code);
+        TiledCRSParams tcrs = lookupTCRSParams(code);
         return tcrs != null ? tcrs.getName() : null;
     }
 
+    private static void reloadBuiltInDefinitions() {
+        tiledCRSBySrsName.clear();
+        tiledCRSDefinitions.clear();
+        TILED_CRS.clear();
+        tiledCRSBySrsName.putAll(BUILT_IN_TILED_CRS_BY_SRS_NAME);
+        tiledCRSDefinitions.putAll(BUILT_IN_TILED_CRS_DEFINITIONS);
+        TILED_CRS.putAll(BUILT_IN_TILED_CRS);
+    }
+
     public static void reloadDefinitions() {
-        initFixedCRSDefinitions();
+        reloadBuiltInDefinitions();
         GeoServer config = GeoServerExtensions.bean(GeoServer.class);
         MetadataMap metadata = config.getGlobal().getSettings().getMetadata();
         if (metadata.containsKey(TCRS_METADATA_KEY)) {
@@ -337,9 +369,19 @@ public class TiledCRSConstants {
 
                 for (String name : additionalTiledCRS.keySet()) {
                     TiledCRSParams param = additionalTiledCRS.get(name);
+                    String code = param.getCode();
                     tiledCRSDefinitions.put(name.toUpperCase(), param);
-                    tiledCRSDefinitions.put(param.getCode(), param);
-                    tiledCRSBySrsName.put(param.getCode(), param);
+                    tiledCRSDefinitions.put(code, param);
+                    tiledCRSBySrsName.put(code, param);
+                    TiledCRS tiledCRS = new TiledCRS(name.toUpperCase(), param);
+                    TILED_CRS.put(code, tiledCRS);
+                    TILED_CRS.put(name, tiledCRS);
+                    TILED_CRS.put(("MAPML:" + name).toUpperCase(), tiledCRS);
+                    if (code.toUpperCase().startsWith("EPSG:")) {
+                        String urnEPSG = code.replace("EPSG:", "URN:OGC:DEF:CRS:EPSG::");
+                        tiledCRSDefinitions.put(urnEPSG, param);
+                        TILED_CRS.put(urnEPSG, tiledCRS);
+                    }
                 }
             }
         }

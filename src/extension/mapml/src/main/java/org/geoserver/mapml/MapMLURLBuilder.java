@@ -573,7 +573,7 @@ public class MapMLURLBuilder {
 
     private String getSupportedWMTSGridSet(
             WMTSLayer layer, String srs, WMTSCapabilities capabilities) throws FactoryException {
-        TiledCRSParams inputCrs = TiledCRSConstants.lookupTCRS(srs);
+        TiledCRSParams inputCrs = TiledCRSConstants.lookupTCRSParams(srs);
         if (inputCrs == null) {
             return null;
         }

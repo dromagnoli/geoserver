@@ -409,7 +409,7 @@ public class MapMLFeatureUtil {
             if (requestCRS != null) {
                 responseCRS = requestCRS;
                 responseCRSCode = CRS.toSRS(requestCRS);
-                tcrs = TiledCRSConstants.lookupTCRS(responseCRSCode);
+                tcrs = TiledCRSConstants.lookupTCRSParams(responseCRSCode);
                 if (tcrs != null) {
                     projection.setContent(tcrs.getName());
                     crs = (responseCRS instanceof GeodeticCRS) ? "gcrs" : "pcrs";
@@ -453,7 +453,7 @@ public class MapMLFeatureUtil {
                 "top-left-easting=%1$.2f,top-left-northing=%2$.2f,bottom-right-easting=%3$.2f,bottom-right-northing=%4$.2f";
         double minLong, minLat, maxLong, maxLat;
         double minEasting, minNorthing, maxEasting, maxNorthing;
-        TiledCRSParams tcrs = TiledCRSConstants.lookupTCRS(responseCRSCode);
+        TiledCRSParams tcrs = TiledCRSConstants.lookupTCRSParams(responseCRSCode);
         try {
             if (responseCRS instanceof GeodeticCRS) {
                 re = r.getLatLonBoundingBox();
@@ -506,30 +506,34 @@ public class MapMLFeatureUtil {
             String base, String path, Map<String, Object> query) {
         ArrayList<Link> links = new ArrayList<>();
         Set<String> projections = TiledCRSConstants.tiledCRSBySrsName.keySet();
-        projections.forEach(
-                (String p) -> {
-                    Link l = new Link();
-                    TiledCRSParams projection = TiledCRSConstants.lookupTCRS(p);
-                    try {
-                        l.setProjection(ProjType.fromValue(projection.getName()));
-                    } catch (FactoryException e) {
-                        throw new ServiceException("Invalid TCRS name");
-                    }
-                    l.setRel(RelType.ALTERNATE);
-                    query.put("srsName", "MapML:" + projection.getName());
-                    HashMap<String, String> kvp = new HashMap<>(query.size());
-                    query.keySet()
-                            .forEach(
-                                    key -> {
-                                        kvp.put(key, query.getOrDefault(key, "").toString());
-                                    });
-                    l.setHref(
-                            ResponseUtils.urlDecode(
-                                    ResponseUtils.buildURL(
-                                            base, path, kvp, URLMangler.URLType.SERVICE)));
-                    links.add(l);
-                });
+        for (String proj: projections)  {
+            Link l = new Link();
+            TiledCRSParams projection = TiledCRSConstants.lookupTCRSParams(proj);
+            boolean addMe = false;
+            try {
+                l.setProjection(ProjType.fromValue(projection.getName()));
+                addMe = true;
+            } catch (FactoryException e) {
+                //TODO: FIXXME
 
+                //throw new ServiceException("Invalid TCRS name");
+            }
+            if(!addMe)
+                continue;
+            l.setRel(RelType.ALTERNATE);
+            query.put("srsName", "MapML:" + projection.getName());
+            HashMap<String, String> kvp = new HashMap<>(query.size());
+            query.keySet()
+                    .forEach(
+                            key -> {
+                                kvp.put(key, query.getOrDefault(key, "").toString());
+                            });
+            l.setHref(
+                    ResponseUtils.urlDecode(
+                            ResponseUtils.buildURL(
+                                    base, path, kvp, URLMangler.URLType.SERVICE)));
+            links.add(l);
+        }
         return links;
     }
 

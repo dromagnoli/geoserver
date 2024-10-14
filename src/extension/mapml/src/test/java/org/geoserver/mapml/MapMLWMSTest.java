@@ -8,6 +8,7 @@ import static org.custommonkey.xmlunit.XMLAssert.assertXpathEvaluatesTo;
 import static org.custommonkey.xmlunit.XMLAssert.assertXpathExists;
 import static org.geoserver.mapml.MapMLConstants.MAPML_USE_FEATURES;
 import static org.geoserver.mapml.MapMLConstants.MAPML_USE_TILES;
+import static org.geoserver.mapml.tcrs.TiledCRSConstants.BUILT_IN_TILED_CRS;
 import static org.geoserver.mapml.template.MapMLMapTemplate.MAPML_PREVIEW_HEAD_FTL;
 import static org.geoserver.mapml.template.MapMLMapTemplate.MAPML_XML_HEAD_FTL;
 import static org.geowebcache.grid.GridSubsetFactory.createGridSubSet;
@@ -191,8 +192,8 @@ public class MapMLWMSTest extends MapMLTestSupport {
         LayerGroupInfo lgi = catalog.getLayerGroupByName(NATURE_GROUP);
         lgi.setInternationalTitle(title);
         CoordinateReferenceSystem webMerc =
-                MapMLHTMLOutput.PREVIEW_TCRS_MAP.get("OSMTILE").getCRS();
-        Bounds webMercBounds = MapMLHTMLOutput.PREVIEW_TCRS_MAP.get("OSMTILE").getBounds();
+                BUILT_IN_TILED_CRS.get("OSMTILE").getCRS();
+        Bounds webMercBounds = BUILT_IN_TILED_CRS.get("OSMTILE").getBounds();
         double x1 = webMercBounds.getMin().x;
         double x2 = webMercBounds.getMax().x;
         double y1 = webMercBounds.getMin().y;
@@ -264,7 +265,7 @@ public class MapMLWMSTest extends MapMLTestSupport {
 
         lgi = cat.getLayerGroupByName(NATURE_GROUP);
         assertSame(
-                MapMLHTMLOutput.PREVIEW_TCRS_MAP.get("OSMTILE").getCRS(),
+                BUILT_IN_TILED_CRS.get("OSMTILE").getCRS(),
                 lgi.getBounds().getCoordinateReferenceSystem());
         m = testLayersAndGroupsMapML(lgi, null);
         title = m.getHead().getTitle();
@@ -276,7 +277,7 @@ public class MapMLWMSTest extends MapMLTestSupport {
         lgi.getMetadata().put("mapml.useTiles", true);
         cat.save(lgi);
         assertSame(
-                MapMLHTMLOutput.PREVIEW_TCRS_MAP.get("OSMTILE").getCRS(),
+                BUILT_IN_TILED_CRS.get("OSMTILE").getCRS(),
                 lgi.getBounds().getCoordinateReferenceSystem());
         m = testLayersAndGroupsMapML(lgi, Locale.CANADA_FRENCH);
         title = m.getHead().getTitle();
@@ -1913,8 +1914,8 @@ public class MapMLWMSTest extends MapMLTestSupport {
         String label = e.getLabel();
         assertNull(label);
 
-        ProjType projType = e.getUnits();
-        assertSame(ProjType.OSMTILE, projType);
+        String projType = e.getUnits();
+        assertSame(ProjType.OSMTILE.value(), projType);
 
         List<Object> lo = e.getInputOrDatalistOrLink();
         for (Object o : lo) {

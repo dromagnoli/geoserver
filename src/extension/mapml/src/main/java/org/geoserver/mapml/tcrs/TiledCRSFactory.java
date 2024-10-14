@@ -98,7 +98,7 @@ public class TiledCRSFactory extends AuthorityFactoryAdapter implements CRSAutho
     protected String toBackingFactoryCode(String code) throws FactoryException {
         String identifier = getIdentifier(code);
 
-        TiledCRSParams definition = TiledCRSConstants.lookupTCRS(identifier);
+        TiledCRSParams definition = TiledCRSConstants.lookupTCRSParams(identifier);
         if (definition == null) {
             throw new NoSuchAuthorityCodeException("No such CRS: " + code, AUTHORITY, code);
         }

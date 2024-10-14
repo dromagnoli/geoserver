@@ -390,7 +390,6 @@ public class MapMLGridsets extends SimpleGridSetConfiguration {
         String crsName = gridSet.getName();
         String projection = gridSet.getSrs().toString(); // CRS as a string (e.g., "EPSG:3857")
         int tileWidth = gridSet.getTileWidth();
-        int tileHeight = gridSet.getTileHeight();
         BoundingBox bbox = gridSet.getBounds();
         Bounds bounds =
                 new Bounds(
