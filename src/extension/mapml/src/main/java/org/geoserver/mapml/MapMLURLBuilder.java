@@ -592,10 +592,10 @@ public class MapMLURLBuilder {
             }
 
             List<TileMatrix> tileMatrices = tileMatrixSet.getMatrices();
-            double[] tiledCRSScales = inputCrs.getScales();
+            double[] tiledCRSResolutions = inputCrs.getResolutions();
 
-            // check same number of levels
-            if (tileMatrices.size() != tiledCRSScales.length) {
+            // check compatible levels
+            if (tileMatrices.size() < tiledCRSResolutions.length) {
                 continue;
             }
             TileMatrix level0 = tileMatrices.get(0);
@@ -618,8 +618,8 @@ public class MapMLURLBuilder {
 
             // check same scales
             boolean sameScale = true;
-            for (int i = 0; i < tileMatrices.size(); i++) {
-                if (Math.abs(tileMatrices.get(i).getDenominator() - tiledCRSScales[i])
+            for (int i = 0; i < tiledCRSResolutions.length; i++) {
+                if (Math.abs(tileMatrices.get(i).getResolution() - tiledCRSResolutions[i])
                         > SCALE_DELTA) {
                     sameScale = false;
                     break;
@@ -628,7 +628,8 @@ public class MapMLURLBuilder {
             if (!sameScale) {
                 continue;
             }
-            MapMLGridsets.GridSetLevelType levelType = getLevelType(MapMLGridsets.getLevelNamesFromTileMatrixList(tileMatrices));
+            MapMLGridsets.GridSetLevelType levelType =
+                    getLevelType(MapMLGridsets.getLevelNamesFromTileMatrixList(tileMatrices));
             if (levelType.isPrefixed()) {
                 tileMatrixSetName += (";" + levelType.getPrefix());
             }

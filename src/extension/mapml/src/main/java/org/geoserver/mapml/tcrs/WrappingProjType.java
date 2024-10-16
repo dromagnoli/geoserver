@@ -1,3 +1,7 @@
+/* (c) 2024 Open Source Geospatial Foundation - all rights reserved
+ * This code is licensed under the GPL 2.0 license, available at the root
+ * application directory.
+ */
 package org.geoserver.mapml.tcrs;
 
 import org.geoserver.mapml.xml.ProjType;
@@ -5,22 +9,29 @@ import org.geotools.api.referencing.FactoryException;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.referencing.CRS;
 
+/** Wrap the Projection. In case of a Built-in Projection, it will contain the ProjType enum. */
 public class WrappingProjType {
 
-    boolean isBuiltIn;
+    private boolean isBuiltIn;
 
-    ProjType projType;
+    private ProjType projType;
 
-    String projection;
+    private String projection;
+
+    public WrappingProjType(ProjType projType) {
+        isBuiltIn = true;
+        this.projType = projType;
+        projection = projType.value();
+    }
 
     public WrappingProjType(String proj) throws FactoryException {
-        for (ProjType v: ProjType.values()) {
-                if (v.name().equalsIgnoreCase(proj.toUpperCase())) {
-                        projType = v;
-                        isBuiltIn = true;
-                        break;
-                    }
+        for (ProjType v : ProjType.values()) {
+            if (v.name().equalsIgnoreCase(proj.toUpperCase())) {
+                projType = v;
+                isBuiltIn = true;
+                break;
             }
+        }
         int epsg = getEpsgCode(proj);
         for (ProjType c : ProjType.values()) {
             if (c.epsgCode == (epsg)) {
@@ -31,11 +42,13 @@ public class WrappingProjType {
         }
 
         if (!isBuiltIn) {
-                projection = proj;
+            projection = proj;
+            TiledCRS tiledCRS = getTiledCRS();
+            if (tiledCRS == null) {
+                throw new IllegalArgumentException(
+                        "The following projection is not supported: " + proj);
             }
-        if (false /*!isSupported*/) {
-                throw new IllegalArgumentException("Unsupported Proj");
-            }
+        }
     }
 
     private static int getEpsgCode(String codeWithPrefix) throws FactoryException {
@@ -51,7 +64,6 @@ public class WrappingProjType {
         return projection;
     }
 
-
     public String value() {
         return isBuiltIn ? projType.value() : projection;
     }
@@ -65,6 +77,9 @@ public class WrappingProjType {
     }
 
     public String getCRSCode() {
+        if (isBuiltIn) {
+            return projType.getCRSCode();
+        }
         TiledCRSParams tcrs = TiledCRSConstants.lookupTCRSParams(value());
         return tcrs.getCode();
     }

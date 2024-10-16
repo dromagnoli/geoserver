@@ -45,17 +45,29 @@ public class MapMLGridsets extends SimpleGridSetConfiguration {
 
         String prefix;
 
-        public boolean isNumeric() { return numeric; }
-        public boolean isPrefixed() { return prefixed; }
-        public String getPrefix() { return prefix; }
+        public boolean isNumeric() {
+            return numeric;
+        }
+
+        public boolean isPrefixed() {
+            return prefixed;
+        }
+
+        public String getPrefix() {
+            return prefix;
+        }
 
         @Override
         public String toString() {
-            return "GridSetLevelType{" +
-                    "numeric=" + numeric +
-                    ", prefixed=" + prefixed +
-                    ", prefix='" + prefix + '\'' +
-                    '}';
+            return "GridSetLevelType{"
+                    + "numeric="
+                    + numeric
+                    + ", prefixed="
+                    + prefixed
+                    + ", prefix='"
+                    + prefix
+                    + '\''
+                    + '}';
         }
     }
 
@@ -69,8 +81,6 @@ public class MapMLGridsets extends SimpleGridSetConfiguration {
     private final GridSet CBMTILE;
     private final GridSet APSTILE;
     @Autowired private static GWC gwc = GWC.get();
-
-
 
     /** */
     public MapMLGridsets() {
@@ -193,6 +203,8 @@ public class MapMLGridsets extends SimpleGridSetConfiguration {
                         getGridSets().stream().map(g -> g.getName()).collect(toSet()));
         try {
             gwc.saveConfig(gwc.getConfig());
+            // Trigger the TCRS loading
+            TiledCRSConstants.reloadDefinitions();
         } catch (IOException ioe) {
             log.log(Level.INFO, "Error occured saving MapMLGridsets config.", ioe);
         }
@@ -334,34 +346,12 @@ public class MapMLGridsets extends SimpleGridSetConfiguration {
         // Filter GridSets by common prefix using getPrefix method
 
         // We can consider the result being cached unless a GWC change occurred
-        List<String> filteredNames = gwc.getGridSetBroker().getGridSets().stream()
-            .filter(gridSet -> canBeSupportedAsTiledCRS(gridSet))
-            .map(GridSet::getName) // Map to the name of the GridSet
-            .collect(Collectors.toList());
+        List<String> filteredNames =
+                gwc.getGridSetBroker().getGridSets().stream()
+                        .filter(gridSet -> canBeSupportedAsTiledCRS(gridSet))
+                        .map(GridSet::getName) // Map to the name of the GridSet
+                        .collect(Collectors.toList());
 
-        // Split the filtered names into prioritized and non-prioritized sets
-/*        List<String> prioritizedList = new ArrayList<>();
-        List<String> remainingList = new ArrayList<>();
-
-        for (String name : filteredNames) {
-            if (MapMLGridsets.FIXED_NAMES.contains(name)) {
-                prioritizedList.add(name);
-            } else {
-                remainingList.add(name);
-            }
-        }
-
-        // Sort remaining names alphabetically
-        Collections.sort(remainingList);
-
-        // Sort prioritized names according to PRIORITIZED_NAMES order
-        prioritizedList.sort(Comparator.comparingInt(MapMLGridsets.FIXED_NAMES::indexOf));
-
-        // Combine prioritized names and remaining sorted names
-        prioritizedList.addAll(remainingList);
-
-        return prioritizedList;
-        */
         Collections.sort(filteredNames);
         return filteredNames;
     }
@@ -378,10 +368,14 @@ public class MapMLGridsets extends SimpleGridSetConfiguration {
     public static Map<String, TiledCRSParams> getTiledCRSs(List<String> gridSetNames) {
         GridSetBroker broker = gwc.getGridSetBroker();
         Map<String, TiledCRSParams> map = new HashMap<>();
-        for (String gridsetName: gridSetNames) {
+        for (String gridsetName : gridSetNames) {
             GridSet grid = broker.get(gridsetName);
-            TiledCRS tiledCRS = getMapMLTiledCRS(grid);
-            map.put(tiledCRS.getName(), tiledCRS.getParams());
+            if (grid != null) {
+                TiledCRS tiledCRS = getMapMLTiledCRS(grid);
+                map.put(tiledCRS.getName(), tiledCRS.getParams());
+            } else {
+                log.warning("Requested gridset doesn't exist. Skipping it: " + gridsetName);
+            }
         }
         return map;
     }
@@ -421,7 +415,7 @@ public class MapMLGridsets extends SimpleGridSetConfiguration {
         return levelNames;
     }
 
-    public static  List<String> getLevelNamesFromTileMatrixList(List<TileMatrix> tileMatrices) {
+    public static List<String> getLevelNamesFromTileMatrixList(List<TileMatrix> tileMatrices) {
         List<String> levelNames = new ArrayList<>();
 
         // Iterate over each TileMatrix and add its identifier to the list
@@ -481,6 +475,4 @@ public class MapMLGridsets extends SimpleGridSetConfiguration {
         levelType.prefixed = true;
         return levelType;
     }
-
-
 }

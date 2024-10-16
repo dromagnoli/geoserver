@@ -10,7 +10,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.geoserver.catalog.MetadataMap;
 import org.geoserver.config.GeoServer;
 import org.geoserver.mapml.gwc.gridset.MapMLGridsets;
@@ -23,9 +22,11 @@ import org.geotools.referencing.CRS;
 /** @author prushforth */
 public class TiledCRSConstants {
 
-    private static final HashMap<String, TiledCRSParams> BUILT_IN_TILED_CRS_DEFINITIONS = new HashMap<>();
+    private static final HashMap<String, TiledCRSParams> BUILT_IN_TILED_CRS_DEFINITIONS =
+            new HashMap<>();
 
-    private static final HashMap<String, TiledCRSParams> BUILT_IN_TILED_CRS_BY_SRS_NAME = new HashMap<>();
+    private static final HashMap<String, TiledCRSParams> BUILT_IN_TILED_CRS_BY_SRS_NAME =
+            new HashMap<>();
 
     public static final HashMap<String, TiledCRSParams> tiledCRSDefinitions = new HashMap<>();
 
@@ -33,16 +34,16 @@ public class TiledCRSConstants {
 
     public static final HashMap<String, TiledCRS> BUILT_IN_TILED_CRS = new HashMap<>();
 
+    /**
+     * This map contains TiledCRS definitions in any variation (EPSG:CODE, MAPML:NAME, NAME,
+     * URN:CODE) so that we can always retrieve the related TiledCRS no matter which
+     * name/representation/alias is used for the lookup
+     */
     public static final HashMap<String, TiledCRS> TILED_CRS = new HashMap<>();
 
-   /* public static final HashMap<String, TiledCRS> PREVIEW_TCRS_MAP = new HashMap<>();
+    private static final Set<CRSMapper> CRS_MAPPERS = new HashSet<>();
 
-    static {
-
-        PREVIEW_TCRS_MAP.put("CBMTILE", new TiledCRS("CBMTILE"));
-        PREVIEW_TCRS_MAP.put("APSTILE", new TiledCRS("APSTILE"));
-
-    }*/
+    private static final Set<CRSMapper> BUILT_IN_CRS_MAPPERS = new HashSet<>();
 
     static class CRSMapper {
 
@@ -56,7 +57,7 @@ public class TiledCRSConstants {
         }
 
         boolean isSupporting(String inputCRS) {
-            return inputCRSs.contains(inputCRS);
+            return inputCRSs.contains(inputCRS.toUpperCase());
         }
 
         String getOutputCRS() {
@@ -64,35 +65,11 @@ public class TiledCRSConstants {
         }
     }
 
-    private static final Set<CRSMapper> crsMappers;
-
-    static {
-        crsMappers = new HashSet<>();
-        crsMappers.add(
-                new CRSMapper(
-                        Set.of(
-                                "EPSG:4326",
-                                "urn:ogc:def:crs:EPSG::4326",
-                                "urn:ogc:def:crs:MapML::WGS84"),
-                        "EPSG:4326"));
-        crsMappers.add(
-                new CRSMapper(
-                        Set.of("EPSG:3857", "urn:ogc:def:crs:EPSG::3857", "MapML:OSMTILE"),
-                        "EPSG:3857"));
-        crsMappers.add(
-                new CRSMapper(
-                        Set.of("EPSG:5936", "urn:ogc:def:crs:EPSG::5936", "MapML:APSTILE"),
-                        "EPSG:5936"));
-        crsMappers.add(
-                new CRSMapper(
-                        Set.of("EPSG:3978", "urn:ogc:def:crs:EPSG::3978", "MapML:CBMTILE"),
-                        "EPSG:3978"));
-    }
-
-    public static String getSupportedOutputCRS(String proj) {
+    /** Look for an output CRS (EPSG:CODE) matching the input requested CRS. */
+    public static String getSupportedOutputCRS(String requestedCRS) {
         String outputCRS = null;
-        for (CRSMapper mapper : crsMappers) {
-            if (mapper.isSupporting(proj)) {
+        for (CRSMapper mapper : CRS_MAPPERS) {
+            if (mapper.isSupporting(requestedCRS)) {
                 outputCRS = mapper.getOutputCRS();
                 break;
             }
@@ -146,13 +123,14 @@ public class TiledCRSConstants {
             1 / 0.0000003352761269D
         };
         final Point WGS84_TILE_ORIGIN = new Point(-180.0D, 90.0D);
-        TiledCRSParams wgs84TiledCrsParams = new TiledCRSParams(
-                WGS84_NAME,
-                WGS84_CODE,
-                WGS84_BOUNDS,
-                WGS84_TILE_SIZE,
-                WGS84_TILE_ORIGIN,
-                WGS84_SCALES);
+        TiledCRSParams wgs84TiledCrsParams =
+                new TiledCRSParams(
+                        WGS84_NAME,
+                        WGS84_CODE,
+                        WGS84_BOUNDS,
+                        WGS84_TILE_SIZE,
+                        WGS84_TILE_ORIGIN,
+                        WGS84_SCALES);
         BUILT_IN_TILED_CRS_DEFINITIONS.put(WGS84_NAME, wgs84TiledCrsParams);
         BUILT_IN_TILED_CRS_DEFINITIONS.put(WGS84_SRSNAME, wgs84TiledCrsParams);
         BUILT_IN_TILED_CRS_DEFINITIONS.put(WGS84_CODE, wgs84TiledCrsParams);
@@ -202,14 +180,15 @@ public class TiledCRSConstants {
             1 / 0.59716428337097D
         };
         final Point OSMTILE_TILE_ORIGIN = new Point(-20037508.342787D, 20037508.342787D);
-        TiledCRSParams osmTiledCrsParams = new TiledCRSParams(
-                OSMTILE_NAME,
-                OSMTILE_CODE,
-                OSMTILE_BOUNDS,
-                OSMTILE_TILE_SIZE,
-                OSMTILE_TILE_ORIGIN,
-                OSMTILE_SCALES);
-        BUILT_IN_TILED_CRS_DEFINITIONS.put(OSMTILE_NAME,osmTiledCrsParams);
+        TiledCRSParams osmTiledCrsParams =
+                new TiledCRSParams(
+                        OSMTILE_NAME,
+                        OSMTILE_CODE,
+                        OSMTILE_BOUNDS,
+                        OSMTILE_TILE_SIZE,
+                        OSMTILE_TILE_ORIGIN,
+                        OSMTILE_SCALES);
+        BUILT_IN_TILED_CRS_DEFINITIONS.put(OSMTILE_NAME, osmTiledCrsParams);
         BUILT_IN_TILED_CRS_DEFINITIONS.put(OSMTILE_SRSNAME, osmTiledCrsParams);
         BUILT_IN_TILED_CRS_DEFINITIONS.put(OSMTILE_CODE, osmTiledCrsParams);
         BUILT_IN_TILED_CRS_BY_SRS_NAME.put(OSMTILE_SRSNAME, osmTiledCrsParams);
@@ -258,13 +237,14 @@ public class TiledCRSConstants {
             1 / 0.066145965625264591D
         };
         final Point CBMTILE_TILE_ORIGIN = new Point(-34655800D, 39310000D);
-        TiledCRSParams cbmTiledCrsParams = new TiledCRSParams(
-                CBMTILE_NAME,
-                CBMTILE_CODE,
-                CBMTILE_BOUNDS,
-                CBMTILE_TILE_SIZE,
-                CBMTILE_TILE_ORIGIN,
-                CBMTILE_SCALES);
+        TiledCRSParams cbmTiledCrsParams =
+                new TiledCRSParams(
+                        CBMTILE_NAME,
+                        CBMTILE_CODE,
+                        CBMTILE_BOUNDS,
+                        CBMTILE_TILE_SIZE,
+                        CBMTILE_TILE_ORIGIN,
+                        CBMTILE_SCALES);
         BUILT_IN_TILED_CRS_DEFINITIONS.put(CBMTILE_NAME, cbmTiledCrsParams);
         BUILT_IN_TILED_CRS_DEFINITIONS.put(CBMTILE_SRSNAME, cbmTiledCrsParams);
         BUILT_IN_TILED_CRS_DEFINITIONS.put(CBMTILE_CODE, cbmTiledCrsParams);
@@ -310,18 +290,39 @@ public class TiledCRSConstants {
             1 / 0.45549547826179D
         };
         final Point APSTILE_TILE_ORIGIN = new Point(-28567784.109255D, 32567784.109255D);
-        TiledCRSParams apsTiledCrsParams = new TiledCRSParams(
-                APSTILE_NAME,
-                APSTILE_CODE,
-                APSTILE_BOUNDS,
-                APSTILE_TILE_SIZE,
-                APSTILE_TILE_ORIGIN,
-                APSTILE_SCALES);
+        TiledCRSParams apsTiledCrsParams =
+                new TiledCRSParams(
+                        APSTILE_NAME,
+                        APSTILE_CODE,
+                        APSTILE_BOUNDS,
+                        APSTILE_TILE_SIZE,
+                        APSTILE_TILE_ORIGIN,
+                        APSTILE_SCALES);
         BUILT_IN_TILED_CRS_DEFINITIONS.put(APSTILE_NAME, apsTiledCrsParams);
         BUILT_IN_TILED_CRS_DEFINITIONS.put(APSTILE_SRSNAME, apsTiledCrsParams);
         BUILT_IN_TILED_CRS_DEFINITIONS.put(APSTILE_CODE, apsTiledCrsParams);
         BUILT_IN_TILED_CRS_BY_SRS_NAME.put(APSTILE_SRSNAME, apsTiledCrsParams);
         BUILT_IN_TILED_CRS.put(APSTILE_NAME, new TiledCRS(APSTILE_NAME, apsTiledCrsParams));
+
+        BUILT_IN_CRS_MAPPERS.add(
+                new CRSMapper(
+                        Set.of(
+                                "EPSG:4326",
+                                "URN:OGC:DEF:CRS:EPSG::4326",
+                                "URN:OGC:DEF:CRS:MapML::WGS84"),
+                        "EPSG:4326"));
+        BUILT_IN_CRS_MAPPERS.add(
+                new CRSMapper(
+                        Set.of("EPSG:3857", "URN:OGC:DEF:CRS:EPSG::3857", "MAPML:OSMTILE"),
+                        "EPSG:3857"));
+        BUILT_IN_CRS_MAPPERS.add(
+                new CRSMapper(
+                        Set.of("EPSG:5936", "URN:OGC:DEF:CRS:EPSG::5936", "MAPML:APSTILE"),
+                        "EPSG:5936"));
+        BUILT_IN_CRS_MAPPERS.add(
+                new CRSMapper(
+                        Set.of("EPSG:3978", "URN:OGC:DEF:CRS:EPSG::3978", "MAPML:CBMTILE"),
+                        "EPSG:3978"));
     }
 
     /**
@@ -353,11 +354,17 @@ public class TiledCRSConstants {
         tiledCRSBySrsName.clear();
         tiledCRSDefinitions.clear();
         TILED_CRS.clear();
+        CRS_MAPPERS.clear();
         tiledCRSBySrsName.putAll(BUILT_IN_TILED_CRS_BY_SRS_NAME);
         tiledCRSDefinitions.putAll(BUILT_IN_TILED_CRS_DEFINITIONS);
         TILED_CRS.putAll(BUILT_IN_TILED_CRS);
+        CRS_MAPPERS.addAll(BUILT_IN_CRS_MAPPERS);
     }
 
+    /**
+     * Reload the TileCRS definition by setting up BuiltIN TCRS and setting up the ones matching the
+     * gridsets defined in the dedicated Settings.
+     */
     public static void reloadDefinitions() {
         reloadBuiltInDefinitions();
         GeoServer config = GeoServerExtensions.bean(GeoServer.class);
@@ -365,7 +372,8 @@ public class TiledCRSConstants {
         if (metadata.containsKey(TCRS_METADATA_KEY)) {
             Serializable gridSetList = metadata.get(TCRS_METADATA_KEY);
             if (gridSetList instanceof List) {
-                Map<String, TiledCRSParams> additionalTiledCRS = MapMLGridsets.getTiledCRSs((List<String>) gridSetList);
+                Map<String, TiledCRSParams> additionalTiledCRS =
+                        MapMLGridsets.getTiledCRSs((List<String>) gridSetList);
 
                 for (String name : additionalTiledCRS.keySet()) {
                     TiledCRSParams param = additionalTiledCRS.get(name);
@@ -378,9 +386,12 @@ public class TiledCRSConstants {
                     TILED_CRS.put(name, tiledCRS);
                     TILED_CRS.put(("MAPML:" + name).toUpperCase(), tiledCRS);
                     if (code.toUpperCase().startsWith("EPSG:")) {
-                        String urnEPSG = code.replace("EPSG:", "URN:OGC:DEF:CRS:EPSG::");
-                        tiledCRSDefinitions.put(urnEPSG, param);
-                        TILED_CRS.put(urnEPSG, tiledCRS);
+                        String urnEPSGcode = code.replace("EPSG:", "URN:OGC:DEF:CRS:EPSG::");
+                        tiledCRSDefinitions.put(urnEPSGcode, param);
+                        TILED_CRS.put(urnEPSGcode, tiledCRS);
+                        CRSMapper mapper =
+                                new CRSMapper(Set.of(code, urnEPSGcode, "MAPML:" + name), code);
+                        CRS_MAPPERS.add(mapper);
                     }
                 }
             }

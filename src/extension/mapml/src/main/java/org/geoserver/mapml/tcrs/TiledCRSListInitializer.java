@@ -12,9 +12,7 @@ public class TiledCRSListInitializer implements GeoServerInitializer {
         GeoServerInfo global = geoServer.getGlobal();
         MetadataMap metadata = global.getSettings().getMetadata();
         if (!metadata.containsKey(TiledCRSConstants.TCRS_METADATA_KEY)) {
-
             ArrayList<String> initList = new ArrayList<>();
-            initList.add(TiledCRSConstants.tiledCRSDefinitions.get("WGS84").getName());
             metadata.put(TiledCRSConstants.TCRS_METADATA_KEY, initList);
             geoServer.save(global);
         }

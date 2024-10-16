@@ -21,7 +21,6 @@ import javax.servlet.http.HttpServletRequest;
 import org.geoserver.catalog.LayerInfo;
 import org.geoserver.config.GeoServer;
 import org.geoserver.mapml.tcrs.WrappingProjType;
-import org.geoserver.mapml.xml.ProjType;
 import org.geoserver.ows.Dispatcher;
 import org.geoserver.ows.Request;
 import org.geoserver.ows.URLMangler;
@@ -128,7 +127,6 @@ public class MapMLHTMLGetFeatureOutputFormat extends WFSGetFeatureOutputFormat {
             } else {
                 srs = "EPSG:4326";
             }
-            // TODO FIXME use TiledCRS
             return new WrappingProjType(srs.toUpperCase());
         } catch (IllegalArgumentException | FactoryException iae) {
             // figure out the parameter name (version dependent) and the actual original

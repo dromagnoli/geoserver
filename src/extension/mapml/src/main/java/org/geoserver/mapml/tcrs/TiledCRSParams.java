@@ -5,7 +5,6 @@
 package org.geoserver.mapml.tcrs;
 
 import java.util.Arrays;
-import java.util.Locale;
 import java.util.Objects;
 
 /** @author prushforth */
@@ -39,8 +38,8 @@ public class TiledCRSParams {
         // we store both of them for quick access (e.g. debug) without need
         // to recompute them
         this.resolutions = new double[scales.length];
-        for (int i=0; i<scales.length; i++) {
-            resolutions[i] = 1d/scales[i];
+        for (int i = 0; i < scales.length; i++) {
+            resolutions[i] = 1d / scales[i];
         }
     }
 
@@ -67,6 +66,10 @@ public class TiledCRSParams {
     /** @return */
     public double[] getScales() {
         return scales;
+    }
+
+    public double[] getResolutions() {
+        return resolutions;
     }
 
     /** @return */
@@ -99,34 +102,5 @@ public class TiledCRSParams {
     @Override
     public int hashCode() {
         return Objects.hash(name, code, bounds, TILE_SIZE, Arrays.hashCode(scales), origin);
-    }
-
-    public String buildDefinition(int indentChars) {
-        String indent = " ".repeat(indentChars);
-        String originString = String.format("[%.8f, %.8f]", origin.getX(), origin.getY());
-
-        // Convert resolutions array to string
-        StringBuilder resolutionsString = new StringBuilder("[");
-        for (int i = 0; i < resolutions.length; i++) {
-            resolutionsString.append(resolutions[i]);
-            if (i != resolutions.length - 1) {
-                resolutionsString.append(", ");
-            }
-        }
-        resolutionsString.append("]");
-
-        // Convert bounds to JSON-like array
-        String boundsString = String.format(Locale.ENGLISH, "[[%.8f, %.8f], [%.8f, %.8f]]",
-                bounds.getMin().getX(), bounds.getMin().getY(),
-                bounds.getMax().getX(), bounds.getMax().getY());
-
-        // Create the JSON-like structure with proper indentation
-        String result =
-                indent + "\"projection\": \"" + name + "\",\n" +
-                indent + "\"origin\": " + originString + ",\n" +
-                indent + "\"resolutions\": " + resolutionsString + ",\n" +
-                indent + "\"bounds\": " + boundsString + ",\n" +
-                indent + "\"tilesize\": " + TILE_SIZE;
-        return result;
     }
 }

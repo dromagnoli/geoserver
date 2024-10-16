@@ -59,17 +59,16 @@ public class MapMLTCRSSettingsPanel extends Panel {
         add(tcrsSelector);
     }
 
-        static class TCSRenderer extends ChoiceRenderer<String> {
+    static class TCSRenderer extends ChoiceRenderer<String> {
 
         @Override
         public String getIdValue(String object, int index) {
-                       return object;
+            return object;
         }
 
         @Override
         public Object getDisplayValue(String object) {
             return object;
         }
-
     }
 }

@@ -37,7 +37,6 @@ import org.geoserver.mapml.xml.HeadContent;
 import org.geoserver.mapml.xml.Link;
 import org.geoserver.mapml.xml.Mapml;
 import org.geoserver.mapml.xml.Meta;
-import org.geoserver.mapml.xml.ProjType;
 import org.geoserver.mapml.xml.RelType;
 import org.geoserver.ows.Request;
 import org.geoserver.ows.URLMangler;
@@ -45,7 +44,6 @@ import org.geoserver.ows.util.ResponseUtils;
 import org.geoserver.platform.ServiceException;
 import org.geoserver.wms.featureinfo.FeatureTemplate;
 import org.geotools.api.feature.simple.SimpleFeature;
-import org.geotools.api.referencing.FactoryException;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.api.referencing.crs.GeodeticCRS;
 import org.geotools.api.style.Style;
@@ -506,20 +504,14 @@ public class MapMLFeatureUtil {
             String base, String path, Map<String, Object> query) {
         ArrayList<Link> links = new ArrayList<>();
         Set<String> projections = TiledCRSConstants.tiledCRSBySrsName.keySet();
-        for (String proj: projections)  {
+        for (String proj : projections) {
             Link l = new Link();
             TiledCRSParams projection = TiledCRSConstants.lookupTCRSParams(proj);
             boolean addMe = false;
-            try {
-                l.setProjection(ProjType.fromValue(projection.getName()));
-                addMe = true;
-            } catch (FactoryException e) {
-                //TODO: FIXXME
+            l.setProjection(projection.getName());
+            addMe = true;
 
-                //throw new ServiceException("Invalid TCRS name");
-            }
-            if(!addMe)
-                continue;
+            if (!addMe) continue;
             l.setRel(RelType.ALTERNATE);
             query.put("srsName", "MapML:" + projection.getName());
             HashMap<String, String> kvp = new HashMap<>(query.size());
@@ -530,8 +522,7 @@ public class MapMLFeatureUtil {
                             });
             l.setHref(
                     ResponseUtils.urlDecode(
-                            ResponseUtils.buildURL(
-                                    base, path, kvp, URLMangler.URLType.SERVICE)));
+                            ResponseUtils.buildURL(base, path, kvp, URLMangler.URLType.SERVICE)));
             links.add(l);
         }
         return links;

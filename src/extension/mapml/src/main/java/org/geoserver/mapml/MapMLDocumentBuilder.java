@@ -424,7 +424,6 @@ public class MapMLDocumentBuilder {
      */
     private WrappingProjType parseProjType() {
         try {
-            //TODO FIXME
             return new WrappingProjType(proj.toUpperCase());
         } catch (IllegalArgumentException | FactoryException iae) {
             // figure out the parameter name (version dependent) and the actual original
@@ -490,7 +489,6 @@ public class MapMLDocumentBuilder {
      * @return ReferencedEnvelope object
      */
     private ReferencedEnvelope layersToBBBox(List<RawLayer> layers, WrappingProjType projType) {
-        //TODO FIXME USING GRIDSETS
         ReferencedEnvelope bbbox;
         bbbox = new ReferencedEnvelope(projType.getCRS());
         for (int i = 0; i < layers.size(); i++) {
@@ -503,11 +501,9 @@ public class MapMLDocumentBuilder {
                                         .getResource()
                                         .boundingBox();
                 if (i == 0) {
-                    bbbox =
-                            layerBbbox.transform(projType.getCRS(), true);
+                    bbbox = layerBbbox.transform(projType.getCRS(), true);
                 } else {
-                    bbbox.expandToInclude(
-                            layerBbbox.transform(projType.getCRS(), true));
+                    bbbox.expandToInclude(layerBbbox.transform(projType.getCRS(), true));
                 }
             } catch (Exception e) {
                 // get the default max/min of the pcrs from the TCRS
@@ -518,8 +514,7 @@ public class MapMLDocumentBuilder {
                 y1 = defaultBounds.getMin().y;
                 y2 = defaultBounds.getMax().y;
                 // use the bounds of the TCRS as the default bounds for this layer
-                bbbox =
-                        new ReferencedEnvelope(x1, x2, y1, y2, projType.getCRS());
+                bbbox = new ReferencedEnvelope(x1, x2, y1, y2, projType.getCRS());
             }
         }
 
@@ -841,16 +836,18 @@ public class MapMLDocumentBuilder {
         selfStyleLink.setHref(selfStyleURL);
         links.add(selfStyleLink);
         // alternate projection links
+        ProjType builtInProj = projType.unwrap();
         for (ProjType pt : ProjType.values()) {
             // skip the current proj
-            ProjType builtInProj = projType.unwrap();
+
             if (pt.equals(builtInProj)) continue;
             try {
                 Link projectionLink = new Link();
                 projectionLink.setRel(RelType.ALTERNATE);
-                projectionLink.setProjection(pt);
+                projectionLink.setProjection(pt.value());
                 // reproject the bounds
-                ReferencedEnvelope reprojectedBounds = reproject(projectedBox, projType);
+                ReferencedEnvelope reprojectedBounds =
+                        reproject(projectedBox, new WrappingProjType(pt));
                 // Copy the base params to create one for self style
                 Map<String, String> projParams = new HashMap<>(wmsParams);
                 projParams.put("crs", pt.getCRSCode());
@@ -1018,7 +1015,6 @@ public class MapMLDocumentBuilder {
         List<Extent> extents = new ArrayList<>();
         for (MapMLLayerMetadata mapMLLayerMetadata : mapMLLayerMetadataList) {
             Extent extent = new Extent();
-            //TODO FIXME
             TiledCRS tiledCRS = projType.getTiledCRS();
             extent.setUnits(tiledCRS.getName());
             extentList = extent.getInputOrDatalistOrLink();

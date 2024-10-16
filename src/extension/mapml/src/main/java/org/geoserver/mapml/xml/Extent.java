@@ -8,8 +8,6 @@
 
 package org.geoserver.mapml.xml;
 
-import org.geoserver.mapml.tcrs.WrappingProjType;
-
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAccessType;

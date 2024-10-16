@@ -21,7 +21,8 @@ public class MapMLTCRSSettingsPage extends ServerAdminPage {
         Form<GeoServerInfo> form = new Form<>("form", new CompoundPropertyModel<>(globalInfoModel));
         add(form);
 
-        PropertyModel<SettingsInfo> settingsModel = new PropertyModel<>(globalInfoModel, "settings");
+        PropertyModel<SettingsInfo> settingsModel =
+                new PropertyModel<>(globalInfoModel, "settings");
 
         MapMLTCRSSettingsPanel panel = new MapMLTCRSSettingsPanel("mapMLTCRS", settingsModel);
         form.add(panel);
