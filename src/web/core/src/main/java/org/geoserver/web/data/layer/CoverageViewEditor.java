@@ -5,30 +5,49 @@
  */
 package org.geoserver.web.data.layer;
 
+import static org.geoserver.catalog.JiffleFormulaParser.extractInputBandsFromExpression;
+import static org.geoserver.catalog.JiffleFormulaParser.extractVariableReferences;
+
 import it.geosolutions.jaiext.JAIExt;
+import java.awt.image.DataBuffer;
+import java.awt.image.SampleModel;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import javax.media.jai.ImageLayout;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.form.AjaxFormComponentUpdatingBehavior;
 import org.apache.wicket.ajax.markup.html.form.AjaxButton;
 import org.apache.wicket.markup.html.WebMarkupContainer;
+import org.apache.wicket.markup.html.basic.Label;
 import org.apache.wicket.markup.html.form.ChoiceRenderer;
 import org.apache.wicket.markup.html.form.DropDownChoice;
 import org.apache.wicket.markup.html.form.EnumChoiceRenderer;
 import org.apache.wicket.markup.html.form.FormComponentPanel;
 import org.apache.wicket.markup.html.form.ListMultipleChoice;
-import org.apache.wicket.markup.html.form.TextField;
+import org.apache.wicket.markup.html.form.TextArea;
 import org.apache.wicket.model.IModel;
+import org.apache.wicket.model.LoadableDetachableModel;
 import org.apache.wicket.model.Model;
-import org.apache.wicket.model.PropertyModel;
+import org.geoserver.catalog.Catalog;
+import org.geoserver.catalog.CoverageStoreInfo;
 import org.geoserver.catalog.CoverageView;
 import org.geoserver.catalog.CoverageView.CompositionType;
 import org.geoserver.catalog.CoverageView.CoverageBand;
 import org.geoserver.catalog.CoverageView.EnvelopeCompositionType;
 import org.geoserver.catalog.CoverageView.InputCoverageBand;
 import org.geoserver.catalog.CoverageView.SelectedResolution;
+import org.geoserver.catalog.JiffleFormulaParser;
+import org.geoserver.web.GeoServerApplication;
+import org.geoserver.web.wicket.JiffleExpressionValidator;
+import org.geotools.coverage.grid.io.GridCoverage2DReader;
 
 /**
  * A panel for editing a coverage view.
@@ -37,20 +56,31 @@ import org.geoserver.catalog.CoverageView.SelectedResolution;
  */
 public class CoverageViewEditor extends FormComponentPanel<List<String>> {
 
+    private static final Pattern TOKEN_PATTERN = Pattern.compile("[a-zA-Z_][a-zA-Z0-9_]*(\\[\\d+\\])?");
+    private Map<String, Integer> inputCoverageBands = new HashMap<>();
+    private final String storeId;
+    private static List<CompositionType> SUPPORTED_MODES = Arrays.stream(CompositionType.values())
+            .filter(v -> v != CompositionType.UNSUPPORTED)
+            .collect(Collectors.toList());
+
+    WebMarkupContainer bandChoiceContainer;
+    WebMarkupContainer jiffleEditorContainer;
+
+    Label inputBandSummary;
+    TextArea<String> jiffleFormulaArea;
+    IModel<String> jiffleFormulaModel = Model.of("");
     IModel<List<String>> coverages;
     IModel<List<CoverageBand>> outputBands;
     List<String> availableCoverages;
     List<CoverageBand> currentOutputBands;
     ListMultipleChoice<String> coveragesChoice;
-    CompositionType compositionType;
+
+    IModel<CompositionType> compositionType;
     IModel<EnvelopeCompositionType> envelopeCompositionType;
     IModel<SelectedResolution> selectedResolution;
     IModel<String> resolutionReferenceCoverage;
 
     ListMultipleChoice<CoverageBand> outputBandsChoice;
-
-    TextField<String> definition;
-    DropDownChoice<CompositionType> compositionChoice;
 
     /** Creates a new editor. */
     public CoverageViewEditor(
@@ -60,14 +90,17 @@ public class CoverageViewEditor extends FormComponentPanel<List<String>> {
             IModel<EnvelopeCompositionType> envelopeCompositionType,
             IModel<SelectedResolution> selectedResolution,
             IModel<String> resolutionReferenceCoverage,
-            List<String> availableCoverages) {
+            IModel<CompositionType> compositionType,
+            List<String> availableCoverages,
+            String storeId) {
         super(id, inputCoverages);
+        this.storeId = storeId;
         this.coverages = inputCoverages;
         this.outputBands = bands;
         this.envelopeCompositionType = envelopeCompositionType;
         this.selectedResolution = selectedResolution;
+        this.compositionType = compositionType;
         this.resolutionReferenceCoverage = resolutionReferenceCoverage;
-
         this.availableCoverages = availableCoverages;
 
         coveragesChoice = new ListMultipleChoice<>(
@@ -78,7 +111,6 @@ public class CoverageViewEditor extends FormComponentPanel<List<String>> {
                     }
                 });
         coveragesChoice.setOutputMarkupId(true);
-        add(coveragesChoice);
 
         new ArrayList<CoverageBand>();
         outputBandsChoice = new ListMultipleChoice<>(
@@ -89,37 +121,84 @@ public class CoverageViewEditor extends FormComponentPanel<List<String>> {
                     }
                 });
         outputBandsChoice.setOutputMarkupId(true);
-        add(outputBandsChoice);
-
         currentOutputBands = new ArrayList<>(outputBandsChoice.getChoices());
 
-        add(addBandButton());
-        definition = new TextField<>("definition", new Model<>());
-        definition.setOutputMarkupId(true);
+        DropDownChoice editorModeChoice = new DropDownChoice<>("editorMode", SUPPORTED_MODES);
+        editorModeChoice.setModel(compositionType);
+        editorModeChoice.setChoiceRenderer(new EnumChoiceRenderer<>(this));
 
-        // TODO: make this parametric on the CompositionType choice
-        definition.setEnabled(false);
-        // TODO Uncomment this row when it can be used
-        // add(definition);
-        compositionType = CompositionType.getDefault();
-        compositionChoice = new DropDownChoice<>(
-                "compositionType",
-                new PropertyModel<>(this, "compositionType"),
-                List.of(CompositionType.BAND_SELECT),
-                new CompositionTypeRenderer());
-
-        compositionChoice.setOutputMarkupId(true);
-        compositionChoice.add(new AjaxFormComponentUpdatingBehavior("change") {
-            private static final long serialVersionUID = 1L;
-
+        editorModeChoice.setOutputMarkupId(true);
+        editorModeChoice.add(new AjaxFormComponentUpdatingBehavior("change") {
             @Override
             protected void onUpdate(AjaxRequestTarget target) {
-                compositionType = compositionChoice.getModelObject();
-                // TODO Uncomment these rows when they can be used
-                // definition.setEnabled(compositionType != CompositionType.BAND_SELECT);
-                // target.add(definition);
+                CompositionType selectedMode = compositionType.getObject();
+                bandChoiceContainer.setVisible(selectedMode == CompositionType.BAND_SELECT);
+                jiffleEditorContainer.setVisible(selectedMode == CompositionType.JIFFLE);
+
+                if (selectedMode == CompositionType.JIFFLE) {
+                    inputBandSummary.modelChanged();
+                    target.add(inputBandSummary);
+                }
+
+                target.add(bandChoiceContainer);
+                target.add(jiffleEditorContainer);
             }
         });
+        add(editorModeChoice);
+
+        bandChoiceContainer = new WebMarkupContainer("bandChoiceContainer");
+        bandChoiceContainer.setOutputMarkupId(true);
+        bandChoiceContainer.setVisible(true);
+
+        bandChoiceContainer.add(coveragesChoice);
+        bandChoiceContainer.add(outputBandsChoice);
+        bandChoiceContainer.add(addBandButton());
+        bandChoiceContainer.add(addRemoveButton());
+        bandChoiceContainer.add(addRemoveAllButton());
+
+        add(bandChoiceContainer);
+
+        jiffleEditorContainer = new WebMarkupContainer("jiffleEditorContainer");
+        inputBandSummary = new Label("inputBandSummary", new LoadableDetachableModel<String>() {
+            @Override
+            protected String load() {
+                try {
+                    return generateBandSummary();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+        inputBandSummary.setOutputMarkupId(true);
+        jiffleEditorContainer.add(inputBandSummary);
+
+        jiffleFormulaArea = new TextArea<>("jiffleFormula", jiffleFormulaModel);
+        jiffleFormulaArea.setOutputMarkupId(true);
+
+        IModel<Map<String, Integer>> bandInfoModel = () -> inputCoverageBands;
+
+        jiffleFormulaArea.add(new JiffleExpressionValidator(bandInfoModel));
+        jiffleEditorContainer.add(jiffleFormulaArea);
+        jiffleEditorContainer.setOutputMarkupId(true);
+        jiffleEditorContainer.setVisible(false);
+
+        add(jiffleEditorContainer);
+        bandChoiceContainer.setOutputMarkupPlaceholderTag(true);
+        jiffleEditorContainer.setOutputMarkupPlaceholderTag(true);
+
+        CompositionType selected = compositionType.getObject();
+        boolean isJiffle = selected == CompositionType.JIFFLE;
+        bandChoiceContainer.setVisible(!isJiffle);
+        jiffleEditorContainer.setVisible(isJiffle);
+        if (isJiffle) {
+            List<String> jiffleExpressions = outputBands.getObject().stream()
+                    .filter(band -> band.getCompositionType() == CompositionType.JIFFLE)
+                    .map(b -> JiffleFormulaParser.extractScriptFromBand(b))
+                    .collect(Collectors.toList());
+            if (!jiffleExpressions.isEmpty()) {
+                jiffleFormulaModel.setObject(String.join("\n", jiffleExpressions));
+            }
+        }
 
         // heterogeneous coverage controls
         WebMarkupContainer heterogeneousControlsContainer = new WebMarkupContainer("heterogeneousControlsContainer");
@@ -146,13 +225,20 @@ public class CoverageViewEditor extends FormComponentPanel<List<String>> {
         add(addRemoveButton());
     }
 
+    public void validateAndSave() {
+        if (compositionType.getObject() == CompositionType.JIFFLE) {
+            saveJiffleOutputBandsFromFormula();
+            outputBandsChoice.setChoices(currentOutputBands);
+            outputBandsChoice.modelChanged();
+        }
+    }
+
     private AjaxButton addBandButton() {
         AjaxButton button = new AjaxButton("addBand") {
 
             @Override
             public void onSubmit(AjaxRequestTarget target) {
                 List<String> selection = (List<String>) coveragesChoice.getModelObject();
-                compositionType = compositionChoice.getModelObject();
                 List<CoverageBand> bandsList = new ArrayList<>();
                 int i = currentOutputBands.size();
                 for (String coverage : selection) {
@@ -167,7 +253,8 @@ public class CoverageViewEditor extends FormComponentPanel<List<String>> {
                             Collections.singletonList(new InputCoverageBand(coverageName, bandIndex)),
                             coverage,
                             i++,
-                            compositionType);
+                            CompositionType.BAND_SELECT,
+                            null);
                     bandsList.add(band);
                 }
                 currentOutputBands.addAll(bandsList);
@@ -225,16 +312,122 @@ public class CoverageViewEditor extends FormComponentPanel<List<String>> {
         return button;
     }
 
-    private class CompositionTypeRenderer extends ChoiceRenderer<CompositionType> {
+    private void saveJiffleOutputBandsFromFormula() {
+        String formulaText = jiffleFormulaModel.getObject();
+        if (formulaText == null || formulaText.isBlank()) return;
 
-        @Override
-        public Object getDisplayValue(CompositionType object) {
-            return object.displayValue();
+        String fixedScript = fixMissingSemicolons(formulaText);
+        jiffleFormulaModel.setObject(fixedScript); // update the model with fixed script
+
+        JiffleFormulaParser.JiffleOutputResult parsed = JiffleFormulaParser.extractOutputAssignments(fixedScript);
+        if (parsed.outputVar == null || parsed.expressions.isEmpty()) return;
+
+        boolean isMultiBand = parsed.expressions.size() > 1;
+        Set<String> inputNames = extractVariableReferences(fixedScript);
+        inputNames.remove(parsed.outputVar);
+
+        List<CoverageBand> newBands = new ArrayList<>();
+        for (Map.Entry<Integer, String> entry : parsed.expressions.entrySet()) {
+            int bandIndex = entry.getKey();
+            String outputBand = parsed.outputVar;
+            String expr = entry.getValue();
+            if (isMultiBand) {
+                outputBand += ("@" + bandIndex);
+            }
+            List<InputCoverageBand> inputBands = extractInputBandsFromExpression(expr);
+            CoverageBand band = new CoverageBand(inputBands, expr, bandIndex, CompositionType.JIFFLE);
+            band.setOutputName(outputBand);
+            newBands.add(band);
         }
 
-        @Override
-        public String getIdValue(CompositionType object, int index) {
-            return object.toValue();
+        // Replace output bands
+        currentOutputBands.clear();
+        currentOutputBands.addAll(newBands);
+        outputBands.setObject(newBands);
+    }
+
+    private String generateBandSummary() throws IOException {
+        StringBuilder sb = new StringBuilder();
+        Catalog catalog = GeoServerApplication.get().getCatalog();
+        List<String> bands = new ArrayList<>();
+        inputCoverageBands.clear();
+        inputCoverageBands = buildCoverageBands(catalog, storeId, bands, CompositionType.JIFFLE);
+        sb.append(String.join("\n", bands)).append("\n");
+        return sb.toString();
+    }
+
+    public static Map<String, Integer> buildCoverageBands(
+            Catalog catalog, String storeId, List<String> coverageBands, CompositionType compositionMode)
+            throws IOException {
+        CoverageStoreInfo store = catalog.getStore(storeId, CoverageStoreInfo.class);
+        GridCoverage2DReader reader =
+                (GridCoverage2DReader) catalog.getResourcePool().getGridCoverageReader(store, null);
+        String[] coverageNames = reader.getGridCoverageNames();
+        Map<String, Integer> inputCoverageBands = new HashMap<>();
+
+        for (String coverage : coverageNames) {
+            ImageLayout layout = reader.getImageLayout(coverage);
+            SampleModel sampleModel = layout.getSampleModel(null);
+            final int numBands = sampleModel.getNumBands();
+            if (CompositionType.JIFFLE.equals(compositionMode)) {
+                inputCoverageBands.put(coverage, numBands);
+            }
+
+            switch (compositionMode) {
+                case BAND_SELECT:
+                    if (numBands == 1) {
+                        // simple syntax for simple case
+                        coverageBands.add(coverage);
+                    } else {
+                        for (int i = 0; i < numBands; i++) {
+                            coverageBands.add(coverage + CoverageView.BAND_SEPARATOR + i);
+                        }
+                    }
+                    break;
+                case JIFFLE:
+                    String coverageBand = String.format(
+                            "%s (%d band, %s)", coverage, numBands, getDataTypeName(sampleModel.getDataType()));
+                    coverageBands.add(coverageBand);
+            }
         }
+        return inputCoverageBands;
+    }
+
+    private static String getDataTypeName(int dataType) {
+        switch (dataType) {
+            case DataBuffer.TYPE_BYTE:
+                return "Byte";
+            case DataBuffer.TYPE_SHORT:
+                return "Int16";
+            case DataBuffer.TYPE_USHORT:
+                return "UInt16";
+            case DataBuffer.TYPE_INT:
+                return "Int32";
+            case DataBuffer.TYPE_FLOAT:
+                return "Float32";
+            case DataBuffer.TYPE_DOUBLE:
+                return "Float64";
+            default:
+                return "Unknown";
+        }
+    }
+
+    private static String fixMissingSemicolons(String script) {
+        String[] lines = script.split("\\r?\\n");
+        StringBuilder fixed = new StringBuilder();
+
+        for (String line : lines) {
+            String trimmed = line.trim();
+            if (trimmed.isEmpty()) continue;
+
+            // If the line looks like an assignment and doesn't end in ";", add it
+            if ((trimmed.contains("=") && !trimmed.endsWith(";"))) {
+                fixed.append(trimmed).append(";").append("\n");
+            } else {
+                fixed.append(trimmed).append("\n");
+            }
+        }
+
+        return fixed.toString();
     }
 }

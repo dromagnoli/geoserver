@@ -62,16 +62,20 @@ public class CoverageView implements Serializable {
             public String displayValue() {
                 return BAND_SELECTION_STRING;
             }
-        } /*,
+        },
 
-          FORMULA {
-              @Override
-              public String displayValue() {
-                  return FORMULA_STRING;
-              }
-
-          }
-          */;
+        JIFFLE {
+            @Override
+            public String displayValue() {
+                return JIFFLE_STRING;
+            }
+        },
+        UNSUPPORTED {
+            @Override
+            public String displayValue() {
+                return UNSUPPORTED_STRING;
+            }
+        };
 
         public static CompositionType getDefault() {
             return BAND_SELECT;
@@ -84,7 +88,8 @@ public class CoverageView implements Serializable {
         }
 
         static final String BAND_SELECTION_STRING = "Band Selection";
-        /* final static String FORMULA_STRING = "Formula"; */
+        static final String JIFFLE_STRING = "Jiffle formula";
+        static final String UNSUPPORTED_STRING = "Unsupported";
     }
 
     /**
@@ -182,10 +187,20 @@ public class CoverageView implements Serializable {
                 String definition,
                 int index,
                 CompositionType compositionType) {
+            this(inputCoverageBands, definition, index, compositionType, null);
+        }
+
+        public CoverageBand(
+                List<InputCoverageBand> inputCoverageBands,
+                String definition,
+                int index,
+                CompositionType compositionType,
+                String outputBandName) {
             this.inputCoverageBands = inputCoverageBands;
             this.definition = definition;
             this.index = index;
             this.compositionType = compositionType;
+            this.outputName = outputBandName;
         }
 
         @Override
@@ -194,6 +209,7 @@ public class CoverageView implements Serializable {
             int result = 1;
             result = prime * result + ((compositionType == null) ? 0 : compositionType.hashCode());
             result = prime * result + ((definition == null) ? 0 : definition.hashCode());
+            result = prime * result + ((outputName == null) ? 0 : outputName.hashCode());
             return result;
         }
 
@@ -207,6 +223,9 @@ public class CoverageView implements Serializable {
             if (definition == null) {
                 if (other.definition != null) return false;
             } else if (!definition.equals(other.definition)) return false;
+            if (outputName == null) {
+                if (other.outputName != null) return false;
+            } else if (!outputName.equals(other.outputName)) return false;
             return true;
         }
 
@@ -243,6 +262,17 @@ public class CoverageView implements Serializable {
          * supported.
          */
         private CompositionType compositionType;
+
+        /** Optional outputBand Name, to be used with JIFFLE */
+        private String outputName;
+
+        public String getOutputName() {
+            return outputName;
+        }
+
+        public void setOutputName(String outputName) {
+            this.outputName = outputName;
+        }
 
         public String getDefinition() {
             return definition;
@@ -283,7 +313,7 @@ public class CoverageView implements Serializable {
     public CoverageView() {}
 
     public CoverageView(String name, List<CoverageBand> coverageBands) {
-        this(name, coverageBands, EnvelopeCompositionType.UNION, SelectedResolution.BEST);
+        this(name, coverageBands, EnvelopeCompositionType.UNION, SelectedResolution.BEST, CompositionType.BAND_SELECT);
     }
 
     public CoverageView(
@@ -291,10 +321,20 @@ public class CoverageView implements Serializable {
             List<CoverageBand> coverageBands,
             EnvelopeCompositionType envelopeCompositionType,
             SelectedResolution selectedResolution) {
+        this(name, coverageBands, envelopeCompositionType, selectedResolution, CompositionType.BAND_SELECT);
+    }
+
+    public CoverageView(
+            String name,
+            List<CoverageBand> coverageBands,
+            EnvelopeCompositionType envelopeCompositionType,
+            SelectedResolution selectedResolution,
+            CompositionType compositionType) {
         this.name = name;
         this.coverageBands = coverageBands;
         this.envelopeCompositionType = envelopeCompositionType;
         this.selectedResolution = selectedResolution;
+        this.compositionType = compositionType;
     }
 
     /** The list of {@link CoverageBand}s composing this {@link CoverageView} */
@@ -308,6 +348,9 @@ public class CoverageView implements Serializable {
 
     /** Requested resolution type (worst vs best vs imposed vs index) */
     private SelectedResolution selectedResolution;
+
+    /** The coverage view composition type */
+    private CompositionType compositionType;
 
     /** This will be != -1 when {@link SelectedResolution} is INDEX */
     private int selectedResolutionIndex = -1;
@@ -344,6 +387,14 @@ public class CoverageView implements Serializable {
 
     public void setSelectedResolutionIndex(int selectedResolutionIndex) {
         this.selectedResolutionIndex = selectedResolutionIndex;
+    }
+
+    public CompositionType getCompositionType() {
+        return compositionType;
+    }
+
+    public void setCompositionType(CompositionType compositionType) {
+        this.compositionType = compositionType;
     }
 
     public List<CoverageBand> getCoverageBands() {

@@ -5,7 +5,6 @@
  */
 package org.geoserver.web.data.layer;
 
-import java.awt.image.SampleModel;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -14,7 +13,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import javax.media.jai.ImageLayout;
 import org.apache.wicket.markup.html.form.Form;
 import org.apache.wicket.markup.html.form.SubmitLink;
 import org.apache.wicket.markup.html.form.TextField;
@@ -35,7 +33,6 @@ import org.geoserver.catalog.CoverageView.EnvelopeCompositionType;
 import org.geoserver.catalog.CoverageView.SelectedResolution;
 import org.geoserver.web.ComponentAuthorizer;
 import org.geoserver.web.GeoServerSecuredPage;
-import org.geotools.coverage.grid.io.GridCoverage2DReader;
 
 /**
  * Base page for {@link CoverageView} creation/editing
@@ -56,6 +53,8 @@ public abstract class CoverageViewAbstractPage extends GeoServerSecuredPage {
     String coverageInfoId;
 
     String definition;
+
+    CoverageView.CompositionType compositionType = CoverageView.CompositionType.BAND_SELECT;
 
     String name;
 
@@ -88,27 +87,9 @@ public abstract class CoverageViewAbstractPage extends GeoServerSecuredPage {
                 .getId();
         Catalog catalog = getCatalog();
         CoverageStoreInfo store = catalog.getStore(storeId, CoverageStoreInfo.class);
-
-        GridCoverage2DReader reader =
-                (GridCoverage2DReader) catalog.getResourcePool().getGridCoverageReader(store, null);
-        String[] coverageNames = reader.getGridCoverageNames();
         if (availableCoverages == null) {
             availableCoverages = new ArrayList<>();
         }
-        for (String coverage : coverageNames) {
-            ImageLayout layout = reader.getImageLayout(coverage);
-            SampleModel sampleModel = layout.getSampleModel(null);
-            final int numBands = sampleModel.getNumBands();
-            if (numBands == 1) {
-                // simple syntax for simple case
-                availableCoverages.add(coverage);
-            } else {
-                for (int i = 0; i < numBands; i++) {
-                    availableCoverages.add(coverage + CoverageView.BAND_SEPARATOR + i);
-                }
-            }
-        }
-        Collections.sort(availableCoverages);
         name = COVERAGE_VIEW_NAME;
         if (coverageName != null) {
             newCoverage = false;
@@ -128,6 +109,13 @@ public abstract class CoverageViewAbstractPage extends GeoServerSecuredPage {
                         "The specified coverage does not have a coverage view attached to it");
             }
             outputBands = new ArrayList<>(coverageView.getCoverageBands());
+
+            compositionType = Optional.ofNullable(coverageView.getCompositionType())
+                    .orElse(CoverageView.CompositionType.BAND_SELECT);
+            if (compositionType == null) {
+                // Fallback on legacy behavior where the compositionType is assigned to each band
+                compositionType = coverageView.getBand(0).getCompositionType();
+            }
             name = coverageView.getName();
             envelopeCompositionType = Optional.ofNullable(coverageView.getEnvelopeCompositionType())
                     .orElse(EnvelopeCompositionType.INTERSECTION);
@@ -139,8 +127,8 @@ public abstract class CoverageViewAbstractPage extends GeoServerSecuredPage {
             coverageViewInfo = null;
             envelopeCompositionType = EnvelopeCompositionType.INTERSECTION;
             selectedResolution = SelectedResolution.BEST;
+            compositionType = CoverageView.CompositionType.BAND_SELECT;
         }
-        selectedCoverages = new ArrayList<>(availableCoverages);
 
         // build the form and the text area
         Form<CoverageViewAbstractPage> form = new Form<>("form", new CompoundPropertyModel<>(this));
@@ -151,6 +139,10 @@ public abstract class CoverageViewAbstractPage extends GeoServerSecuredPage {
         nameField.add(new CoverageViewNameValidator());
         form.add(nameField);
 
+        CoverageViewEditor.buildCoverageBands(catalog, storeId, availableCoverages, compositionType);
+        Collections.sort(availableCoverages);
+        selectedCoverages = new ArrayList<>(availableCoverages);
+
         coverageEditor = new CoverageViewEditor(
                 "coverages",
                 new PropertyModel<>(this, "selectedCoverages"),
@@ -158,13 +150,16 @@ public abstract class CoverageViewAbstractPage extends GeoServerSecuredPage {
                 new PropertyModel<>(this, "envelopeCompositionType"),
                 new PropertyModel<>(this, "selectedResolution"),
                 new PropertyModel<>(this, "resolutionReferenceCoverage"),
-                availableCoverages);
+                new PropertyModel<>(this, "compositionType"),
+                availableCoverages,
+                storeId);
         form.add(coverageEditor);
 
         // save and cancel at the bottom of the page
         form.add(new SubmitLink("save") {
             @Override
             public void onSubmit() {
+                coverageEditor.validateAndSave();
                 onSave();
             }
         });
@@ -181,6 +176,7 @@ public abstract class CoverageViewAbstractPage extends GeoServerSecuredPage {
         CoverageView view = new CoverageView(name, coverageEditor.currentOutputBands);
         view.setEnvelopeCompositionType(envelopeCompositionType);
         view.setSelectedResolution(selectedResolution);
+        view.setCompositionType(compositionType);
         if (resolutionReferenceCoverage != null) {
             final int referenceCoverageIndex = getReferenceCoverageIndex();
             view.setSelectedResolutionIndex(referenceCoverageIndex);
