@@ -169,11 +169,12 @@ public class LegendDecoration extends AbstractDispatcherCallback implements MapD
         int heightOffset = 0;
 
         Iterator<LayerLegend> imageIterator = legends.iterator();
+        int i = 0;
         while (imageIterator.hasNext()) {
             LayerLegend legend = imageIterator.next();
 
-            int height = (int) paintArea.getHeight();
-            int width = (int) paintArea.getWidth();
+            int height = (int) legend.legend.getHeight();
+            int width = (int) legend.legend.getWidth();
             if (legend.title != null) {
                 height += legend.title.getHeight();
                 if (width < legend.title.getWidth()) {
@@ -199,7 +200,8 @@ public class LegendDecoration extends AbstractDispatcherCallback implements MapD
             if (legend.title != null) {
                 finalGraphics.drawImage(
                         legend.title,
-                        ((strokeWidth - legend.title.getWidth()) / 2), // center
+                        strokeWidth - width,
+                        // ((strokeWidth - legend.title.getWidth()) / 2), // center
                         (strokeHeight - height),
                         null);
                 titleHeightOffset += legend.title.getHeight();
@@ -208,7 +210,8 @@ public class LegendDecoration extends AbstractDispatcherCallback implements MapD
             // legend
             finalGraphics.drawImage(
                     legend.legend,
-                    (strokeWidth - width) / 2, // place on the left
+                    strokeWidth - width,
+                    // (strokeWidth - width) / 2, // place on the left
                     // (strokeWidth - legend.legend.getWidth()) / 2, // center
                     (strokeHeight - height) + titleHeightOffset,
                     null);
@@ -221,7 +224,8 @@ public class LegendDecoration extends AbstractDispatcherCallback implements MapD
             // draw output image
             g2d.drawImage(
                     finalLegend,
-                    mainClip.x + (int) Math.ceil((paintArea.getWidth() - strokeWidth) / 2),
+                    mainClip.x,
+                    // mainClip.x + (int) Math.ceil((paintArea.getWidth() - strokeWidth) / 2),
                     mainClip.y + heightOffset,
                     null);
 
