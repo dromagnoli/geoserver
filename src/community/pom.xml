@@ -171,6 +171,7 @@
         <module>vector-mosaic</module>
         <module>proxy-base-ext</module>
         <module>wps-longitudinal-profile</module>
+        <module>wps-download-netcdf</module>
         <module>monitor-kafka</module>
         <module>monitor-micrometer</module>
         <module>graticule</module>
@@ -551,6 +552,12 @@
       <id>geoparquet</id>
       <modules>
         <module>geoparquet</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>wps-download-netcdf</id>
+      <modules>
+        <module>wps-download-netcdf</module>
       </modules>
     </profile>
     <profile>
