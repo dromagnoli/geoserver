@@ -14,6 +14,7 @@ import it.geosolutions.jaiext.JAIExt;
 import it.geosolutions.jaiext.jiffleop.JiffleDescriptor;
 import it.geosolutions.jaiext.range.NoDataContainer;
 import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.utilities.ImageLayout2;
 import java.awt.RenderingHints;
 import java.awt.Transparency;
@@ -25,12 +26,14 @@ import java.awt.image.IndexColorModel;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -48,10 +51,13 @@ import javax.media.jai.ROI;
 import javax.media.jai.RasterFactory;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.operator.ConstantDescriptor;
+import javax.media.jai.operator.MosaicDescriptor;
+
 import org.apache.commons.lang3.ArrayUtils;
 import org.geoserver.catalog.CoverageView.CoverageBand;
 import org.geoserver.catalog.CoverageView.InputCoverageBand;
 import org.geoserver.catalog.CoverageViewHandler.CoveragesConsistencyChecker;
+import org.geoserver.data.util.CoverageUtils;
 import org.geotools.api.coverage.SampleDimensionType;
 import org.geotools.api.coverage.grid.Format;
 import org.geotools.api.coverage.grid.GridCoverage;
@@ -100,6 +106,7 @@ import org.geotools.parameter.ParameterGroup;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.geotools.util.NumberRange;
+import org.geotools.util.SoftValueHashMap;
 import org.geotools.util.factory.Hints;
 import org.geotools.util.logging.Logging;
 
@@ -109,6 +116,8 @@ import org.geotools.util.logging.Logging;
  * @author Daniele Romagnoli, GeoSolutions SAS
  */
 public class CoverageViewReader implements GridCoverage2DReader {
+
+    private static SoftValueHashMap<FillingLayoutKey, FillingLayout> noDataFillingCache = new SoftValueHashMap<>(100);
 
     private static final int HETEROGENEOUS_RASTER_GUTTER = 10;
 
@@ -263,8 +272,9 @@ public class CoverageViewReader implements GridCoverage2DReader {
         // This is a good spot to read coverages. Reading a coverage is done only once, it is
         // cached to be used for its other bands that possibly take part in the CoverageView
         // definition
-        ViewInputs inputAlphaNonNull =
-                getInputAlphaNonNullCoverages(parameters, selectedBandIndices, bands, checker, true, compositionType);
+        boolean fillMissingBands = coverageView.getFillMissingBands();
+        ViewInputs inputAlphaNonNull = getInputAlphaNonNullCoverages(
+                parameters, selectedBandIndices, bands, checker, true, compositionType, fillMissingBands);
         if (inputAlphaNonNull == null) return null;
 
         // all readers returned null?
@@ -506,12 +516,12 @@ public class CoverageViewReader implements GridCoverage2DReader {
             List<CoverageBand> bands,
             CoveragesConsistencyChecker checker,
             Boolean includeCoverages,
-            CoverageView.CompositionType compositionType)
+            CoverageView.CompositionType compositionType,
+            boolean fillMissingBands)
             throws IOException {
         HashMap<String, GridCoverage2D> inputCoverages = new HashMap<>();
+        HashMap<String, FillingLayout> noDataCoverages = new HashMap<>();
         HashMap<String, GridCoverage2DReader> inputReaders = new HashMap<>();
-        GridCoverage2D dynamicAlphaSource = null;
-        int nonNullCoverages = 0;
         // bands selection parameter inside on final bands so they should not be propagated
         // to the delegate reader
         final GeneralParameterValue[] filteredParameters;
@@ -551,23 +561,29 @@ public class CoverageViewReader implements GridCoverage2DReader {
                 }
             }
         }
+        int[] nonNullCoveragesRef = new int[] { 0 };
+        GridCoverage2D[] dynamicAlphaSourceRef = new GridCoverage2D[] { null };
+
         if (Boolean.TRUE.equals(includeCoverages)) {
             if (!multiThreadedLoading || EXECUTOR == null) {
                 for (String coverageName : inputReaders.keySet()) {
                     GridCoverage2DReader reader = inputReaders.get(coverageName);
                     GridCoverage2D coverage = reader.read(filteredParameters);
-                    if (coverage == null) {
-                        if (handler.isHomogeneousCoverages() || handler.getEnvelopeCompositionType() == INTERSECTION) {
-                            return null;
-                        }
-                    } else {
-                        nonNullCoverages++;
+                    if (!shouldProcessCoverage(
+                            coverageName,
+                            reader,
+                            coverage,
+                            inputCoverages,
+                            noDataCoverages,
+                            fillMissingBands,
+                            dynamicAlphaSourceRef,
+                            nonNullCoveragesRef)) {
+                        return null;
                     }
-                    if (dynamicAlphaSource == null && hasDynamicAlpha(coverage, reader)) {
-                        dynamicAlphaSource = coverage;
-                    }
-                    inputCoverages.put(coverageName, coverage);
                 }
+                if (!fillMissingCoveragesWithNoData(fillMissingBands, inputCoverages, noDataCoverages)) {
+                    return null;
+                };
             } else {
                 // parallel read
                 List<Future<ParallelLoadingResult>> futures = new ArrayList<>();
@@ -584,29 +600,231 @@ public class CoverageViewReader implements GridCoverage2DReader {
                 for (Future<ParallelLoadingResult> future : futures) {
                     try {
                         ParallelLoadingResult result = future.get();
-                        GridCoverage2D coverage = result.coverage;
-                        if (coverage == null) {
-                            if (handler.isHomogeneousCoverages()
-                                    || handler.getEnvelopeCompositionType() == INTERSECTION) {
-                                return null;
-                            }
-                        } else {
-                            nonNullCoverages++;
+                        if (!shouldProcessCoverage(
+                                result.coverageName,
+                                result.reader,
+                                result.coverage,
+                                inputCoverages,
+                                noDataCoverages,
+                                fillMissingBands,
+                                dynamicAlphaSourceRef,
+                                nonNullCoveragesRef)) {
+                            return null;
                         }
-                        if (dynamicAlphaSource == null && hasDynamicAlpha(coverage, result.reader)) {
-                            dynamicAlphaSource = coverage;
-                        }
-                        inputCoverages.put(result.coverageName, coverage);
                     } catch (Exception e) {
                         throw new IOException(e);
                     }
                 }
+                if (!fillMissingCoveragesWithNoData(fillMissingBands, inputCoverages, noDataCoverages)) {
+                    return null;
+                };
             }
         }
 
         ViewInputs inputAlphaNonNull =
-                new ViewInputs(bands, inputReaders, inputCoverages, dynamicAlphaSource, nonNullCoverages);
+                new ViewInputs(bands, inputReaders, inputCoverages, dynamicAlphaSourceRef[0], nonNullCoveragesRef[0]);
         return inputAlphaNonNull;
+    }
+
+    private boolean shouldProcessCoverage(
+            String coverageName,
+            GridCoverage2DReader reader,
+            GridCoverage2D coverage,
+            Map<String, GridCoverage2D> inputCoverages,
+            Map<String, FillingLayout> noDataCoverages,
+            boolean fillMissingBands,
+            GridCoverage2D[] dynamicAlphaSourceRef,
+            int[] nonNullCoveragesRef) throws IOException {
+        if (coverage != null) {
+            nonNullCoveragesRef[0]++;
+            if (dynamicAlphaSourceRef[0] == null && hasDynamicAlpha(coverage, reader)) {
+                dynamicAlphaSourceRef[0] = coverage;
+            }
+            inputCoverages.put(coverageName, coverage);
+            return true;
+        }
+        if (!(handler.isHomogeneousCoverages() || handler.getEnvelopeCompositionType() == INTERSECTION)) {
+            return true;
+        }
+        if (!fillMissingBands) {
+            return false;
+        }
+
+        FillingLayout fillingLayout = getFillingLayout(reader, coverageName);
+        if (!fillingLayout.available) {
+            return false;
+        }
+
+        noDataCoverages.put(coverageName, fillingLayout);
+        return true;
+    }
+
+
+    private boolean fillMissingCoveragesWithNoData(boolean fillMissingBands, HashMap<String, GridCoverage2D> inputCoverages, HashMap<String, FillingLayout> noDataCoverages) {
+        if (!inputCoverages.isEmpty()) {
+            if (fillMissingBands && !noDataCoverages.isEmpty()) {
+                GridCoverage2D referenceCoverage = inputCoverages.values().iterator().next();
+                GridGeometry2D gridGeometry = referenceCoverage.getGridGeometry();
+                GridEnvelope2D gridRange = gridGeometry.getGridRange2D();
+                ReferencedEnvelope envelope = referenceCoverage.getEnvelope2D();
+                RenderedImage refImage = referenceCoverage.getRenderedImage();
+                final int tileHeight = refImage.getTileHeight();
+                final int tileWidth = refImage.getTileWidth();
+                final int minX = refImage.getMinX();
+                final int minY = refImage.getMinY();
+
+                for (Map.Entry<String, FillingLayout> entry : noDataCoverages.entrySet()) {
+                    String coverageName = entry.getKey();
+                    FillingLayout fillingLayout = entry.getValue();
+                    double noDataValue = fillingLayout.noData;
+                    final int width = gridRange.width;
+                    final int height = gridRange.height;
+                    final ImageLayout2 il = new ImageLayout2();
+                    ColorModel cm = fillingLayout.imageLayout.getColorModel(null);
+                    SampleModel sm = fillingLayout.imageLayout.getSampleModel(null);
+                    il.setColorModel(cm);
+                    il.setTileHeight(tileHeight);
+                    il.setTileWidth(tileWidth);
+                    il.setMinX(minX);
+                    il.setMinY(minY);
+                    il.setWidth(width);
+                    il.setHeight(height);
+                    il.setSampleModel(sm.createCompatibleSampleModel(width, height));
+                    final RenderingHints renderingHints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, il);
+
+                    ImageWorker w = new ImageWorker(renderingHints);
+                    w.setBackground(new double[]{noDataValue});
+                    w.mosaic(
+                            new RenderedImage[0],
+                            MosaicDescriptor.MOSAIC_TYPE_OVERLAY,
+                            null,
+                            null,
+                            new double[][]{
+                                    {
+                                            CoverageUtilities.getMosaicThreshold(
+                                                    il.getSampleModel(null).getDataType())
+                                    }
+                            },
+                            new Range[]{RangeFactory.create(0, 0)});
+                    RenderedImage image = w.getRenderedImage();
+
+                    GridCoverage2D noDataCoverage = coverageFactory.create(
+                            coverageName,
+                            image,
+                            envelope,
+                            referenceCoverage.getSampleDimensions(),
+                            null,
+                            null
+                    );
+
+                    inputCoverages.put(coverageName, noDataCoverage);
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+
+    private FillingLayout getFillingLayout(GridCoverage2DReader reader, String coverageName) throws IOException {
+        GridCoverage2DReader cachedReader = reader;
+        if (cachedReader instanceof StructuredSingleGridCoverage2DReader) {
+            cachedReader = ((StructuredSingleGridCoverage2DReader) reader).delegate;
+        }
+        FillingLayoutKey key = new FillingLayoutKey(cachedReader, coverageName);
+        FillingLayout info = noDataFillingCache.get(key);
+        if (info != null)
+            return info;
+
+        GridEnvelope originalRange = reader.getOriginalGridRange(coverageName);
+        Format format = reader.getFormat();
+        final ParameterValueGroup readParams = format.getReadParameters();
+        final Map<String, Serializable> parameters = CoverageUtils.getParametersKVP(readParams);
+        final int minX = originalRange.getLow(0);
+        final int minY = originalRange.getLow(1);
+        final int width = originalRange.getSpan(0);
+        final int height = originalRange.getSpan(1);
+        final int maxX = minX + (width <= 5 ? width : 5);
+        final int maxY = minY + (height <= 5 ? height : 5);
+
+        // we have to be sure that we are working against a valid grid range.
+        final GridEnvelope2D testRange = new GridEnvelope2D(minX, minY, maxX, maxY);
+
+        // build the corresponding envelope
+        final MathTransform gridToWorldCorner = reader.getOriginalGridToWorld(coverageName, PixelInCell.CELL_CORNER);
+
+        final GeneralBounds testEnvelope;
+        try {
+            testEnvelope = CRS.transform(gridToWorldCorner, new GeneralBounds(testRange.getBounds()));
+        } catch (TransformException e) {
+            throw new RuntimeException(e);
+        }
+        testEnvelope.setCoordinateReferenceSystem(reader.getCoordinateReferenceSystem());
+
+        String maxAllowedTiles = ImageMosaicFormat.MAX_ALLOWED_TILES.getName().toString();
+        if (parameters.keySet().contains(maxAllowedTiles)) {
+            parameters.put(maxAllowedTiles, 1);
+        }
+
+        // Since the read sample image won't be greater than 5x5 pixels and we are limiting the
+        // number of granules to 1, we may do direct read instead of using JAI
+        String useJaiImageRead = ImageMosaicFormat.USE_JAI_IMAGEREAD.getName().toString();
+        if (parameters.keySet().contains(useJaiImageRead)) {
+            parameters.put(useJaiImageRead, false);
+        }
+
+        parameters.put(
+                AbstractGridFormat.READ_GRIDGEOMETRY2D.getName().toString(),
+                new GridGeometry2D(testRange, testEnvelope));
+
+        // try to read this coverage
+        final GridCoverage2D gc = reader.read(coverageName, CoverageUtils.getParameters(readParams, parameters, true));
+        NoDataContainer noDataContainer;
+        if (gc != null && (noDataContainer = CoverageUtilities.getNoDataProperty(gc)) != null) {
+            ImageLayout imageLayout = reader.getImageLayout(coverageName);
+            info = new FillingLayout(true, noDataContainer.getAsSingleValue(), imageLayout);
+        } else {
+            info = new FillingLayout(false, null, null);
+        }
+        noDataFillingCache.put(key, info);
+        return info;
+    }
+
+    static class FillingLayout {
+        private Double noData;
+        private ImageLayout imageLayout;
+        private boolean available;
+
+        public FillingLayout(boolean available, Double noData, ImageLayout imageLayout) {
+            this.available = available;
+            this.noData = noData;
+            this.imageLayout = imageLayout;
+        }
+    }
+
+    static class FillingLayoutKey {
+        private final GridCoverage2DReader reader;
+        private final String coverageName;
+
+        public FillingLayoutKey(GridCoverage2DReader reader, String coverageName) {
+            this.reader = reader;
+            this.coverageName = coverageName;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof FillingLayoutKey)) return false;
+            FillingLayoutKey that = (FillingLayoutKey) o;
+            return reader == that.reader && Objects.equals(coverageName, that.coverageName);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = System.identityHashCode(reader);
+            result = 31 * result + (coverageName != null ? coverageName.hashCode() : 0);
+            return result;
+        }
     }
 
     static class ParallelLoadingResult {
@@ -1127,8 +1345,8 @@ public class CoverageViewReader implements GridCoverage2DReader {
             CoverageView.CompositionType compositionType = coverageView.getCompositionType() != null
                     ? coverageView.getCompositionType()
                     : CoverageView.CompositionType.BAND_SELECT;
-            ViewInputs viewInputs =
-                    getInputAlphaNonNullCoverages(null, selectedBandIndices, bands, null, false, compositionType);
+            ViewInputs viewInputs = getInputAlphaNonNullCoverages(
+                    null, selectedBandIndices, bands, null, false, compositionType, false);
 
             if (viewHasPAM(viewInputs)) {
                 return new CoverageViewPamResourceInfo(viewInputs);
