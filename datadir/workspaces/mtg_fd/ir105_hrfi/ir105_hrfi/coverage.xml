@@ -5,7 +5,7 @@
   <namespace>
     <id>NamespaceInfoImpl--6acf4bb5:1888a571431:-7fff</id>
   </namespace>
-  <title>FCI HRFI IR10.5 μm Image - MTG - 0 degree</title>
+  <title>FCI HRFI IR10.5 μm Image - MTG-I - 0 degree</title>
   <description>Generated from ImageMosaic</description>
   <abstract>Rectified (level 1c) Meteosat FCI full disk image data in high spatial resolution (1km). Level 1c image data corresponds to the geolocated and radiometrically pre-processed image data, ready for further processing, e.g. the extraction of meteorological products. Any spacecraft-specific effects have been removed, and in particular, linearisation and equalisation of the image radiometry have been performed for all FCI channels. The onboard blackbody data has been processed. Both radiometric and geometric quality control information is included.</abstract>
   <keywords>
