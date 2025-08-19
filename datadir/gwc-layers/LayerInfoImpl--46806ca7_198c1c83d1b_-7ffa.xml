@@ -1,13 +1,13 @@
 <GeoServerTileLayer>
-  <id>LayerInfoImpl-1e3d726a:189f3949016:-7ff0</id>
+  <id>LayerInfoImpl--46806ca7:198c1c83d1b:-7ffa</id>
   <enabled>true</enabled>
   <inMemoryCached>true</inMemoryCached>
-  <name>mtg_fd:rgb_dust</name>
+  <name>mtg_fd:rgb_firetemperature</name>
   <mimeFormats>
+    <string>image/png8</string>
     <string>image/png</string>
     <string>image/vnd.jpeg-png</string>
     <string>image/jpeg</string>
-    <string>image/png8</string>
   </mimeFormats>
   <gridSubsets>
     <gridSubset>
@@ -17,10 +17,10 @@
       <gridSetName>EPSG:70211</gridSetName>
     </gridSubset>
     <gridSubset>
-      <gridSetName>EPSG:70209 - 512</gridSetName>
+      <gridSetName>EPSG:4326 - 512</gridSetName>
     </gridSubset>
     <gridSubset>
-      <gridSetName>EPSG:4326 - 512</gridSetName>
+      <gridSetName>EPSG:70209 - 512</gridSetName>
     </gridSubset>
     <gridSubset>
       <gridSetName>EPSG:70205</gridSetName>

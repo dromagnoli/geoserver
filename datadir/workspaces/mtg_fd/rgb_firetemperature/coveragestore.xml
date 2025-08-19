@@ -1,0 +1,14 @@
+<coverageStore>
+  <id>CoverageStoreInfoImpl--46806ca7:198c1c83d1b:-8000</id>
+  <name>rgb_firetemperature</name>
+  <description>MTG 0DEG RGB FireTemperature</description>
+  <type>ImageMosaic</type>
+  <enabled>true</enabled>
+  <workspace>
+    <id>WorkspaceInfoImpl--6acf4bb5:1888a571431:-8000</id>
+  </workspace>
+  <__default>false</__default>
+  <dateCreated>2025-08-19 10:03:02.298 UTC</dateCreated>
+  <disableOnConnFailure>false</disableOnConnFailure>
+  <url>file:data/LIC_FREE/mtg_fd_rgb_firetemperature</url>
+</coverageStore>
