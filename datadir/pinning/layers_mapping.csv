@@ -1,5 +1,6 @@
-EO:EUM:DAT:0023,msg_fes,msg_fes_rdt
-EO:EUM:DAT:MSG:AIRMASS,msg_fes,msg_fes_rgb_airmass
-EO:EUM:DAT:0197,msg_fes,m01_ascat_wind
-EO:EUM:DAT:0198,msg_fes,m01_orbital_tracks
-EO:EUM:DAT:0201,,layergroup
+EO:EUM:DAT:0181,copernicus, sentinel3a_orbital_tracks
+EO:EUM:DAT:0203,eps,m03_orbital_tracks
+EO:EUM:DAT:999,copernicus,sentinel3a_slstr_level2_frp
+EO:EUM:DAT:0202,eps,m03_ascat_wind
+EO:EUM:DAT:0330,msg_fes,ir108
+EO:EUM:DAT:0913,mtg_fd,rgb_geocolour
