@@ -17,13 +17,16 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.annotation.PostConstruct;
 import org.geoserver.eumetsat.pinning.PinningServiceLogger;
 import org.geoserver.eumetsat.pinning.config.PinningServiceConfig;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 @Component
+@DependsOn("pinningServiceConfig")
 /**
  * Client for fetching and parsing map views from a preferences endpoint.
  *
@@ -50,6 +53,15 @@ public class ViewsClient {
         this.pageSize = config.preferencesPagesSize();
         this.restTemplate = new RestTemplate();
         this.objectMapper = new ObjectMapper();
+    }
+
+    @PostConstruct
+    public void init() {
+        logger.log(
+                Level.INFO,
+                String.format(
+                        "ViewsClient initialized with preferences URL: %s and page size: %d",
+                        baseApiUrl, pageSize));
     }
 
     /**

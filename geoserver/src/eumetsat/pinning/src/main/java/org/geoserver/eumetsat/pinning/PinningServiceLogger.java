@@ -42,6 +42,8 @@ public class PinningServiceLogger {
     }
 
     private String format(String message) {
-        return String.format("Pinning[%s]: %s", taskId, message);
+        return taskId == null
+                ? String.format("=>Pinning: %s", message)
+                : String.format("=>Pinning[%s]: %s", taskId, message);
     }
 }
