@@ -11,8 +11,7 @@ import de.micromata.opengis.kml.v_2_2_0.Icon;
 import de.micromata.opengis.kml.v_2_2_0.Kml;
 import de.micromata.opengis.kml.v_2_2_0.LatLonBox;
 import de.micromata.opengis.kml.v_2_2_0.ViewRefreshMode;
-
-import java.awt.*;
+import java.awt.Graphics2D;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.awt.image.RenderedImage;
@@ -32,8 +31,6 @@ import java.util.zip.ZipOutputStream;
 import javax.imageio.ImageIO;
 import javax.imageio.stream.MemoryCacheImageInputStream;
 import javax.media.jai.PlanarImage;
-
-import it.geosolutions.rendered.viewer.RenderedImageBrowser;
 import org.geoserver.config.GeoServer;
 import org.geoserver.kml.KMLEncoder;
 import org.geoserver.kml.KmlEncodingContext;
@@ -307,8 +304,8 @@ public class DownloadMapProcess implements GeoServerProcess, ApplicationContextA
         icon.setViewBoundScale(0.75);
 
         LatLonBox gobox = go.createAndSetLatLonBox();
-        gobox.setEast(bbox.getMinX());
-        gobox.setWest(bbox.getMaxX());
+        gobox.setWest(bbox.getMinX());
+        gobox.setEast(bbox.getMaxX());
         gobox.setNorth(bbox.getMaxY());
         gobox.setSouth(bbox.getMinY());
 
@@ -723,12 +720,18 @@ public class DownloadMapProcess implements GeoServerProcess, ApplicationContextA
         if (layer != null && layer.getOpacity() != null) {
             applyOpacity(image, layer, graphics);
         }
-        // Graphics2D does not handle gray/alpha images all that well, the rendering is washed out compared
-        // to the original, so if we have a gray/alpha image, we convert it to RGB with alpha manually
+        // Graphics2D does not handle gray/alpha images all that well, the rendering is washed out
+        // compared to the original, so if we have a gray/alpha image, we convert it to RGB with
+        // alpha manually
         if (image.getSampleModel().getNumBands() == 2) {
-            RenderedImage gray = new ImageWorker(image).retainBands(new int[] {0}).getRenderedImage();
-            RenderedImage alpha = new ImageWorker(image).retainBands(new int[] {1}).getRenderedImage();
-            image = new ImageWorker(gray).addBands(new RenderedImage[] {gray, gray, gray, alpha}, true, null).getRenderedImage();
+            RenderedImage gray =
+                    new ImageWorker(image).retainBands(new int[] {0}).getRenderedImage();
+            RenderedImage alpha =
+                    new ImageWorker(image).retainBands(new int[] {1}).getRenderedImage();
+            image =
+                    new ImageWorker(gray)
+                            .addBands(new RenderedImage[] {gray, gray, gray, alpha}, true, null)
+                            .getRenderedImage();
         }
         graphics.drawRenderedImage(image, AffineTransform.getScaleInstance(1, 1));
         graphics.dispose();
