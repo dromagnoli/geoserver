@@ -5,7 +5,7 @@
   <namespace>
     <id>NamespaceInfoImpl--6acf4bb5:1888a571431:-7fff</id>
   </namespace>
-  <title>True Colour RGB - MTG - 0 degree</title>
+  <title>True Colour RGB - MTG-I - 0 degree</title>
   <description>Generated from ImageMosaic</description>
   <abstract>True Colour Imagery gives an image that is approximately what human eyes see from Outer Space. True Colour Imagery cannot be made directly from FCI because it lacks a Green band. That is why a special processing step based on the NDVI values of the pixels is applied. The aim of this RGB type is to monitor aerosols; suspended particles and algae bloom in seawater; surface features, and provide true colour images.</abstract>
   <keywords>
@@ -76,6 +76,8 @@
     <id>CoverageStoreInfoImpl--6acf4bb5:1888a571431:-7fc3</id>
   </store>
   <serviceConfiguration>false</serviceConfiguration>
+  <internationalTitle/>
+  <internationalAbstract/>
   <nativeFormat>ImageMosaic</nativeFormat>
   <grid dimension="2">
     <range>

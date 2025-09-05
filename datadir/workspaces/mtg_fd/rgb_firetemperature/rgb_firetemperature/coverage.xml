@@ -1,15 +1,16 @@
 <coverage>
-  <id>CoverageInfoImpl--5c14494f:196f76f114d:-7ffb</id>
-  <name>li_afa</name>
-  <nativeName>mtg_fd_li_afa</nativeName>
+  <id>CoverageInfoImpl--46806ca7:198c1c83d1b:-7ffb</id>
+  <name>rgb_firetemperature</name>
+  <nativeName>rgb_firetemperature</nativeName>
   <namespace>
     <id>NamespaceInfoImpl--6acf4bb5:1888a571431:-7fff</id>
   </namespace>
-  <title>LI Accumulated Flash Area - MTG-I - 0 degree</title>
+  <title>Fire Temperature RGB - MTG-I - 0 degree</title>
   <description>Generated from ImageMosaic</description>
-  <abstract>LI Level 2 Accumulated Flash Area (AFA) provides the user with data about flash mapping by using the area covered by the optical emission of each flash in LI Level 2 Lightning Flashes (LFL). It is important to keep in mind that each flash is treated as a flat (uniform) optical emission in this data. Accumulated Flash Area allows one to monitor the regions within a cloud top from which lightning-related optical emissions over 30 sec are emerging and accumulating and to know the number of flashes that were observed within the FCI grid pixels composing those regions. For example, from the Accumulated Flash Area, one can derive the flash rate for each pixel of the FCI 2km grid. This is a considerable improvement compared to the simple description of the flash using the variable flash_footprint available in Lightning Flashes.</abstract>
+  <abstract>Fire Temperature RGB allows users to identify where the most intense fires are occurring and differentiate them from cooler fires. The RGB takes advantage of the fact that from 3.8 micrometres to shorter wavelengths, background solar radiation and surface reflectance increase. This means that fires need to be more intense to be detected by the 2.2 and 1.6 micrometre bands, as more intense fires emit more radiation at these wavelengths. Therefore, small or cooler fires will only appear at 3.8 micrometres and will be red. In contrast, increases in fire intensity lead to greater contributions from the other channels, resulting in fires that appear yellow-white.&#xd;
+This RGB in EUMETView is generated at a spatial resolution of 500 meters.</abstract>
   <keywords>
-    <string>mtg_fd_li_afa</string>
+    <string>mtg_fd_rgb_firetemperature</string>
     <string>WCS</string>
     <string>ImageMosaic</string>
   </keywords>
@@ -24,17 +25,17 @@
   AUTHORITY[&quot;EPSG&quot;,&quot;4326&quot;]]</nativeCRS>
   <srs>EPSG:4326</srs>
   <nativeBoundingBox>
-    <minx>-70.0</minx>
-    <maxx>70.0</maxx>
-    <miny>-70.0</miny>
-    <maxy>70.0</maxy>
+    <minx>-81.27782440185547</minx>
+    <maxx>81.28074645996094</maxx>
+    <miny>-77.3577880859375</miny>
+    <maxy>77.35641479492188</maxy>
     <crs>EPSG:4326</crs>
   </nativeBoundingBox>
   <latLonBoundingBox>
-    <minx>-70.0</minx>
-    <maxx>70.0</maxx>
-    <miny>-70.0</miny>
-    <maxy>70.0</maxy>
+    <minx>-81.27782440185547</minx>
+    <maxx>81.28074645996094</maxx>
+    <miny>-77.3577880859375</miny>
+    <maxy>77.35641479492188</maxy>
     <crs>EPSG:4326</crs>
   </latLonBoundingBox>
   <projectionPolicy>REPROJECT_TO_DECLARED</projectionPolicy>
@@ -50,14 +51,14 @@
       <dimensionInfo>
         <enabled>true</enabled>
         <presentation>DISCRETE_INTERVAL</presentation>
-        <resolution>300000</resolution>
+        <resolution>600000</resolution>
         <units>ISO8601</units>
         <defaultValue>
           <strategy>MAXIMUM</strategy>
         </defaultValue>
         <nearestMatchEnabled>true</nearestMatchEnabled>
         <rawNearestMatchEnabled>false</rawNearestMatchEnabled>
-        <acceptableInterval>PT5M/PT0H</acceptableInterval>
+        <acceptableInterval>PT10M/PT0H</acceptableInterval>
         <startValue></startValue>
         <endValue></endValue>
       </dimensionInfo>
@@ -73,10 +74,10 @@
         <layerUOM>W.m-2.Sr-1</layerUOM>
       </netcdfLayerSettingsContainer>
     </entry>
-    <entry key="dirName">li_afa_mtg_fd_li_afa</entry>
+    <entry key="dirName">rgb_firetemperature_mtg_fd_rgb_firetemperature</entry>
   </metadata>
   <store class="coverageStore">
-    <id>CoverageStoreInfoImpl--5c14494f:196f76f114d:-8000</id>
+    <id>CoverageStoreInfoImpl--46806ca7:198c1c83d1b:-8000</id>
   </store>
   <serviceConfiguration>false</serviceConfiguration>
   <simpleConversionEnabled>false</simpleConversionEnabled>
@@ -86,15 +87,15 @@
   <grid dimension="2">
     <range>
       <low>0 0</low>
-      <high>14000 14000</high>
+      <high>22816 21715</high>
     </range>
     <transform>
-      <scaleX>0.01</scaleX>
-      <scaleY>-0.01</scaleY>
+      <scaleX>0.007124761508258798</scaleX>
+      <scaleY>-0.007124761508258798</scaleY>
       <shearX>0.0</shearX>
       <shearY>0.0</shearY>
-      <translateX>-69.995</translateX>
-      <translateY>69.995</translateY>
+      <translateX>-81.27426202110134</translateX>
+      <translateY>77.35285241416774</translateY>
     </transform>
     <crs>EPSG:4326</crs>
   </grid>
@@ -230,5 +231,5 @@
       <string>None</string>
     </entry>
   </parameters>
-  <nativeCoverageName>mtg_fd_li_afa</nativeCoverageName>
+  <nativeCoverageName>mtg_fd_rgb_firetemperature</nativeCoverageName>
 </coverage>
