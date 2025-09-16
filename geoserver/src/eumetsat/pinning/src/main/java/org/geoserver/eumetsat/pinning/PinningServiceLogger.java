@@ -11,12 +11,12 @@ import org.geoserver.eumetsat.pinning.views.ViewRecord;
 import org.geotools.util.logging.Logging;
 import org.springframework.stereotype.Component;
 
-@Component
 /**
  * Provides logging functionality for the Pinning Service with task-specific log message formatting.
  * This logger supports logging messages at different levels and includes a task identifier in log
  * entries.
  */
+@Component
 public class PinningServiceLogger {
 
     private static final Logger LOGGER = Logging.getLogger(PinningService.class);

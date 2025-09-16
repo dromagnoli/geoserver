@@ -25,11 +25,11 @@ import org.geoserver.eumetsat.pinning.views.ViewsClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-@Service
 /**
  * Service for managing pinning operations in the GeoServer EUMETSAT application. Handles tasks
  * related to view pinning, including reset and status tracking.
  */
+@Service
 public class PinningService {
 
     public static enum StatusValue {

@@ -54,7 +54,6 @@ import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.test.GeoServerSystemTestSupport;
 import org.junit.AfterClass;
 import org.junit.Assume;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.postgresql.ds.PGSimpleDataSource;
@@ -84,14 +83,19 @@ public class PinningServiceTest extends GeoServerSystemTestSupport {
     public static final String M01_ORBITAL_TRACKS = "m01_orbital_tracks";
     protected static QName MSG_FES_ORBITAL_TRACKS = new QName(MSG_FES, M01_ORBITAL_TRACKS, MSG_FES);
 
+    static WireMockServer wireMockServer;
+
     static DockerImageName postgisImage;
 
     static PostgreSQLContainer<?> postgres;
 
-    private WireMockServer wireMockServer;
+    @BeforeClass
+    public static void setup() throws Exception {
+        startWiremock();
+        startContainers();
+    }
 
-    @Before
-    public void setup() {
+    private static void startWiremock() {
         // here, we are setting up wiremock to start a server that will provide responses for
         // specific requests based on certain mappings.
         // the wiremock/mappings folder contain the supported requests.
@@ -118,7 +122,6 @@ public class PinningServiceTest extends GeoServerSystemTestSupport {
         wireMockServer.start();
     }
 
-    @BeforeClass
     @SuppressWarnings("PMD.SystemPrintln")
     public static void startContainers() throws Exception {
         System.out.println("Checking Docker is available and getting postgis image");
@@ -174,10 +177,12 @@ public class PinningServiceTest extends GeoServerSystemTestSupport {
     }
 
     @AfterClass
-    public static void cleanup() throws Exception {
+    public static void cleanup() {
         if (postgres != null && postgres.isRunning()) {
             postgres.stop();
         }
+
+        wireMockServer.stop();
     }
 
     private static String getSql(String sqlFile) throws IOException, URISyntaxException {

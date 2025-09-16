@@ -20,38 +20,37 @@ import java.util.stream.Stream;
 import javax.annotation.PostConstruct;
 import org.geoserver.eumetsat.pinning.PinningServiceLogger;
 import org.geoserver.eumetsat.pinning.config.PinningServiceConfig;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-@Component
-@DependsOn("pinningServiceConfig")
 /**
  * Client for fetching and parsing map views from a preferences endpoint.
  *
  * <p>This class handles retrieving view data via REST API and converting view preferences into a
  * format usable by the GeoServer EUMETSAT pinning service.
  */
+@Component
+@DependsOn("pinningServiceConfig")
 public class ViewsClient {
-
-    private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper;
-    private final String baseApiUrl;
-    private int pageSize = 5;
-
-    @Autowired private final PinningServiceConfig config;
-
-    @Autowired private PinningServiceLogger logger;
 
     private static final String SEARCH_PATH = "search/findByType?type=mapView";
     private static final String LAST_UPDATE_FILTER = "&lastUpdate=?";
 
-    public ViewsClient(PinningServiceConfig config) {
-        this.config = config;
+    private final RestTemplate restTemplate;
+    private final PinningServiceLogger logger;
+    private final String baseApiUrl;
+    private int pageSize;
+    private final ObjectMapper objectMapper;
+
+    public ViewsClient(
+            PinningServiceConfig config,
+            RestTemplate authenticatedRestTemplate,
+            PinningServiceLogger logger) {
+        this.restTemplate = authenticatedRestTemplate;
+        this.logger = logger;
         this.baseApiUrl = config.preferencesUrl();
         this.pageSize = config.preferencesPagesSize();
-        this.restTemplate = new RestTemplate();
         this.objectMapper = new ObjectMapper();
     }
 

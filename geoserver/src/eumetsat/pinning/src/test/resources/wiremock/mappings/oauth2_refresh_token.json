@@ -1,0 +1,28 @@
+{
+  "scenarioName": "OAuth2",
+  "request": {
+    "method": "POST",
+    "urlPath": "/auth/oauth/token",
+    "bodyPatterns": [
+      {
+        "contains": "grant_type=refresh_token"
+      },
+      {
+        "contains": "refresh_token=mock-refresh-token"
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "access_token": "refreshed-mock-token",
+      "token_type": "Bearer",
+      "expires_in": 36000,
+      "refresh_token": "refreshed-mock-refresh-token",
+      "scope": "read"
+    }
+  }
+}

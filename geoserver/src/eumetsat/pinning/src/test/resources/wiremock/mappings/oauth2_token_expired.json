@@ -1,0 +1,32 @@
+{
+  "scenarioName": "OAuth2",
+  "requiredScenarioState": "TOKEN_EXPIRED",
+  "request": {
+    "method": "POST",
+    "url": "/auth/oauth/token",
+    "bodyPatterns": [
+      {
+        "contains": "grant_type=password"
+      },
+      {
+        "contains": "username=test-username"
+      },
+      {
+        "contains": "password=test-password"
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "access_token": "expired-mock-token",
+      "token_type": "Bearer",
+      "expires_in": 0,
+      "refresh_token": "mock-refresh-token",
+      "scope": "read"
+    }
+  }
+}
