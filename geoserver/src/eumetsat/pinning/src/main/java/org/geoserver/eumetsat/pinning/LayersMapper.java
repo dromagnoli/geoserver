@@ -9,10 +9,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.PostConstruct;
@@ -57,6 +60,8 @@ public class LayersMapper implements GeoServerLifecycleHandler, ExtensionPriorit
 
     private Map<String, List<MappedLayer>> layerMapping;
 
+    private GeoServerDataDirectory directory;
+
     public LayersMapper() {
         this.layerMapping = new HashMap<>();
     }
@@ -72,8 +77,8 @@ public class LayersMapper implements GeoServerLifecycleHandler, ExtensionPriorit
         LOGGER.info("Loading layers mapping");
         layerMapping.clear();
 
-        GeoServerResourceLoader loader = catalog.getResourceLoader();
-        GeoServerDataDirectory directory = new GeoServerDataDirectory(loader);
+        GeoServerResourceLoader resourceLoader = catalog.getResourceLoader();
+        directory = new GeoServerDataDirectory(resourceLoader);
         Resource resource = directory.get(CSV_FILE_NAME);
         Resource.Type resourceType = resource.getType();
         if (resourceType.equals(Resource.Type.UNDEFINED)) {
@@ -192,7 +197,7 @@ public class LayersMapper implements GeoServerLifecycleHandler, ExtensionPriorit
                 GranuleSource source = structuredReader.getGranules(nativeCoverageName, true);
                 SimpleFeatureType schema = source.getSchema();
                 String tableName = schema.getTypeName();
-                layer.setFullTableName(escapeTableName(tableName));
+                applyFullTableName(layer, tableName, cvInfo);
                 List<DimensionDescriptor> descriptors =
                         structuredReader.getDimensionDescriptors(nativeCoverageName);
                 for (DimensionDescriptor desc : descriptors) {
@@ -201,20 +206,42 @@ public class LayersMapper implements GeoServerLifecycleHandler, ExtensionPriorit
                         layer.setTemporalAttribute(timeAttribute);
                         NearestMatchFinder finder =
                                 NearestMatchFinder.get(cvInfo, timeDimension, "time");
-                        if (finder != null) {
-                            LOGGER.log(
-                                    Level.FINEST,
-                                    "Layer for mosaic "
-                                            + cvInfo.getName()
-                                            + " have a nearest time finder");
-                            layer.setNearestTimeFinder(finder);
-                        }
+                        LOGGER.log(
+                                Level.FINEST,
+                                "Layer for mosaic "
+                                        + cvInfo.getName()
+                                        + " have a nearest time finder");
+                        layer.setNearestTimeFinder(finder);
                         return true;
                     }
                 }
             }
         }
         return false;
+    }
+
+    private static Optional<String> readSchemaProperty(Resource res) throws IOException {
+        if (res == null || res.getType() != Resource.Type.RESOURCE) {
+            return Optional.empty(); // not found or not a file
+        }
+        Properties p = new Properties();
+        try (InputStream in = res.in();
+                InputStreamReader r = new InputStreamReader(in, StandardCharsets.UTF_8)) {
+            p.load(r);
+        }
+        return Optional.ofNullable(p.getProperty("schema"));
+    }
+
+    private void applyFullTableName(MappedLayer layer, String tableName, CoverageInfo cvInfo)
+            throws IOException {
+        String url = cvInfo.getStore().getURL().replaceFirst("^file:", "");
+        url = url + "/" + "datastore.properties";
+        Resource propsRes = directory.get(url);
+        String escapedTable = escapeTableName(tableName);
+        Optional<String> schemaOpt =
+                readSchemaProperty(propsRes).map(String::trim).filter(s -> !s.isEmpty());
+        String full = schemaOpt.map(s -> s + "." + escapedTable).orElse(escapedTable);
+        layer.setFullTableName(full);
     }
 
     private boolean configureFromVector(MappedLayer layer, FeatureTypeInfo featureTypeInfo)
@@ -250,14 +277,12 @@ public class LayersMapper implements GeoServerLifecycleHandler, ExtensionPriorit
             layer.setFullTableName(buildFullTableName(schema, tableName));
             NearestMatchFinder finder =
                     NearestMatchFinder.get(featureTypeInfo, timeDimension, "time");
-            if (finder != null) {
-                LOGGER.log(
-                        Level.FINEST,
-                        "Layer for vector "
-                                + featureTypeInfo.getName()
-                                + " have a nearest time finder");
-                layer.setNearestTimeFinder(finder);
-            }
+            LOGGER.log(
+                    Level.FINEST,
+                    "Layer for vector "
+                            + featureTypeInfo.getName()
+                            + " have a nearest time finder");
+            layer.setNearestTimeFinder(finder);
             return true;
         }
         return false;
@@ -270,7 +295,7 @@ public class LayersMapper implements GeoServerLifecycleHandler, ExtensionPriorit
                 : escapedTableName;
     }
 
-    private String escapeTableName(String tableName) {
+    private static String escapeTableName(String tableName) {
         if (!tableName.equals(tableName.toLowerCase())) {
             return "\"" + tableName + "\"";
         } else {
