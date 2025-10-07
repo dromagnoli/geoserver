@@ -112,6 +112,6 @@ public class PinningServiceConfig implements Serializable, Cloneable {
     public DataSource dataSource() throws NamingException {
         Context ctx = new InitialContext();
         // Search for the eumetsat datasource configured using JNDI
-        return (DataSource) ctx.lookup("java:/comp/env/jdbc/" + jndiDatasourceName());
+        return (DataSource) ctx.lookup("java:comp/env/jdbc/" + jndiDatasourceName());
     }
 }

@@ -105,6 +105,7 @@ public class LayersMapper implements GeoServerLifecycleHandler {
                 }
             }
             loaded = true;
+            LOGGER.info("Loading layers mapping successfully. Mapped layers: " + layerMapping.size());
         } catch (Exception e) {
             LOGGER.log(
                     Level.SEVERE,
@@ -152,6 +153,7 @@ public class LayersMapper implements GeoServerLifecycleHandler {
             FeatureTypeInfo featureTypeInfo = (FeatureTypeInfo) resourceInfo;
             if (configureFromVector(layer, featureTypeInfo)) {
                 layers.add(layer);
+                LOGGER.fine("Parsed layer: " + layerName);
             } else {
                 LOGGER.log(
                         Level.INFO,
@@ -163,6 +165,7 @@ public class LayersMapper implements GeoServerLifecycleHandler {
             CoverageInfo cvInfo = (CoverageInfo) resourceInfo;
             if (configureFromMosaic(layer, cvInfo)) {
                 layers.add(layer);
+                LOGGER.fine("Parsed layer: " + layerName);
             } else {
                 LOGGER.log(
                         Level.INFO,
@@ -224,9 +227,14 @@ public class LayersMapper implements GeoServerLifecycleHandler {
                         tableName.substring(
                                 0, tableName.length() - 7); // Get rid of the _mosaic suffix
                 String delegateStoreName = (String) params.get("delegateStoreName");
+                LOGGER.log(Level.INFO, "Vector Mosaic delegate store: " + delegateStoreName);
                 if (delegateStoreName != null) {
                     String[] storeName = delegateStoreName.split(":");
-                    store = catalog.getDataStoreByName(storeName[0], storeName[1]);
+                    if (storeName.length == 1) {
+                        store = catalog.getDataStoreByName(storeName[0]);
+                    } else if (storeName.length == 2) {
+                        store = catalog.getDataStoreByName(storeName[0], storeName[1]);
+                    }
                     params = store.getConnectionParameters();
                 }
             }
