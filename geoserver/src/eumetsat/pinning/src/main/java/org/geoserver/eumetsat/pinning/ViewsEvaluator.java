@@ -340,8 +340,12 @@ public class ViewsEvaluator {
 
     private void setPinLayer(Instant originalTime, Instant mainTime, MappedLayer layer, boolean add)
             throws SQLException, IOException {
+        logger.log(Level.FINEST, "Finding nearest time in layer: " + layer);
         Instant nearestOrig = layer.getNearest(originalTime);
         Instant nearestMain = layer.getNearest(mainTime);
+        logger.log(
+                Level.FINEST,
+                "Nearest original time: " + nearestOrig + ", nearest main time: " + nearestMain);
         boolean mainGreaterThanOriginal = nearestMain.isAfter(nearestOrig);
         Instant minTime = mainGreaterThanOriginal ? nearestOrig : nearestMain;
         Instant maxTime = mainGreaterThanOriginal ? nearestMain : nearestOrig;

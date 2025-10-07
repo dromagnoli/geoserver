@@ -30,6 +30,7 @@ import org.geoserver.catalog.StoreInfo;
 import org.geoserver.catalog.WorkspaceInfo;
 import org.geoserver.config.GeoServerDataDirectory;
 import org.geoserver.config.impl.GeoServerLifecycleHandler;
+import org.geoserver.platform.ExtensionPriority;
 import org.geoserver.platform.GeoServerResourceLoader;
 import org.geoserver.platform.resource.Resource;
 import org.geoserver.util.NearestMatchFinder;
@@ -45,7 +46,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @DependsOn("catalog")
-public class LayersMapper implements GeoServerLifecycleHandler {
+public class LayersMapper implements GeoServerLifecycleHandler, ExtensionPriority {
 
     private static final String CSV_FILE_NAME =
             "pinning/layers_mapping.csv"; // The name of the CSV file
@@ -105,7 +106,8 @@ public class LayersMapper implements GeoServerLifecycleHandler {
                 }
             }
             loaded = true;
-            LOGGER.info("Loading layers mapping successfully. Mapped layers: " + layerMapping.size());
+            LOGGER.info(
+                    "Loading layers mapping successfully. Mapped layers: " + layerMapping.size());
         } catch (Exception e) {
             LOGGER.log(
                     Level.SEVERE,
@@ -200,6 +202,11 @@ public class LayersMapper implements GeoServerLifecycleHandler {
                         NearestMatchFinder finder =
                                 NearestMatchFinder.get(cvInfo, timeDimension, "time");
                         if (finder != null) {
+                            LOGGER.log(
+                                    Level.FINEST,
+                                    "Layer for mosaic "
+                                            + cvInfo.getName()
+                                            + " have a nearest time finder");
                             layer.setNearestTimeFinder(finder);
                         }
                         return true;
@@ -227,7 +234,7 @@ public class LayersMapper implements GeoServerLifecycleHandler {
                         tableName.substring(
                                 0, tableName.length() - 7); // Get rid of the _mosaic suffix
                 String delegateStoreName = (String) params.get("delegateStoreName");
-                LOGGER.log(Level.INFO, "Vector Mosaic delegate store: " + delegateStoreName);
+                LOGGER.log(Level.FINE, "Vector Mosaic delegate store: " + delegateStoreName);
                 if (delegateStoreName != null) {
                     String[] storeName = delegateStoreName.split(":");
                     if (storeName.length == 1) {
@@ -244,6 +251,11 @@ public class LayersMapper implements GeoServerLifecycleHandler {
             NearestMatchFinder finder =
                     NearestMatchFinder.get(featureTypeInfo, timeDimension, "time");
             if (finder != null) {
+                LOGGER.log(
+                        Level.FINEST,
+                        "Layer for vector "
+                                + featureTypeInfo.getName()
+                                + " have a nearest time finder");
                 layer.setNearestTimeFinder(finder);
             }
             return true;
@@ -288,10 +300,16 @@ public class LayersMapper implements GeoServerLifecycleHandler {
     public void onDispose() {}
 
     @Override
-    public void beforeReload() {
+    public void beforeReload() {}
+
+    @Override
+    public void onReload() {
         loadMappings();
     }
 
     @Override
-    public void onReload() {}
+    public int getPriority() {
+        // We need the catalog initialized first. The mapper should be initialized after that.
+        return 100;
+    }
 }
