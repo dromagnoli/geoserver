@@ -137,6 +137,10 @@ RUN rm -f geoserver.war
 #    fi
 RUN echo `ls -l "${CATALINA_BASE}/webapps"`
 
+# Move JNDI 
+RUN mv -fv ${CATALINA_BASE}/webapps/geoserver/WEB-INF/lib/postgresql-*jar ${CATALINA_BASE}/lib/; \
+    ls -l ${CATALINA_BASE}/lib/
+
 #COPY geoserver-plugin-download.sh /usr/local/bin/geoserver-plugin-download.sh
 RUN mkdir ${JAVA_HOME}/lib/fonts
 #ADD ${CUSTOM_FONTS} ${FONTS_DIR}
