@@ -22,7 +22,8 @@ class PinBatcher implements Closeable {
     private int count;
     private int batchSize;
 
-    private static final String RESET_PINS_QUERY = "UPDATE %s SET pin=0 WHERE pin IS NULL or pin != 0;";
+    private static final String RESET_PINS_QUERY =
+            "UPDATE %s SET pin=0 WHERE pin IS NULL or pin != 0;";
 
     private static final String UPDATE_PINS_QUERY =
             "UPDATE %s SET pin = COALESCE(pin,0) %s 1 WHERE %s >= '%s' and %s <= '%s';";

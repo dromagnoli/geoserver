@@ -6,12 +6,16 @@ package org.geoserver.eumetsat.pinning.views;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -34,12 +38,13 @@ import org.springframework.web.client.RestTemplate;
 @DependsOn("pinningServiceConfig")
 public class ViewsClient {
 
-    private static final String SEARCH_PATH = "search/findByType?type=mapView";
+    private static final String SEARCH_PATH = "search/findByType";
     private static final String LAST_UPDATE_FILTER = "&lastUpdate=?";
 
     private final RestTemplate restTemplate;
     private final PinningServiceLogger logger;
     private final String baseApiUrl;
+    private final String baseSearchUrl;
     private int pageSize;
     private final ObjectMapper objectMapper;
 
@@ -50,6 +55,7 @@ public class ViewsClient {
         this.restTemplate = authenticatedRestTemplate;
         this.logger = logger;
         this.baseApiUrl = config.preferencesUrl();
+        this.baseSearchUrl = this.baseApiUrl + SEARCH_PATH;
         this.pageSize = config.preferencesPagesSize();
         this.objectMapper = new ObjectMapper();
     }
@@ -127,7 +133,7 @@ public class ViewsClient {
     }
 
     private String buildInitialUrl(Instant lastUpdatedFilter) {
-        String url = baseApiUrl + SEARCH_PATH;
+        String url = baseApiUrl + SEARCH_PATH + "?type=mapView";
         if (lastUpdatedFilter != null) {
             logger.log(Level.FINE, "Filtering views by last update time: " + lastUpdatedFilter);
             String lastUpdatedFilterStr =
@@ -139,6 +145,7 @@ public class ViewsClient {
         if (pageSize > 0) {
             url += "&size=" + pageSize + "&page=0";
         }
+        url += "&sort=creationTime,asc";
         return url;
     }
 
@@ -219,6 +226,29 @@ public class ViewsClient {
             }
         }
         return isEventView;
+    }
+
+    public static String rebuildWithBase(String nextUrl, String baseUrl) throws URISyntaxException {
+        URI uri = new URI(nextUrl);
+        String query = uri.getQuery();
+        Map<String, String> params = parseQuery(query);
+
+        // rebuild URL
+        String queryString =
+                params.entrySet().stream()
+                        .map(e -> e.getKey() + "=" + e.getValue())
+                        .collect(Collectors.joining("&"));
+
+        return baseUrl + "?" + queryString;
+    }
+
+    private static Map<String, String> parseQuery(String query) {
+        Map<String, String> map = new LinkedHashMap<>();
+        if (query == null || query.isEmpty()) return map;
+        Arrays.stream(query.split("&"))
+                .map(p -> p.split("=", 2))
+                .forEach(pair -> map.put(pair[0], pair.length > 1 ? pair[1] : ""));
+        return map;
     }
 
     public void setPageSize(int pageSize) {
