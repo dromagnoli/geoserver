@@ -122,7 +122,10 @@ public class ViewsClient {
                             ViewsResponse.Link nextLink =
                                     (links != null) ? links.get("next") : null;
                             nextUrl = (nextLink != null) ? nextLink.getHref() : null;
-
+                            if (nextUrl != null && !nextUrl.startsWith(baseSearchUrl)) {
+                                // Rebuild next URL with base to ensure correct endpoint
+                                nextUrl = rebuildWithBase(nextUrl, baseSearchUrl);
+                            }
                             // Prepare iterator for this page
                             currentBatch = parsedViews.iterator();
                         } catch (Exception e) {
@@ -133,7 +136,7 @@ public class ViewsClient {
     }
 
     private String buildInitialUrl(Instant lastUpdatedFilter) {
-        String url = baseApiUrl + SEARCH_PATH + "?type=mapView";
+        String url = baseSearchUrl + "?type=mapView";
         if (lastUpdatedFilter != null) {
             logger.log(Level.FINE, "Filtering views by last update time: " + lastUpdatedFilter);
             String lastUpdatedFilterStr =
@@ -228,7 +231,8 @@ public class ViewsClient {
         return isEventView;
     }
 
-    public static String rebuildWithBase(String nextUrl, String baseUrl) throws URISyntaxException {
+    private static String rebuildWithBase(String nextUrl, String baseSearchUrl)
+            throws URISyntaxException {
         URI uri = new URI(nextUrl);
         String query = uri.getQuery();
         Map<String, String> params = parseQuery(query);
@@ -239,7 +243,7 @@ public class ViewsClient {
                         .map(e -> e.getKey() + "=" + e.getValue())
                         .collect(Collectors.joining("&"));
 
-        return baseUrl + "?" + queryString;
+        return baseSearchUrl + "?" + queryString;
     }
 
     private static Map<String, String> parseQuery(String query) {
