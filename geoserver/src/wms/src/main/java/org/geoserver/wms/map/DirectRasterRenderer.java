@@ -1097,16 +1097,27 @@ class DirectRasterRenderer {
         if (roiCandidate instanceof ROI) {
             PlanarImage roiImage = ((ROI) roiCandidate).getAsImage();
             ImageWorker iw = new ImageWorker(roiImage);
+            final int roiWidth = roiImage.getWidth();
+            final int roiHeight = roiImage.getHeight();
+            final int roiMinX = roiImage.getMinX();
+            final int roiMinY = roiImage.getMinY();
             byte[] lookup = new byte[256];
             Arrays.fill(lookup, (byte) 255);
             lookup[0] = 0;
             LookupTable lookupTable = LookupTableFactory.create(lookup);
             SampleModel sm =
                     RasterFactory.createPixelInterleavedSampleModel(
-                            DataBuffer.TYPE_BYTE, width, height, 1);
+                            DataBuffer.TYPE_BYTE, roiWidth, roiHeight, 1);
             ColorModel cm = PlanarImage.createColorModel(sm);
+            // Lookup should have same layout of ROI, otherwise it will
+            // throw an exception about source region user-supplied
+            // image bounds not within the intersection of the source bounds.
             tempLayout.setSampleModel(sm);
             tempLayout.setColorModel(cm);
+            tempLayout.setMinX(roiMinX);
+            tempLayout.setMinY(roiMinY);
+            tempLayout.setHeight(roiHeight);
+            tempLayout.setWidth(roiWidth);
             iw.setRenderingHints(new RenderingHints(JAI.KEY_IMAGE_LAYOUT, tempLayout));
             iw.lookup(lookupTable);
             return iw.getRenderedImage();
