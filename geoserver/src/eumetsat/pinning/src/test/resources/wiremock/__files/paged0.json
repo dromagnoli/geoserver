@@ -81,19 +81,19 @@
   },
   "_links": {
     "first": {
-      "href": "http://localhost:8080/userPreferences/preferences/search/findByType?type=mapView&page=0&size=4"
+      "href": "https://internal.store.cgi-dev.de/userPreferences/preferences/search/findByType?type=mapView&page=0&size=4"
     },
     "prev": {
-      "href": "http://localhost:8080/userPreferences/preferences/search/findByType?type=mapView&page=0&size=4"
+      "href": "https://internal.store.cgi-dev.de/userPreferences/preferences/search/findByType?type=mapView&page=0&size=4"
     },
     "self": {
-      "href": "http://localhost:8080/userPreferences/preferences/search/findByType?type=mapView&page=0&size=4"
+      "href": "https://internal.store.cgi-dev.de/userPreferences/preferences/search/findByType?type=mapView&page=0&size=4"
     },
     "next": {
-      "href": "http://localhost:8080/userPreferences/preferences/search/findByType?type=mapView&page=1&size=4"
+      "href": "https://internal.store.cgi-dev.de/userPreferences/preferences/search/findByType?type=mapView&page=1&size=4"
     },
     "last": {
-      "href": "http://localhost:8080/userPreferences/preferences/search/findByType?type=mapView&page=1&size=4"
+      "href": "https://internal.store.cgi-dev.de/userPreferences/preferences/search/findByType?type=mapView&page=1&size=4"
     }
   },
   "page": {

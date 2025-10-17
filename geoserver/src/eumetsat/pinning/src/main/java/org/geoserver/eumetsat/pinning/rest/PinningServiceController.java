@@ -72,7 +72,7 @@ public class PinningServiceController extends AbstractCatalogController {
     }
 
     // Check the status of the running maintenance job
-    @GetMapping("/status")
+    @GetMapping(value = "/status", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, Object>> getStatus() {
         PinningService.PinningStatus pinningStatus = pinningService.getStatus();
         Map<String, Object> response = new HashMap<>();
@@ -97,6 +97,6 @@ public class PinningServiceController extends AbstractCatalogController {
             case NOT_RUN_YET:
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
         }
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(response);
     }
 }
