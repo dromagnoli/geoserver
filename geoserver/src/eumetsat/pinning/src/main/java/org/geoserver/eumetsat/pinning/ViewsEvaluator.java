@@ -340,11 +340,11 @@ public class ViewsEvaluator {
 
     private void setPinLayer(Instant originalTime, Instant mainTime, MappedLayer layer, boolean add)
             throws SQLException, IOException {
-        logger.log(Level.FINEST, "Finding nearest time in layer: " + layer);
+        logger.log(Level.FINER, "Finding nearest time in layer: " + layer);
         Instant nearestOrig = layer.getNearest(originalTime);
         Instant nearestMain = layer.getNearest(mainTime);
         logger.log(
-                Level.FINEST,
+                Level.FINER,
                 "Nearest original time: " + nearestOrig + ", nearest main time: " + nearestMain);
         boolean mainGreaterThanOriginal = nearestMain.isAfter(nearestOrig);
         Instant minTime = mainGreaterThanOriginal ? nearestOrig : nearestMain;
@@ -364,7 +364,7 @@ public class ViewsEvaluator {
         String updateQuery =
                 pinBatcher.update(
                         layer.getFullTableName(), layer.getTemporalAttribute(), start, end, add);
-        logger.log(Level.FINEST, "pinning query:" + updateQuery);
+        logger.log(Level.FINER, "pinning query:" + updateQuery);
     }
 
     private Instant getLeft(Instant time) {
@@ -378,26 +378,26 @@ public class ViewsEvaluator {
     private void insertView(ViewRecord view) throws SQLException {
         logger.log(Level.FINE, "Inserting the view in the views table: " + view.getId());
         String insertQuery = viewsBatcher.insertView(view);
-        logger.log(Level.FINEST, "Inserting view query: " + insertQuery);
+        logger.log(Level.FINER, "Inserting view query: " + insertQuery);
     }
 
     private void updateView(ViewRecord view) throws SQLException {
         logger.log(Level.FINE, "Updating the view in the views table: " + view.getId());
         String updateQuery = viewsBatcher.updateView(view);
-        logger.log(Level.FINEST, "Updating view query: " + updateQuery);
+        logger.log(Level.FINER, "Updating view query: " + updateQuery);
     }
 
     private void deleteView(Long viewId) throws Exception {
         logger.log(Level.FINE, "Deleting the view from the views table: " + viewId);
         String deleteQuery = viewsBatcher.deleteView(viewId);
-        logger.log(Level.FINEST, "Deleting view query: " + deleteQuery);
+        logger.log(Level.FINER, "Deleting view query: " + deleteQuery);
     }
 
     private void resetPin(MappedLayer layer) throws SQLException {
         String tableName = layer.getFullTableName();
         logger.log(Level.FINE, String.format("Resetting pin for table %s", tableName));
         String resetQuery = pinBatcher.resetPins(tableName);
-        logger.log(Level.FINEST, "Resetting pin query: " + resetQuery);
+        logger.log(Level.FINER, "Resetting pin query: " + resetQuery);
     }
 
     private void updateLayersPin(
