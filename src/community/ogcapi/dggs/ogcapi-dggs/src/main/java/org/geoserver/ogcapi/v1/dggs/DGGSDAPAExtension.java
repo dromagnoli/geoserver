@@ -377,7 +377,7 @@ public class DGGSDAPAExtension {
             @RequestParam(name = "f", required = false, defaultValue = OGCAPIMediaTypes.GEOJSON_VALUE) String format)
             throws Exception {
         @SuppressWarnings("PMD.CloseResource") // managed by the store
-        DGGSInstance dggs = service.getDGGSInstance(collectionId);
+        DGGSInstance<?> dggs = service.getDGGSInstance(collectionId);
         zoneId = getPositionZoneId(zoneId, wkt, resolution, dggs, collectionId);
 
         return service.zone(collectionId, zoneId, datetime, variableNames, format);
@@ -403,12 +403,14 @@ public class DGGSDAPAExtension {
             throws Exception {
         FeatureTypeInfo ft = getFeatureType(collectionId);
         @SuppressWarnings("PMD.CloseResource") // managed by the store
-        DGGSInstance dggs = service.getDGGSInstance(collectionId);
+        DGGSInstance<?> dggs = service.getDGGSInstance(collectionId);
+        AttributeDescriptor zoneDescriptor = getZoneColumnDescriptor(collectionId);
+        String zoneIdColumn = zoneDescriptor.getLocalName();
         zoneId = getPositionZoneId(zoneId, wkt, resolution, dggs, collectionId);
 
         // parse inputs
         List<Filter> filters = new ArrayList<>();
-        filters.add(FF.equals(FF.property(getZoneColumnName(collectionId)), FF.literal(zoneId)));
+        filters.add(FF.equals(FF.property(zoneIdColumn), DGGSService.getZoneLiteral(dggs, zoneDescriptor, zoneId)));
         if (dateTimeSpec != null) {
             filters.add(service.buildDateTimeFilter(ft, new DateTimeConverter().convert(dateTimeSpec)));
         }
@@ -438,7 +440,7 @@ public class DGGSDAPAExtension {
         SimpleFeatureBuilder fb = new SimpleFeatureBuilder(targetType);
         IterableCalcResult<GroupedMatrixAggregate.GroupByResult> result =
                 (IterableCalcResult<GroupedMatrixAggregate.GroupByResult>) aggregate.getResult();
-        Point center = dggs.getZone(zoneId).getCenter();
+        Point center = dggs.getZoneFromString(zoneId).getCenter();
         return new GroupMatrixFeatureCollection(targetType, result, gr -> {
             fb.add(center);
             gr.getKey().forEach(fb::add);
@@ -456,7 +458,7 @@ public class DGGSDAPAExtension {
     }
 
     public String getPositionZoneId(
-            String zoneId, String wkt, Integer resolution, DGGSInstance dggs, String collectionId) throws IOException {
+            String zoneId, String wkt, Integer resolution, DGGSInstance<?> dggs, String collectionId) throws IOException {
         if (zoneId == null) {
             if (wkt != null) {
                 DGGSGeometryFilterParser parser =
