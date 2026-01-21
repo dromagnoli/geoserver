@@ -54,6 +54,8 @@ public class VectorTileMapOutputFormat extends AbstractMapOutputFormat implement
 
     private final VectorTileBuilderFactory tileBuilderFactory;
 
+    static final int CLIP_BBOX_SIZE_INCREASE_PIXELS = 12;
+
     private volatile boolean clipToMapBounds;
 
     private volatile double overSamplingFactor =
@@ -252,7 +254,13 @@ public class VectorTileMapOutputFormat extends AbstractMapOutputFormat implement
                 // geometries are in screen coords of 'paintArea'
                 final double subtileScreenW = paintArea.getWidth() / metaX;
                 final double subtileScreenH = paintArea.getHeight() / metaY;
-                sink = tiledSink(builders, metaX, metaY, subtileScreenW, subtileScreenH, buffer);
+                sink = tiledSink(
+                        builders,
+                        metaX,
+                        metaY,
+                        subtileScreenW,
+                        subtileScreenH,
+                        buffer + CLIP_BBOX_SIZE_INCREASE_PIXELS);
             }
 
             String layerName = schema.getName().getLocalPart();

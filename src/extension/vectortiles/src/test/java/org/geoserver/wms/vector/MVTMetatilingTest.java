@@ -2,21 +2,20 @@ package org.geoserver.wms.vector;
 
 import static org.junit.Assert.*;
 
+import java.io.IOException;
+import java.util.List;
 import no.ecc.vectortile.VectorTileDecoder;
 import org.geoserver.catalog.LayerInfo;
+import org.geoserver.data.test.SystemTestData;
 import org.geoserver.gwc.GWC;
 import org.geoserver.gwc.config.GWCConfig;
 import org.geoserver.gwc.layer.GeoServerTileLayer;
 import org.geoserver.gwc.layer.GeoServerTileLayerInfo;
 import org.geoserver.test.GeoServerSystemTestSupport;
-import org.geoserver.data.test.SystemTestData;
 import org.geowebcache.layer.TileLayer;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
-
-import java.io.IOException;
-import java.util.List;
 
 /**
  * Integration test: MVT vector tiles cached via GWC with metatiling enabled/disabled.
@@ -31,13 +30,19 @@ public class MVTMetatilingTest extends GeoServerSystemTestSupport {
     private static final String MVT_FORMAT = "application/vnd.mapbox-vector-tile";
 
     private static final int[][] EXPECTED_FEATURE_COUNTS = {
-            {2, 1},
-            {2, 1}};
+        {2, 1},
+        {2, 1}
+    };
     private static final String[][] EXPECTED_GEOMETRIES = {
-            {"POLYGON ((182.0625 258.75, -2.75 258.75, -2.75 -2.75, 182.0625 -2.75, 182.0625 258.75))",
-            "POLYGON ((108.0625 258.75, -2.75 258.75, -2.75 113.75, 108.0625 113.75, 108.0625 258.75))"},
-            {"POLYGON ((-2.75 221.875, -2.75 -2.75, 182.0625 -2.75, 182.0625 221.875, -2.75 221.875))",
-            "POLYGON ((108.0625 258.75, -2.75 258.75, -2.75 -2.75, 108.0625 -2.75, 108.0625 258.75))"}};
+        {
+            "POLYGON ((182.0625 258.75, -2.75 258.75, -2.75 -2.75, 182.0625 -2.75, 182.0625 258.75))",
+            "POLYGON ((108.0625 258.75, -2.75 258.75, -2.75 113.75, 108.0625 113.75, 108.0625 258.75))"
+        },
+        {
+            "POLYGON ((-2.75 221.875, -2.75 -2.75, 182.0625 -2.75, 182.0625 221.875, -2.75 221.875))",
+            "POLYGON ((108.0625 258.75, -2.75 258.75, -2.75 -2.75, 108.0625 -2.75, 108.0625 258.75))"
+        }
+    };
 
     private GWC gwc;
 
@@ -106,8 +111,8 @@ public class MVTMetatilingTest extends GeoServerSystemTestSupport {
         int z = 7, x = 128, y = 60;
         VectorTileDecoder decoder = new VectorTileDecoder();
 
-        for (int j=0; j<2; j++) {
-            for (int i=0; i<2; i++) {
+        for (int j = 0; j < 2; j++) {
+            for (int i = 0; i < 2; i++) {
                 MockHttpServletResponse resp = requestMvtWmtsTileResp(z, x + i, y + j);
                 assertEquals(200, resp.getStatus());
                 byte[] data = resp.getContentAsByteArray();
@@ -125,9 +130,9 @@ public class MVTMetatilingTest extends GeoServerSystemTestSupport {
         int z = 7, x = 128, y = 60;
         boolean first = true;
         VectorTileDecoder decoder = new VectorTileDecoder();
-        for (int j=0; j<2; j++) {
-            for (int i=0; i<2; i++) {
-                MockHttpServletResponse resp = requestMvtWmtsTileResp( z, x + i, y + j);
+        for (int j = 0; j < 2; j++) {
+            for (int i = 0; i < 2; i++) {
+                MockHttpServletResponse resp = requestMvtWmtsTileResp(z, x + i, y + j);
                 assertEquals(200, resp.getStatus());
                 byte[] data = resp.getContentAsByteArray();
                 assertTrue(data.length > 0);
@@ -142,39 +147,40 @@ public class MVTMetatilingTest extends GeoServerSystemTestSupport {
         }
     }
 
-    private MockHttpServletResponse requestMvtWmtsTileResp(int z, int x, int y)
-            throws Exception {
+    private MockHttpServletResponse requestMvtWmtsTileResp(int z, int x, int y) throws Exception {
 
-        String url =
-                "gwc/service/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0"
-                        + "&LAYER=" + LAYER_NAME
-                        + "&STYLE="
-                        + "&TILEMATRIXSET=" + GRIDSET_ID
-                        + "&TILEMATRIX=" + GRIDSET_ID + ":" + z
-                        + "&TILEROW=" + y
-                        + "&TILECOL=" + x
-                        + "&FORMAT=" + MVT_FORMAT;
+        String url = "gwc/service/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0"
+                + "&LAYER=" + LAYER_NAME
+                + "&STYLE="
+                + "&TILEMATRIXSET=" + GRIDSET_ID
+                + "&TILEMATRIX=" + GRIDSET_ID + ":" + z
+                + "&TILEROW=" + y
+                + "&TILECOL=" + x
+                + "&FORMAT=" + MVT_FORMAT;
 
         MockHttpServletResponse resp = getAsServletResponse(url);
         assertEquals(200, resp.getStatus());
         assertNotNull(resp.getContentType());
-        assertTrue("Unexpected content-type: " + resp.getContentType(),
+        assertTrue(
+                "Unexpected content-type: " + resp.getContentType(),
                 resp.getContentType().startsWith(MVT_FORMAT));
         return resp;
     }
 
-    enum CacheResult { HIT, MISS }
+    enum CacheResult {
+        HIT,
+        MISS
+    }
 
     private void assertCacheResult(MockHttpServletResponse resp, CacheResult expected) {
         // Header names vary slightly across versions / servlet containers
-        String v =
-                firstNonNullHeader(resp,
-                        "geowebcache-cache-result",
-                        "GeoWebCache-Cache-Result",
-                        "X-GeoWebCache-Cache-Result",
-                        "X-GWC-Cache-Result",
-                        "X-GWC-Cache-Result".toLowerCase()
-                );
+        String v = firstNonNullHeader(
+                resp,
+                "geowebcache-cache-result",
+                "GeoWebCache-Cache-Result",
+                "X-GeoWebCache-Cache-Result",
+                "X-GWC-Cache-Result",
+                "X-GWC-Cache-Result".toLowerCase());
 
         assertNotNull("No cache result header found; available headers: " + resp.getHeaderNames(), v);
 

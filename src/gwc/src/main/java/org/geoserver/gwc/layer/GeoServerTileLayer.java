@@ -551,7 +551,8 @@ public class GeoServerTileLayer extends TileLayer implements ProxyLayer, TileJSO
 
     private boolean supportsMetaTiling(MimeType mime) {
         if (mime.supportsTiling()) return true;
-        List<MetaTilingOutputFormat> metaTilingOutputFormatList = GeoServerExtensions.extensions(MetaTilingOutputFormat.class);
+        List<MetaTilingOutputFormat> metaTilingOutputFormatList =
+                GeoServerExtensions.extensions(MetaTilingOutputFormat.class);
         for (GetMapOutputFormat fmt : metaTilingOutputFormatList) {
             if (Objects.equals(fmt.getMimeType(), mime.getFormat())) {
                 return true;
