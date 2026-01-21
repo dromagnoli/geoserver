@@ -74,6 +74,11 @@
       <artifactId>jakarta.servlet-api</artifactId>
       <scope>test</scope>
     </dependency>
+      <dependency>
+          <groupId>org.geoserver</groupId>
+          <artifactId>gs-gwc</artifactId>
+          <scope>test</scope>
+      </dependency>
   </dependencies>
 
 </project>
