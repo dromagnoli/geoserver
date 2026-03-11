@@ -15,15 +15,13 @@ import org.geoserver.pngwind.config.PngWindConfigurator;
 import org.geoserver.wms.GetMapRequest;
 import org.geoserver.wms.MapLayerInfo;
 import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.geotools.referencing.factory.IdentifiedObjectFinder;
 import org.geotools.util.NumberRange;
 import org.locationtech.jts.geom.Envelope;
 
 /**
- * Request-scoped helper holding validated raster-layer information needed by PNG-WIND.
- * First, it validates that the GetMapRequest meets PNG-WIND requirements (single layer,
- * raster coverage, exactly 2 bands). Then it exposes the relevant CoverageInfo
- * and CoverageDimensionInfo for getMin/getMax/getUom extraction
+ * Request-scoped helper holding validated raster-layer information needed by PNG-WIND. First, it validates that the
+ * GetMapRequest meets PNG-WIND requirements (single layer, raster coverage, exactly 2 bands). Then it exposes the
+ * relevant CoverageInfo and CoverageDimensionInfo for getMin/getMax/getUom extraction
  *
  * <p>This is reusable from both: - PngWindMapOutputFormat (produceMap) - PngWindMapResponse (writeTo/encode)
  */
@@ -127,10 +125,7 @@ public final class PngWindRequestContext {
         return envelope;
     }
 
-    /**
-     * What PNG-WIND needs from CoverageDimensionInfo to compute quantization metadata,
-     * scaling ranges, and UOM.
-     */
+    /** What PNG-WIND needs from CoverageDimensionInfo to compute quantization metadata, scaling ranges, and UOM. */
     public static final class BandInfo {
         private final String name;
         private final Double min;
@@ -147,14 +142,16 @@ public final class PngWindRequestContext {
         }
 
         /**
-         * Factory to create BandInfo from CoverageDimensionInfo,
-         * applying PNG-WIND defaults for missing/invalid min and max.
+         * Factory to create BandInfo from CoverageDimensionInfo, applying PNG-WIND defaults for missing/invalid min and
+         * max.
          */
         public static BandInfo from(CoverageDimensionInfo dim) {
             String name = dim.getName();
             NumberRange<? extends Number> dimensionRange = dim.getRange();
-            Double min = setMinimum(dimensionRange, PngWindConfigurator.getCurrentConfig().getDefaultMin());
-            Double max = setMaximum(dimensionRange, PngWindConfigurator.getCurrentConfig().getDefaultMax());
+            Double min = setMinimum(
+                    dimensionRange, PngWindConfigurator.getCurrentConfig().getDefaultMin());
+            Double max = setMaximum(
+                    dimensionRange, PngWindConfigurator.getCurrentConfig().getDefaultMax());
             String uom = dim.getUnit();
             List<Double> nullValues = dim.getNullValues();
             Double noData = nullValues != null && !nullValues.isEmpty() ? nullValues.get(0) : null;

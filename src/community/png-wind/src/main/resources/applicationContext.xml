@@ -20,7 +20,7 @@
         <constructor-arg ref="wms"/>
     </bean>
 
-    <bean id="pngWindInitializer" class="org.geoserver.pngwind.PngWindConfigInitializer">
+    <bean id="pngWindInitializer" class="org.geoserver.pngwind.config.PngWindConfigurator">
         <constructor-arg ref="resourceLoader"/>
     </bean>
 </beans>

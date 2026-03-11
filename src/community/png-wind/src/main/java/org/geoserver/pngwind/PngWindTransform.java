@@ -11,10 +11,10 @@ import java.util.logging.Logger;
 import org.eclipse.imagen.media.jiffleop.JiffleDescriptor;
 import org.eclipse.imagen.media.range.Range;
 import org.eclipse.imagen.media.range.RangeFactory;
+import org.geoserver.pngwind.PngWindConstants.BandType;
 import org.geoserver.pngwind.config.PngWindConfig;
 import org.geoserver.pngwind.config.PngWindConfig.DirectionConvention;
 import org.geoserver.pngwind.config.PngWindConfig.DirectionUnit;
-import org.geoserver.pngwind.PngWindConstants.BandType;
 import org.geotools.image.ImageWorker;
 import org.geotools.util.logging.Logging;
 
@@ -114,8 +114,8 @@ public final class PngWindTransform {
     }
 
     /**
-     * Transforms the given 2-band image containing wind data into U/V form if needed, based on heuristics applied to the
-     * band names in the provided request context. The heuristics can classify the bands as U/V or speed/direction.
+     * Transforms the given 2-band image containing wind data into U/V form if needed, based on heuristics applied to
+     * the band names in the provided request context. The heuristics can classify the bands as U/V or speed/direction.
      *
      * @param twoBands
      * @param ctx
@@ -154,8 +154,8 @@ public final class PngWindTransform {
             return new PngWindTransformResult(uv, Kind.SPEED_DIR);
         }
 
-        LOGGER.warning("PNG-WIND: unable to classify bands [" + n1 + ", " + n2 + "], got types [" + pair.b1 + ", " + pair.b2
-                + "], assuming they are U/V in that order");
+        LOGGER.warning("PNG-WIND: unable to classify bands [" + n1 + ", " + n2 + "], got types [" + pair.b1 + ", "
+                + pair.b2 + "], assuming they are U/V in that order");
         return new PngWindTransformResult(twoBands, defaultKind);
     }
 
@@ -173,8 +173,12 @@ public final class PngWindTransform {
         RenderedImage dir = new ImageWorker(twoBands)
                 .retainBands(new int[] {isSpeedFirst ? 1 : 0})
                 .getRenderedImage();
-        return polarToVectorial(
-                speed, dir, config.getDirectionConvention(), config.getDirectionUnit(), speedNodata, dirNodata);
+        String dirUom = isSpeedFirst ? ctx.getBand2().getUom() : ctx.getBand1().getUom();
+        DirectionUnit dirUnit =
+                dirUom != null && dirUom.toLowerCase(Locale.ROOT).contains("deg")
+                        ? DirectionUnit.DEG
+                        : config.getDirectionUnit();
+        return polarToVectorial(speed, dir, config.getDirectionConvention(), dirUnit, speedNodata, dirNodata);
     }
 
     /**

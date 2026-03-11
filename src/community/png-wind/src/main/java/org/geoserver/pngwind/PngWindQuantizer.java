@@ -31,11 +31,14 @@ import org.locationtech.jts.geom.Envelope;
  * encoder.
  *
  * <p>The quantization process involves:
- * - Computing scale and offset for each band based on the provided min/max values.
- * - Quantizing each band to byte using the computed scale and offset.
- * - Generating a mask for nodata values.
- * - Merging the quantized bands and mask into a single RGB image (R=getBand1, G=getBand2, B=mask).
- * - Creating a metadata map containing the necessary information for decoding the quantized data from the PNG image.
+ *
+ * <pre>
+ *     1) Computing scale and offset for each band based on the provided min/max values.
+ *     2) Quantizing each band to byte using the computed scale and offset.
+ *     3) Generating a mask for nodata values.
+ *     4) Merging the quantized bands and mask into a single RGB image (R=getBand1, G=getBand2, B=mask).
+ *     5) Creating a metadata map containing the necessary information for decoding the quantized data from the PNG image.
+ * </pre>
  */
 public class PngWindQuantizer {
 
@@ -206,8 +209,8 @@ public class PngWindQuantizer {
     }
 
     /**
-     * Create RenderingHints with an ImageLayout that defines a byte-based RGB color model and sample model,
-     * compatible with the source image dimensions and tiling.
+     * Create RenderingHints with an ImageLayout that defines a byte-based RGB color model and sample model, compatible
+     * with the source image dimensions and tiling.
      */
     private static RenderingHints getRGBHints(RenderedImage source) {
         final int w = source.getWidth();

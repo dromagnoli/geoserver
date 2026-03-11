@@ -21,7 +21,9 @@ import org.geoserver.wms.map.RenderedImageMapResponse;
 import org.geoserver.wms.map.png.PNGJWriter;
 import org.geotools.util.logging.Logging;
 
-/** Map response for PNG-WIND format, which transforms and quantizes the rendered image before encoding it as PNG-WIND. */
+/**
+ * Map response for PNG-WIND format, which transforms and quantizes the rendered image before encoding it as PNG-WIND.
+ */
 public class PngWindMapResponse extends RenderedImageMapResponse {
 
     public PngWindMapResponse(WMS wms) {

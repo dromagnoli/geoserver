@@ -106,8 +106,7 @@ public class PngWindOutputFormat extends RenderedImageMapOutputFormat {
         // Defensive: ensure the rendered image is still 2 bands
         if (image.getSampleModel().getNumBands() != 2) {
             throw unsupported("Rendered image is not 2-band (got "
-                    + image.getSampleModel().getNumBands()+ ")");
-
+                    + image.getSampleModel().getNumBands() + ")");
         }
 
         // Set the context and wrap the image as RenderedImageMap
@@ -191,13 +190,13 @@ public class PngWindOutputFormat extends RenderedImageMapOutputFormat {
                         "Request includes filters but the coverage reader does not support FILTER parameter.");
             }
         }
-/*
-        if (supportedCodes.contains(
-                AbstractGridFormat.USE_IMAGEN_IMAGEREAD.getName().getCode())) {
-            readParams = CoverageUtils.mergeParameter(descriptors, readParams, Boolean.TRUE,
-                    AbstractGridFormat.USE_IMAGEN_IMAGEREAD.getName().getCode());
-        }
-*/
+        /*
+                if (supportedCodes.contains(
+                        AbstractGridFormat.USE_IMAGEN_IMAGEREAD.getName().getCode())) {
+                    readParams = CoverageUtils.mergeParameter(descriptors, readParams, Boolean.TRUE,
+                            AbstractGridFormat.USE_IMAGEN_IMAGEREAD.getName().getCode());
+                }
+        */
         return readParams;
     }
 

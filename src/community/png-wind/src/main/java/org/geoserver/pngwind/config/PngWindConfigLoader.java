@@ -4,16 +4,18 @@
  */
 package org.geoserver.pngwind.config;
 
-import static org.geoserver.pngwind.PngWindTransform.normalize;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Logger;
 import org.geoserver.platform.GeoServerResourceLoader;
 import org.geoserver.platform.resource.Resource;
+import org.geoserver.pngwind.config.BandMatchingConfig.BandTypeMatcher;
+import org.geoserver.pngwind.config.PngWindConfig.DirectionConvention;
+import org.geoserver.pngwind.config.PngWindConfig.DirectionUnit;
 import org.geotools.util.logging.Logging;
 
 /**
@@ -40,22 +42,18 @@ public final class PngWindConfigLoader {
     public static PngWindConfig load(GeoServerResourceLoader loader) {
         Properties props = loadProperties(loader);
         BandMatchingConfig matching = new BandMatchingConfig(
-                roleMatcher(props, "pngwind.band.speed"),
-                roleMatcher(props, "pngwind.band.dir"),
-                roleMatcher(props, "pngwind.band.u"),
-                roleMatcher(props, "pngwind.band.v"));
+                roleMatcher(props, "band.speed"),
+                roleMatcher(props, "band.dir"),
+                roleMatcher(props, "band.u"),
+                roleMatcher(props, "band.v"));
 
-        double defaultMin = readDouble(props, "pngwind.default.min", HARD_DEFAULT_MIN);
-        double defaultMax = readDouble(props, "pngwind.default.max", HARD_DEFAULT_MAX);
+        double defaultMin = readDouble(props, "default.min", HARD_DEFAULT_MIN);
+        double defaultMax = readDouble(props, "default.max", HARD_DEFAULT_MAX);
 
-        PngWindConfig.DirectionConvention convention = readEnum(
-                props,
-                "pngwind.direction.convention",
-                PngWindConfig.DirectionConvention.class,
-                PngWindConfig.DirectionConvention.FROM);
+        DirectionConvention convention =
+                readEnum(props, "direction.convention", DirectionConvention.class, DirectionConvention.FROM);
 
-        PngWindConfig.DirectionUnit unit = readEnum(
-                props, "pngwind.direction.unit", PngWindConfig.DirectionUnit.class, PngWindConfig.DirectionUnit.DEG);
+        DirectionUnit unit = readEnum(props, "direction.unit", DirectionUnit.class, DirectionUnit.DEG);
 
         return new PngWindConfig(matching, defaultMin, defaultMax, convention, unit);
     }
@@ -88,8 +86,8 @@ public final class PngWindConfigLoader {
         }
     }
 
-    private static BandMatchingConfig.BandTypeMatcher roleMatcher(Properties props, String prefix) {
-        return new BandMatchingConfig.BandTypeMatcher(
+    private static BandTypeMatcher roleMatcher(Properties props, String prefix) {
+        return new BandTypeMatcher(
                 parseCsv(props.getProperty(prefix + ".exact")), parseCsv(props.getProperty(prefix + ".contains")));
     }
 
@@ -100,7 +98,7 @@ public final class PngWindConfigLoader {
         }
 
         for (String token : value.split(",")) {
-            String s = normalize(token);
+            String s = token.trim().toLowerCase(Locale.ROOT);
             if (!s.isEmpty()) {
                 result.add(s);
             }

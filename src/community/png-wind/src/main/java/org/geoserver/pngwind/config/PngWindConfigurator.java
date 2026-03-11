@@ -26,6 +26,7 @@ public class PngWindConfigurator implements GeoServerLifecycleHandler {
 
     private PngWindConfigurator(GeoServerResourceLoader loader) {
         this.loader = loader;
+        reload();
         INSTANCE = this;
     }
 
