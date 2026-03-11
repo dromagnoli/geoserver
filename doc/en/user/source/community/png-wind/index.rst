@@ -140,16 +140,15 @@ Given a quantized byte value ``q`` (0–255), the original value can be reconstr
 
 .. code-block:: text
 
-   value = q / scale + offset
+   value = offset + scale * q
 
 Where:
 
 - ``scale`` is the ``wind_b*_scale`` value
 - ``offset`` is the ``wind_b*_offset`` value
 
-Transformation Between Speed/Direction and U/V Components
----------------------------------------------------------
-The PNG-WIND format internally encodes the wind field as U and V vector components.
+Polar to Vectorial Transformation (SPEED/DIR to U/V)
+----------------------------------------------------
 PNG-WIND internally represents wind fields using U/V vector components. 
 Inputs provided as speed and direction are supported on a best-effort basis through automatic conversion
 to transform them to U and V components before encoding.
@@ -159,7 +158,7 @@ Wind direction may follow two common meteorological conventions:
 - FROM — the direction from which the wind originates (meteorological standard)
 - TO — the direction toward which the wind is blowing
 
-The convention is controlled in the configuration file.
+The convention is controlled in the configuration file (default is "FROM")
 
 The unit of the direction band can be configured in the Coverage Band Details (either deg or rad). 
 If not defined, the default direction unit from the configuration file will be used.
@@ -170,6 +169,15 @@ The min/max range used for scaling will be derived from the speed range.
    :align: center
 
    *Coverage Band Details for speed and direction.*
+
+The speed/direction to U/V transformation uses the following formula (assuming FROM direction convention and degrees)
+
+.. code-block:: text
+
+   u = -Speed * sin(Direction * π/180)
+   v = -Speed * cos(Direction * π/180)
+
+
 
 Configuration file
 ==================
@@ -190,6 +198,8 @@ Here is a sample definition of the :file:`pngwind.properties` file::
   band.u.contains=eastward_wind,u_component,_u_
   band.v.exact=v,vwnd,vgrd
   band.v.contains=northward_wind,v_component,_v_
+
+With a default range of [-25;25] m/s the quantization step is around 0.20 m/s.
 
 Band identification is performed using a heuristic based on the band name.
 The plugin attempts to determine whether each band represents one of the four supported wind components:
@@ -222,6 +232,7 @@ For example: hourly_u100m_wind and hourly_v100m_wind. These differ only by 'u' v
 
 Limitations
 ===========
+
 One Layer with two-band requirement
 -----------------------------------
 The format can only be used when requesting a single coverage layer. 
@@ -229,21 +240,32 @@ The coverage must contain exactly two bands representing the wind components eit
 in vectorial representation (U and V) or polar representation (speed and direction).
 Datasets containing additional bands are currently not supported.
 
-Metadata dependency
---------------------
-Scaling requires min/max values in the coverage metadata. When not provided, configured default values will be used.
-
-Byte precision
---------------
+Quantization accuracy and Byte precision
+----------------------------------------
+Wind values are quantized to a finite numeric range in order to enable compact transport. 
+This introduces a bounded loss of precision, which may result in small deviations 
+when values are reconstructed on the client.
 Since values are encoded in 8-bit precision, the reconstructed values are approximate.
-This is usually acceptable for visualization but may not be suitable for scientific analysis.
+This is usually acceptable for visualization/animation but may not be suitable for scientific analysis.
 
 Band identification ambiguity
 -----------------------------
 Automatic band detection heuristic relies on token matching based on a configurable dictionary.
 Datasets with unusual band names may require adjusting the properties configuration.
 
-Designed for visualization
+Scope and data constraints
 --------------------------
+The PNG-WIND format is limited to requests involving a single raster layer with exactly two wind-related bands.
+It is not intended to replace full scientific data formats or to support complex analytical workflows 
+requiring lossless precision, multi-variable coupling, or advanced vector operation.
 PNG-WIND is designed for visualization, not for lossless transport of scientific data.
 Applications requiring full numeric precision should not use this format.
+
+Vector reprojection effects
+---------------------------
+When wind data is requested in a coordinate reference system different from the source,
+the raster grid is reprojected but wind vectors are not explicitly rotated to compensate
+for projection-induced angular distortion. As a result, wind directions may exhibit small
+angular inaccuracies, particularly at high latitudes or over large map extents. 
+This approximation is commonly accepted in visualization workflows and may be revisited 
+in future enhancements as an optional, vector-aware reprojection step.

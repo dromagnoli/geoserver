@@ -10,6 +10,8 @@ import java.io.OutputStream;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import org.eclipse.imagen.media.viewer.RenderedImageBrowser;
 import org.geoserver.platform.ServiceException;
 import org.geoserver.pngwind.config.PngWindConfig;
 import org.geoserver.pngwind.config.PngWindConfigurator;
@@ -25,6 +27,9 @@ import org.geotools.util.logging.Logging;
  * Map response for PNG-WIND format, which transforms and quantizes the rendered image before encoding it as PNG-WIND.
  */
 public class PngWindMapResponse extends RenderedImageMapResponse {
+
+    private static final String RASTER_CHAIN_DEBUG_KEY = "wms.raster.enableRasterChainDebug";
+    private static final Boolean RASTER_CHAIN_DEBUG = Boolean.getBoolean(RASTER_CHAIN_DEBUG_KEY);
 
     public PngWindMapResponse(WMS wms) {
         super(PngWindConstants.OUTPUT_FORMATS, wms);
@@ -62,6 +67,13 @@ public class PngWindMapResponse extends RenderedImageMapResponse {
             LOGGER.fine("Writing png image ...");
         }
         float quality = (100 - wms.getPngCompression()) / 100.0f;
+        Map<String, String> rawKvp;
+        if (RASTER_CHAIN_DEBUG
+                && ((rawKvp = mapContent.getRequest().getRawKvp()) != null)
+                && Boolean.parseBoolean(rawKvp.get("showchain"))) {
+            RenderedImageBrowser.showChain(rgb, false, false, "PNG-WIND Quantized Image", true);
+        }
+
         image = new PNGJWriter().writePNG(rgb, outStream, quality, mapContent, md);
         RasterCleaner.addImage(image);
         if (LOGGER.isLoggable(Level.FINE)) {

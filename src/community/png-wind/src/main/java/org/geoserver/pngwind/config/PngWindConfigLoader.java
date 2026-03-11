@@ -10,12 +10,15 @@ import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.geoserver.platform.GeoServerResourceLoader;
 import org.geoserver.platform.resource.Resource;
+import org.geoserver.platform.resource.Resources;
 import org.geoserver.pngwind.config.BandMatchingConfig.BandTypeMatcher;
 import org.geoserver.pngwind.config.PngWindConfig.DirectionConvention;
 import org.geoserver.pngwind.config.PngWindConfig.DirectionUnit;
+import org.geoserver.util.IOUtils;
 import org.geotools.util.logging.Logging;
 
 /**
@@ -60,32 +63,46 @@ public final class PngWindConfigLoader {
 
     private static Properties loadProperties(GeoServerResourceLoader loader) {
         Properties props = new Properties();
-
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "Loading configuration");
+        }
         // First try to load from the data directory
-        Resource resource = loader.get(RESOURCE);
-        if (resource != null && resource.getType() == Resource.Type.RESOURCE) {
-            try (InputStream in = resource.in()) {
-                props.load(in);
-                LOGGER.info("Loaded PNG-WIND config from GeoServer data directory: " + RESOURCE);
-                return props;
+        Resource properties = loader.get(RESOURCE);
+
+        if (!Resources.exists(properties)) {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "Properties file not found");
+            }
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "Copying the default properties file inside the data directory");
+            }
+            try (InputStream is = PngWindConfigLoader.class.getClassLoader().getResourceAsStream(RESOURCE)) {
+                // Copy the default property file into the data directory
+                if (is != null) {
+                    IOUtils.copy(is, properties.out());
+                    properties = loader.get(RESOURCE);
+                }
             } catch (IOException e) {
-                throw new IllegalStateException(
-                        "Failed to load PNG-WIND config from GeoServer data dir resource: " + RESOURCE, e);
+                if (LOGGER.isLoggable(Level.WARNING)) {
+                    LOGGER.log(Level.WARNING, e.getMessage(), e);
+                }
+            }
+        } else {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "Properties file found");
             }
         }
 
-        // If not found in data dir, try to load from the classpath
-        try (InputStream in = PngWindConfigLoader.class.getClassLoader().getResourceAsStream(RESOURCE)) {
-            if (in != null) {
-                props.load(in);
-                LOGGER.info("Loaded PNG-WIND config from classpath: " + RESOURCE);
-            } else {
-                LOGGER.info("PNG-WIND config not found in data dir or classpath, using defaults");
-            }
+        try (InputStream in = properties.in()) {
+            props.load(in);
+            LOGGER.info("Loaded PNG-WIND config from GeoServer data directory: " + RESOURCE);
             return props;
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to load PNG-WIND config from classpath resource: " + RESOURCE, e);
+            throw new IllegalStateException(
+                    "Failed to load PNG-WIND config from GeoServer data dir resource: " + RESOURCE, e);
         }
+
+
     }
 
     private static BandTypeMatcher parseMatcher(Properties props, String prefix) {
