@@ -64,7 +64,7 @@ The result is clamped to the [0,255] byte range.
 The minimum/maximum values used for scaling are obtained from the coverage metadata.
 These values are defined in the GeoServer layer configuration and represent the expected value range of the band.
 
-.. figure:: images/bandsconfiguration.png
+.. figure:: images/uvconfiguration.png
    :align: center
 
    *Coverage Band Details, reporting nodata and min/max values.*
