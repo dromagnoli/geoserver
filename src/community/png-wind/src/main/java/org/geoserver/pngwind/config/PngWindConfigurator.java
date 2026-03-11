@@ -10,9 +10,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Singleton class responsible for loading and holding the current PNG-WIND configuration, and reloading it when
- * GeoServer is reloaded or reset allowing to edit the config without the need of restarting the server. The
- * configuration is loaded from a properties file (pngwind.properties)
+ * GeoServer life cycle listener that reloads (and hold) the PNG-WIND configuration. The configuration is loaded from a
+ * properties file (pngwind.properties) located in the GeoServer data directory or classpath, and is reloaded on each
+ * reset or reload event. The current configuration can be accessed statically via {@link #getCurrentConfig()}.
  */
 public class PngWindConfigurator implements GeoServerLifecycleHandler {
 

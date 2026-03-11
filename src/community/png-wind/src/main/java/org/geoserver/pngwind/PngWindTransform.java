@@ -7,6 +7,7 @@ package org.geoserver.pngwind;
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
 import java.util.Locale;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.eclipse.imagen.media.jiffleop.JiffleDescriptor;
 import org.eclipse.imagen.media.range.Range;
@@ -30,6 +31,11 @@ public final class PngWindTransform {
         BandType b1;
 
         BandType b2;
+
+        @Override
+        public String toString() {
+            return "BandPair{" + "b1=" + b1 + ", b2=" + b2 + '}';
+        }
 
         public BandPair(BandType b1, BandType b2) {
             this.b1 = b1;
@@ -126,11 +132,17 @@ public final class PngWindTransform {
         String n2 = normalize(ctx.getBand2().getName());
         Kind defaultKind = Kind.UV;
 
+        if (LOGGER.isLoggable(Level.FINER)) {
+            LOGGER.finer("Detecting the band types for bands [" + n1 + ", " + n2 + "]");
+        }
         BandPair pair = new BandPair(classify(n1), classify(n2));
 
         // If both bands are unknown, try the heuristic of finding
         // a single position where they differ only by 'u' vs 'v'
         if (pair.isUnknown()) {
+            if (LOGGER.isLoggable(Level.FINER)) {
+                LOGGER.finer("Fall back on paired u/v bands with similar names heuristic");
+            }
             int pos = findUvPosition(n1, n2);
             if (pos >= 0) {
                 if (n1.charAt(pos) == 'u' && n2.charAt(pos) == 'v') {
@@ -143,6 +155,9 @@ public final class PngWindTransform {
 
         // Case A: already U/V (any order)
         if (pair.isVectorial()) {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.fine("Image is U/V family type. No transformation needed: " + pair);
+            }
             // Note that in case of V/U order we keep the original order
             // and just mark it in the kind for downstream to handle
             return new PngWindTransformResult(twoBands, pair.getVectorialKind());
@@ -150,6 +165,9 @@ public final class PngWindTransform {
 
         // Case B: speed/direction (any order)
         if (pair.isPolar()) {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.fine("Image is SPEED/DIR type. Proceeding to U/V transformation");
+            }
             RenderedImage uv = transformToUV(twoBands, ctx, pair.b1);
             return new PngWindTransformResult(uv, Kind.SPEED_DIR);
         }
@@ -243,6 +261,9 @@ public final class PngWindTransform {
             DirectionUnit dirUnit,
             Double speedNoData,
             Double dirNoData) {
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.fine("Transforming polar representation (speed/dir) to vectorial (u/v)");
+        }
         // Sources visible to the script as "spd" and "dir"
         RenderedImage[] sources = new RenderedImage[] {speed, dir};
         String[] sourceNames = new String[] {"spd", "dir"};

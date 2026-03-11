@@ -8,13 +8,13 @@ import java.util.Collections;
 import java.util.Set;
 
 /**
- * Configuration for matching bands to wind speed, direction, and components based on their names. Each role (speed,
+ * Configuration for matching bands to wind speed, direction, and components based on their names. Each type (speed,
  * direction, u, v) can be configured with a set of exact matches and a set of substring matches for containment check.
  * The matching logic will first check for exact matches, and if none are found, it will check if any of the configured
  * substrings are contained in the band name.
  *
  * <p>Wind layers are usually made of 2 bands. The PngWind format tries to guess which band is which based on the name
- * of the bands. This class encapsulates the configuration for that matching process In the event that the matching
+ * of the bands. This class encapsulates the configuration for that matching process. In the event that the matching
  * process fails, the original bands are returned as-is, with a warning logged, assuming they are already in U/V form in
  * the order of the bands.
  */
@@ -55,14 +55,6 @@ public final class BandMatchingConfig {
         public BandTypeMatcher(Set<String> exact, Set<String> contains) {
             this.exact = Collections.unmodifiableSet(exact);
             this.contains = Collections.unmodifiableSet(contains);
-        }
-
-        public Set<String> getExact() {
-            return exact;
-        }
-
-        public Set<String> getContains() {
-            return contains;
         }
 
         public boolean matches(String name) {

@@ -42,10 +42,10 @@ public final class PngWindConfigLoader {
     public static PngWindConfig load(GeoServerResourceLoader loader) {
         Properties props = loadProperties(loader);
         BandMatchingConfig matching = new BandMatchingConfig(
-                roleMatcher(props, "band.speed"),
-                roleMatcher(props, "band.dir"),
-                roleMatcher(props, "band.u"),
-                roleMatcher(props, "band.v"));
+                parseMatcher(props, "band.speed"),
+                parseMatcher(props, "band.dir"),
+                parseMatcher(props, "band.u"),
+                parseMatcher(props, "band.v"));
 
         double defaultMin = readDouble(props, "default.min", HARD_DEFAULT_MIN);
         double defaultMax = readDouble(props, "default.max", HARD_DEFAULT_MAX);
@@ -61,6 +61,7 @@ public final class PngWindConfigLoader {
     private static Properties loadProperties(GeoServerResourceLoader loader) {
         Properties props = new Properties();
 
+        // First try to load from the data directory
         Resource resource = loader.get(RESOURCE);
         if (resource != null && resource.getType() == Resource.Type.RESOURCE) {
             try (InputStream in = resource.in()) {
@@ -73,6 +74,7 @@ public final class PngWindConfigLoader {
             }
         }
 
+        // If not found in data dir, try to load from the classpath
         try (InputStream in = PngWindConfigLoader.class.getClassLoader().getResourceAsStream(RESOURCE)) {
             if (in != null) {
                 props.load(in);
@@ -86,7 +88,7 @@ public final class PngWindConfigLoader {
         }
     }
 
-    private static BandTypeMatcher roleMatcher(Properties props, String prefix) {
+    private static BandTypeMatcher parseMatcher(Properties props, String prefix) {
         return new BandTypeMatcher(
                 parseCsv(props.getProperty(prefix + ".exact")), parseCsv(props.getProperty(prefix + ".contains")));
     }

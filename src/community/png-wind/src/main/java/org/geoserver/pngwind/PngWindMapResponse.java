@@ -47,11 +47,20 @@ public class PngWindMapResponse extends RenderedImageMapResponse {
         PngWindRequestContext ctx = (PngWindRequestContext) metadata.get(PngWindConstants.METADATA_CTX_KEY);
         PngWindConfig config = PngWindConfigurator.getCurrentConfig();
         PngWindTransform transform = new PngWindTransform(config);
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.fine("Transforming the image to U/V (if needed)");
+        }
         PngWindTransform.PngWindTransformResult result = transform.toUV(image, ctx);
         PngWindQuantizer quantizer = new PngWindQuantizer(config);
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.fine("Quantizing the U/V image");
+        }
         PngWindQuantizer.PngWindQuantizedImage out = quantizer.quantize(result, ctx);
         RenderedImage rgb = out.getImage();
         Map<String, String> md = out.getMetadata();
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.fine("Writing png image ...");
+        }
         float quality = (100 - wms.getPngCompression()) / 100.0f;
         image = new PNGJWriter().writePNG(rgb, outStream, quality, mapContent, md);
         RasterCleaner.addImage(image);

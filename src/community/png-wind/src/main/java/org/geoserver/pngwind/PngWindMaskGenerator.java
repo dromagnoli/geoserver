@@ -6,6 +6,8 @@ package org.geoserver.pngwind;
 
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.eclipse.imagen.ImageN;
 import org.eclipse.imagen.ParameterBlockImageN;
 import org.eclipse.imagen.RenderedOp;
@@ -13,6 +15,7 @@ import org.eclipse.imagen.media.range.Range;
 import org.eclipse.imagen.media.range.RangeFactory;
 import org.eclipse.imagen.media.rlookup.RangeLookupTable;
 import org.geotools.image.ImageWorker;
+import org.geotools.util.logging.Logging;
 
 /**
  * Utility class to generate a mask image from the UV bands, by using noData values (if provided) or NaN (if noData is
@@ -20,6 +23,7 @@ import org.geotools.image.ImageWorker;
  * (noData/NaN) are 0.
  */
 public final class PngWindMaskGenerator {
+    private static final Logger LOGGER = Logging.getLogger(PngWindMaskGenerator.class);
 
     private static final Integer INVALID = 0;
     private static final Integer VALID = 255;
@@ -31,11 +35,17 @@ public final class PngWindMaskGenerator {
      * invalid pixels.
      */
     public static RenderedImage createMask(RenderedImage uv, Double uNoData, Double vNoData) {
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.fine("Creating mask for UV bands with uNoData=" + uNoData + " and vNoData=" + vNoData);
+        }
         if (uv == null) {
             throw new IllegalArgumentException("source must not be null");
         }
         if (uNoData == null && vNoData == null) {
             // Fast path: all pixels are valid
+            if (LOGGER.isLoggable(Level.FINER)) {
+                LOGGER.finer("Both uNoData and vNoData are null, creating a constant mask with all valid pixels");
+            }
             return createConstantMask(uv);
         }
 
@@ -59,8 +69,10 @@ public final class PngWindMaskGenerator {
             // Fast path: no specific mask needed for this band, all valid
             return null;
         }
+        if (LOGGER.isLoggable(Level.FINER)) {
+            LOGGER.finer("Creating valid mask for band " + band + " with noData=" + noData);
+        }
         ImageWorker iw = new ImageWorker(src);
-
         RenderedImage singleBand = iw.retainBands(new int[] {band}).getRenderedImage();
         Range noDataRange =
                 singleValueRangeForType(noData, singleBand.getSampleModel().getDataType());

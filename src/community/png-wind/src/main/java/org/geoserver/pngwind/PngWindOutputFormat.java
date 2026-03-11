@@ -190,20 +190,13 @@ public class PngWindOutputFormat extends RenderedImageMapOutputFormat {
                         "Request includes filters but the coverage reader does not support FILTER parameter.");
             }
         }
-        /*
-                if (supportedCodes.contains(
-                        AbstractGridFormat.USE_IMAGEN_IMAGEREAD.getName().getCode())) {
-                    readParams = CoverageUtils.mergeParameter(descriptors, readParams, Boolean.TRUE,
-                            AbstractGridFormat.USE_IMAGEN_IMAGEREAD.getName().getCode());
-                }
-        */
+
         return readParams;
     }
 
     private Filter and(Filter a, Filter b) {
         if (a == null || a == Filter.INCLUDE) return b;
         if (b == null || b == Filter.INCLUDE) return a;
-        // Use GeoTools FilterFactory2 in real code; leaving schematic here:
         return FF.and(a, b);
     }
 

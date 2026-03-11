@@ -19,9 +19,12 @@ import org.geotools.util.NumberRange;
 import org.locationtech.jts.geom.Envelope;
 
 /**
- * Request-scoped helper holding validated raster-layer information needed by PNG-WIND. First, it validates that the
- * GetMapRequest meets PNG-WIND requirements (single layer, raster coverage, exactly 2 bands). Then it exposes the
- * relevant CoverageInfo and CoverageDimensionInfo for getMin/getMax/getUom extraction
+ * Request-scoped helper holding validated raster-layer information needed by PNG-WIND.
+ *
+ * <pre>
+ * 1) Validates that the GetMapRequest meets PNG-WIND requirements (single layer, raster coverage, exactly 2 bands).
+ * 2) Exposes the relevant CoverageInfo and CoverageDimensionInfo for getMin/getMax/getUom extraction
+ * </pre>
  *
  * <p>This is reusable from both: - PngWindMapOutputFormat (produceMap) - PngWindMapResponse (writeTo/encode)
  */
@@ -66,7 +69,6 @@ public final class PngWindRequestContext {
         // 2) Must be a raster layer (coverage)
         final LayerInfo layerInfo = asLayerInfo(layerObj);
         if (layerInfo == null) {
-            // Could be a LayerGroupInfo or something else; reject per requirements.
             throw unsupported("requires a single published raster LayerInfo (not a layer group).");
         }
 

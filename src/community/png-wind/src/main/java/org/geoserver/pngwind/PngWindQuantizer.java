@@ -14,6 +14,8 @@ import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.eclipse.imagen.ImageLayout;
 import org.eclipse.imagen.ImageN;
 import org.eclipse.imagen.ParameterBlockImageN;
@@ -24,6 +26,7 @@ import org.geotools.api.referencing.FactoryException;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.image.ImageWorker;
 import org.geotools.referencing.CRS;
+import org.geotools.util.logging.Logging;
 import org.locationtech.jts.geom.Envelope;
 
 /**
@@ -41,6 +44,8 @@ import org.locationtech.jts.geom.Envelope;
  * </pre>
  */
 public class PngWindQuantizer {
+
+    private static final Logger LOGGER = Logging.getLogger(PngWindQuantizer.class);
 
     /** Container for the quantized image and its associated metadata. */
     public static class PngWindQuantizedImage {
@@ -73,6 +78,9 @@ public class PngWindQuantizer {
             PngWindTransform.PngWindTransformResult windTransformResult, PngWindRequestContext ctx)
             throws ServiceException {
 
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.fine("Quantizing the image");
+        }
         double uMin;
         double uMax;
         double vMin;
@@ -85,8 +93,8 @@ public class PngWindQuantizer {
         // Compute scale/offset
         PngWindRequestContext.BandInfo b1 = ctx.getBand1();
         PngWindRequestContext.BandInfo b2 = ctx.getBand2();
-        if (kind == PngWindTransform.Kind.SPEED_DIR) {
 
+        if (kind == PngWindTransform.Kind.SPEED_DIR) {
             // For data coming from a speed/direction transformation we use the value from the speed band
             PngWindRequestContext.BandInfo speedBand =
                     config.getBandMatching().getSpeed().matches(PngWindTransform.normalize(b1Name)) ? b1 : b2;
@@ -138,6 +146,10 @@ public class PngWindQuantizer {
         }
 
         // Metadata map to pass to PNG encoder
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.fine("Preparing PNG Metadata");
+        }
+
         Map<String, String> md = new LinkedHashMap<>();
         md.put("format", PngWindConstants.FORMAT);
         md.put("version", PngWindConstants.VERSION);
@@ -181,6 +193,9 @@ public class PngWindQuantizer {
     }
 
     private static RenderedImage quantizeToByte(RenderedImage src, double offset, double scale) {
+        if (LOGGER.isLoggable(Level.FINER)) {
+            LOGGER.finer("Quantizing with offset=" + offset + " and scale=" + scale);
+        }
         double factor = 1.0 / scale;
         double add = -offset / scale;
 
@@ -195,6 +210,9 @@ public class PngWindQuantizer {
 
     /** Merge Quantized bands and mask into a 3-band image (RGB-like). */
     private static RenderedImage bandMerge(RenderedImage... sources) {
+        if (LOGGER.isLoggable(Level.FINER)) {
+            LOGGER.finer("Composing final RGB image (BandMerge) with " + sources.length + " bands");
+        }
         if (sources == null || sources.length < 2) {
             throw new IllegalArgumentException("At least two images are required for bandMerge");
         }
