@@ -101,8 +101,6 @@ public final class PngWindConfigLoader {
             throw new IllegalStateException(
                     "Failed to load PNG-WIND config from GeoServer data dir resource: " + RESOURCE, e);
         }
-
-
     }
 
     private static BandTypeMatcher parseMatcher(Properties props, String prefix) {

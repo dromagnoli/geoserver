@@ -13,6 +13,7 @@ import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -180,7 +181,12 @@ public class PngWindQuantizer {
         md.put(
                 "bbox",
                 String.format(
-                        "%f,%f,%f,%f", envelope.getMinX(), envelope.getMinY(), envelope.getMaxX(), envelope.getMaxY()));
+                        Locale.ROOT,
+                        "%f,%f,%f,%f",
+                        envelope.getMinX(),
+                        envelope.getMinY(),
+                        envelope.getMaxX(),
+                        envelope.getMaxY()));
         /*if (timeOrNull != null) md.put("time", timeOrNull);
         if (elevationOrNull != null) md.put("elevation", elevationOrNull);
         */

@@ -10,7 +10,6 @@ import java.io.OutputStream;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import org.eclipse.imagen.media.viewer.RenderedImageBrowser;
 import org.geoserver.platform.ServiceException;
 import org.geoserver.pngwind.config.PngWindConfig;
