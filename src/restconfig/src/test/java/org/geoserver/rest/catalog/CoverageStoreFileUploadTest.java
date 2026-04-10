@@ -14,6 +14,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -117,6 +118,34 @@ public class CoverageStoreFileUploadTest extends CatalogRESTTestSupport {
         assertNotNull(cs);
         CoverageInfo ci = getCatalog().getCoverageByName("sf", "usa");
         assertNotNull(ci);
+    }
+
+    /** uploads a file with an invalid file type (ELF). Should throw. */
+    @Test
+    public void testInvalidFileUpload() throws Exception {
+        assertThrows(Throwable.class, () -> {
+            uploadWorldImage("test-data/elf-signature-file.elf", "image/png");
+        });
+    }
+
+    /** uploads a zip file with an invalid file type (ELF). Should throw. */
+    @Test
+    public void testInvalidFileUploadZip() throws Exception {
+        assertThrows(Throwable.class, () -> {
+            uploadWorldImage("test-data/elf-signature-file.zip", "application/zip");
+        });
+    }
+
+    /**
+     * uploads a zip file with a valid world dataset PLUS an invalid file type (ELF). Should throw.
+     *
+     * <p>This is a zip file with a valid worldImage, but an extra ELF file.
+     */
+    @Test
+    public void testInvalidFileUploadZip2() throws Exception {
+        assertThrows(Throwable.class, () -> {
+            uploadWorldImage("test-data/elf-signature-file-world.zip", "application/zip");
+        });
     }
 
     @Test
@@ -855,5 +884,68 @@ public class CoverageStoreFileUploadTest extends CatalogRESTTestSupport {
                 "The data directory file was not deleted",
                 Resource.Type.UNDEFINED,
                 getResourceLoader().get("data/sf/usa/test3.zip").getType());
+    }
+
+    @Test
+    public void testFilesystemSandbox() throws Exception {
+        // set up a system sandbox
+        File systemSandbox = new File("./target/systemSandbox").getCanonicalFile();
+        System.setProperty(GEOSERVER_DATA_SANDBOX, systemSandbox.getAbsolutePath());
+        DefaultFileAccessManager fam = (DefaultFileAccessManager) FileAccessManager.lookupFileAccessManager();
+        fam.reload();
+
+        try {
+            uploadUSAWorldImage();
+
+            // check the coverage has been uploaded inside the system sandbox
+            CoverageStoreInfo cs = getCatalog().getCoverageStoreByName("sf", "usa");
+            assertNotNull(cs);
+            // compute a OS independent test string (replacement is for Windows)
+            String expected =
+                    new File(systemSandbox, "/sf/usa/usa.png").getAbsolutePath().replace("\\", "/");
+            assertThat(cs.getURL(), Matchers.containsString(expected));
+        } finally {
+            System.clearProperty(GEOSERVER_DATA_SANDBOX);
+            fam.reload();
+        }
+    }
+
+    /**
+     * Upload a world image file.
+     *
+     * <p>see {link uploadUSAWorldImage}
+     *
+     * @param fname where to get the data from
+     * @param contentType what to mark this file's contentType as
+     * @throws Exception something went from with the upload (including validating return)
+     */
+    private void uploadWorldImage(String fname, String contentType) throws Exception {
+        URL file = getClass().getResource(fname);
+        byte[] bytes = FileUtils.readFileToByteArray(URLs.urlToFile(file));
+
+        MockHttpServletResponse response = putAsServletResponse(
+                RestBaseController.ROOT_PATH + "/workspaces/sf/coveragestores/usa/file.worldimage", bytes, contentType);
+        assertEquals(201, response.getStatus());
+        assertEquals(MediaType.APPLICATION_XML_VALUE, response.getContentType());
+
+        String content = response.getContentAsString();
+        Document d = dom(new ByteArrayInputStream(content.getBytes()));
+        assertEquals("coverageStore", d.getDocumentElement().getNodeName());
+    }
+
+    private void uploadUSAWorldImage() throws Exception {
+        URL zip = getClass().getResource("test-data/usa.zip");
+        byte[] bytes = FileUtils.readFileToByteArray(URLs.urlToFile(zip));
+
+        MockHttpServletResponse response = putAsServletResponse(
+                RestBaseController.ROOT_PATH + "/workspaces/sf/coveragestores/usa/file.worldimage",
+                bytes,
+                "application/zip");
+        assertEquals(201, response.getStatus());
+        assertEquals(MediaType.APPLICATION_XML_VALUE, response.getContentType());
+
+        String content = response.getContentAsString();
+        Document d = dom(new ByteArrayInputStream(content.getBytes()));
+        assertEquals("coverageStore", d.getDocumentElement().getNodeName());
     }
 }
