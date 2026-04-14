@@ -65,6 +65,7 @@ import org.geoserver.config.GeoServer;
 import org.geoserver.config.GeoServerDataDirectory;
 import org.geoserver.platform.resource.Resource;
 import org.geoserver.platform.resource.Resources;
+import org.geoserver.util.FileTypes;
 import org.geoserver.web.ComponentAuthorizer;
 import org.geoserver.web.GeoServerApplication;
 import org.geoserver.web.GeoServerSecuredPage;
@@ -770,37 +771,33 @@ public abstract class AbstractStylePage extends GeoServerSecuredPage {
                                             styleHandler().imageExtensions());
                         }
 
-                        @Override
-                        protected boolean onSubmit(AjaxRequestTarget target, Component contents) {
-                            String imageFileName = imagePanel.getChoice();
-                            if (Strings.isEmpty(imageFileName)) {
-                                FileUpload fu = imagePanel.getFileUpload();
-                                imageFileName = fu.getClientFileName();
-                                int teller = 0;
-                                GeoServerDataDirectory dd =
-                                        GeoServerApplication.get()
-                                                .getBeanOfType(GeoServerDataDirectory.class);
-                                Resource res =
-                                        dd.getStyles(
-                                                styleModel.getObject().getWorkspace(),
-                                                imageFileName);
-                                while (Resources.exists(res)) {
-                                    imageFileName = getImageFileName(fu, ++teller);
-                                    res =
-                                            dd.getStyles(
-                                                    styleModel.getObject().getWorkspace(),
-                                                    imageFileName);
-                                }
-                                try (InputStream is = fu.getInputStream()) {
-                                    try (OutputStream os = res.out()) {
-                                        IOUtils.copy(is, os);
-                                    }
-                                } catch (IOException e) {
-                                    error(e.getMessage());
-                                    target.add(imagePanel.getFeedback());
-                                    return false;
-                                }
+                @Override
+                protected boolean onSubmit(AjaxRequestTarget target, Component contents) {
+                    String imageFileName = imagePanel.getChoice();
+                    if (Strings.isEmpty(imageFileName)) {
+                        FileUpload fu = imagePanel.getFileUpload();
+                        try (InputStream is = fu.getInputStream()) {
+                            FileTypes.assertSimpleImage(is, true);
+                        } catch (Exception e) {
+                            error(e.getMessage());
+                            target.add(imagePanel.getFeedback());
+                            return false;
+                        }
+                        imageFileName = fu.getClientFileName();
+                        int teller = 0;
+                        GeoServerDataDirectory dd =
+                                GeoServerApplication.get().getBeanOfType(GeoServerDataDirectory.class);
+                        Resource res = dd.getStyles(styleModel.getObject().getWorkspace(), imageFileName);
+                        while (Resources.exists(res)) {
+                            imageFileName = getImageFileName(fu, ++teller);
+                            res = dd.getStyles(styleModel.getObject().getWorkspace(), imageFileName);
+                        }
+
+                        try (InputStream is = fu.getInputStream()) {
+                            try (OutputStream os = res.out()) {
+                                IOUtils.copy(is, os);
                             }
+                        }
                             String code = StringEscapeUtils.escapeEcmaScript(imageFileName);
                             code = styleHandler().insertImageCode(code, input);
                             target.appendJavaScript("replaceSelection('" + code + "');");
