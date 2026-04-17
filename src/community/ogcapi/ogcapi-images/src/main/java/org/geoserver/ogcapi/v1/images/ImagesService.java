@@ -516,10 +516,8 @@ public class ImagesService implements ApplicationContextAware {
                             + "."
                             + MimeTypeSupport.guessFileExtension(request.getContentType());
         }
-        Resource uploadRoot =
-                RESTUtils.createUploadRoot(geoServer.getCatalog(), workspace, storeName, true);
-        Resource uploadedResource =
-                RESTUtils.handleBinUpload(filename, uploadRoot, false, request, workspace);
+        Resource uploadRoot = RESTUtils.createUploadRoot(geoServer.getCatalog(), workspace, storeName, true);
+        Resource uploadedResource = RESTUtils.handleBinUpload(filename, uploadRoot, false, request, workspace, null);
 
         List<Resource> resources = new ArrayList<>();
         if (isZipFile(request)) {
