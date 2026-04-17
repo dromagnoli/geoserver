@@ -563,11 +563,10 @@ public class CoverageStoreFileUploadTest extends CatalogRESTTestSupport {
     private StructuredGridCoverage2DReader uploadGeotiffAndCheck(
             CoverageStoreInfo storeInfo, byte[] bytes, String filename) throws Exception {
         // Create the POST request
-        MockHttpServletRequest request =
-                createRequest(
-                        RestBaseController.ROOT_PATH
-                                + "/workspaces/gs/coveragestores/watertemp5/file.imagemosaic?filename="
-                                + filename);
+
+        MockHttpServletRequest request = createRequest(RestBaseController.ROOT_PATH
+                + "/workspaces/gs/coveragestores/watertemp5/file.geotiff?filename="
+                + filename);
         request.setMethod("POST");
         request.setContentType("image/tiff");
         request.setContent(bytes);
