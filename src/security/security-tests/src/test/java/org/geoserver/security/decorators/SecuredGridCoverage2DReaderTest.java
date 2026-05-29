@@ -10,19 +10,30 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.isA;
 import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
+import java.awt.image.RenderedImage;
+import java.awt.image.renderable.ParameterBlock;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Vector;
 import org.easymock.EasyMock;
 import org.eclipse.imagen.ImageLayout;
+import org.eclipse.imagen.Interpolation;
+import org.eclipse.imagen.RenderedOp;
 import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.CoverageView;
 import org.geoserver.catalog.CoverageViewReader;
 import org.geoserver.catalog.Predicates;
+import org.geoserver.ows.Dispatcher;
+import org.geoserver.ows.Request;
+import org.geoserver.platform.Operation;
+import org.geoserver.platform.Service;
 import org.geoserver.security.CatalogMode;
 import org.geoserver.security.CoverageAccessLimits;
 import org.geoserver.security.WrapperPolicy;
@@ -32,15 +43,29 @@ import org.geotools.api.filter.Filter;
 import org.geotools.api.parameter.GeneralParameterValue;
 import org.geotools.api.parameter.ParameterValue;
 import org.geotools.coverage.grid.GeneralGridEnvelope;
+import org.geotools.coverage.grid.GridCoverage2D;
+import org.geotools.coverage.grid.GridCoverageFactory;
 import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.coverage.grid.io.StructuredGridCoverage2DReader;
 import org.geotools.filter.text.ecql.ECQL;
 import org.geotools.gce.imagemosaic.ImageMosaicFormat;
 import org.geotools.geometry.GeneralBounds;
+import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
+import org.geotools.util.Version;
+import org.junit.After;
 import org.junit.Test;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.geom.Polygon;
 
 public class SecuredGridCoverage2DReaderTest extends SecureObjectsTest {
+
+    @After
+    public void cleanupRequest() {
+        Dispatcher.REQUEST.remove();
+    }
 
     @Test
     public void testFilter() throws Exception {
@@ -135,6 +160,48 @@ public class SecuredGridCoverage2DReaderTest extends SecureObjectsTest {
         assertTrue(securedObject instanceof SecuredGridFormat);
     }
 
+    @Test
+    public void testRasterFilterScalesToRequestedMapRasterArea() throws Exception {
+        GridCoverage2D source = createCoverage(100, 100);
+        GridCoverage2DReader reader = createNiceMock(GridCoverage2DReader.class);
+        expect(reader.read(isA(GeneralParameterValue[].class))).andReturn(source);
+        EasyMock.replay(reader);
+
+        setRequestSize(200, 80);
+        CoverageAccessLimits accessLimits =
+                new CoverageAccessLimits(CatalogMode.HIDE, null, createRasterFilter(), null);
+        SecuredGridCoverage2DReader secured =
+                new SecuredGridCoverage2DReader(reader, WrapperPolicy.readOnlyHide(accessLimits));
+
+        GridCoverage2D result = secured.read(new GeneralParameterValue[] {interpolationParam()});
+
+        assertNotNull(result);
+        RenderedImage image = result.getRenderedImage();
+        assertEquals(200, image.getWidth());
+        assertEquals(80, image.getHeight());
+        assertEquals(25d, result.getEnvelope2D().getMinX(), 0d);
+        assertEquals(75d, result.getEnvelope2D().getMaxX(), 0d);
+
+        assertEquals(
+                Interpolation.getInstance(Interpolation.INTERP_BILINEAR),
+                getScalingInterpolation(result.getRenderedImage()));
+    }
+
+    @Test
+    public void testRasterFilterOutsideCoverageReturnsNull() throws Exception {
+        GridCoverage2D source = createCoverage(100, 100);
+        GridCoverage2DReader reader = createNiceMock(GridCoverage2DReader.class);
+        expect(reader.read(isA(GeneralParameterValue[].class))).andReturn(source);
+        EasyMock.replay(reader);
+
+        MultiPolygon rasterFilter = createRasterFilter(200, 250, 200, 250);
+        CoverageAccessLimits accessLimits = new CoverageAccessLimits(CatalogMode.HIDE, null, rasterFilter, null);
+        SecuredGridCoverage2DReader secured =
+                new SecuredGridCoverage2DReader(reader, WrapperPolicy.readOnlyHide(accessLimits));
+
+        assertNull(secured.read(new GeneralParameterValue[0]));
+    }
+
     private static void setupReadAssertion(
             GridCoverage2DReader reader, final Filter requestFilter, final Filter securityFilter) throws IOException {
         // the assertion
@@ -155,5 +222,97 @@ public class SecuredGridCoverage2DReaderTest extends SecureObjectsTest {
                 .anyTimes();
         EasyMock.replay(format);
         return format;
+    }
+
+    private static GridCoverage2D createCoverage(int width, int height) {
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
+        ReferencedEnvelope envelope = new ReferencedEnvelope(0, 100, 0, 100, DefaultGeographicCRS.WGS84);
+        return new GridCoverageFactory().create("test", image, envelope);
+    }
+
+    private static MultiPolygon createRasterFilter() {
+        return createRasterFilter(25, 75, 25, 75);
+    }
+
+    private static MultiPolygon createRasterFilter(double minX, double maxX, double minY, double maxY) {
+        GeometryFactory geometryFactory = new GeometryFactory();
+        Polygon polygon = geometryFactory.createPolygon(new Coordinate[] {
+            new Coordinate(minX, minY),
+            new Coordinate(maxX, minY),
+            new Coordinate(maxX, maxY),
+            new Coordinate(minX, maxY),
+            new Coordinate(minX, minY)
+        });
+        return geometryFactory.createMultiPolygon(new Polygon[] {polygon});
+    }
+
+    @SuppressWarnings("unchecked")
+    private static ParameterValue<Interpolation> interpolationParam() {
+        ParameterValue<Interpolation> interpolation =
+                (ParameterValue<Interpolation>) ImageMosaicFormat.INTERPOLATION.createValue();
+        interpolation.setValue(Interpolation.getInstance(Interpolation.INTERP_BILINEAR));
+        return interpolation;
+    }
+
+    private static void setRequestSize(int width, int height) {
+        Request request = new Request();
+        Service service = new Service("WMS", new Object(), new Version("1.3.0"), Collections.singletonList("GetMap"));
+        request.setOperation(new Operation("GetMap", service, null, new Object[] {new MapSize(width, height)}));
+        Dispatcher.REQUEST.set(request);
+    }
+
+    private static Interpolation getScalingInterpolation(RenderedImage image) {
+        RenderedOp scalingOp = getScalingOpImage(image);
+        if (scalingOp == null) {
+            return null;
+        }
+
+        ParameterBlock parameterBlock = scalingOp.getParameterBlock();
+        for (int i = 0; i < parameterBlock.getNumParameters(); i++) {
+            Object param = parameterBlock.getObjectParameter(i);
+            if (param instanceof Interpolation) {
+                return (Interpolation) param;
+            }
+        }
+        return null;
+    }
+
+    private static RenderedOp getScalingOpImage(RenderedImage image) {
+        Vector<RenderedImage> sources = image.getSources();
+        if (sources == null) {
+            return null;
+        }
+
+        for (RenderedImage source : sources) {
+            if (source instanceof RenderedOp) {
+                RenderedOp op = (RenderedOp) source;
+                if ("Scale".equalsIgnoreCase(op.getOperationName())) {
+                    return op;
+                }
+            }
+            RenderedOp op = getScalingOpImage(source);
+            if (op != null) {
+                return op;
+            }
+        }
+        return null;
+    }
+
+    public static class MapSize {
+        private final int width;
+        private final int height;
+
+        public MapSize(int width, int height) {
+            this.width = width;
+            this.height = height;
+        }
+
+        public int getWidth() {
+            return width;
+        }
+
+        public int getHeight() {
+            return height;
+        }
     }
 }
