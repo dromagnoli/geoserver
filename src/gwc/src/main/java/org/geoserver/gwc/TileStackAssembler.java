@@ -17,8 +17,8 @@ import org.geowebcache.mime.MimeType;
 /**
  * Assembles one coalesced tile by fetching each {@code LAYERS} member's own tile and stacking them alpha-over in
  * request order. Single-use, single-threaded: build one instance per tile request. Modeled on
- * {@code org.geowebcache.service.wms.WMSTileFuser}, dropping the spatial resampling it needs and this doesn't:
- * every member shares the same grid location and zoom.
+ * {@code org.geowebcache.service.wms.WMSTileFuser}, dropping the spatial resampling it needs and this doesn't: every
+ * member shares the same grid location and zoom.
  */
 class TileStackAssembler {
 

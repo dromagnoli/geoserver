@@ -140,6 +140,8 @@ import org.geowebcache.grid.OutsideCoverageException;
 import org.geowebcache.grid.SRS;
 import org.geowebcache.io.ByteArrayResource;
 import org.geowebcache.io.Resource;
+import org.geowebcache.io.codec.ImageDecoderContainer;
+import org.geowebcache.io.codec.ImageEncoderContainer;
 import org.geowebcache.layer.TileLayer;
 import org.geowebcache.layer.TileLayerDispatcher;
 import org.geowebcache.locks.LockProvider;
@@ -752,8 +754,11 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
          * parser turned it into a list of actual Layers
          */
         if (layerName.indexOf(',') != -1) {
-            requestMistmatchTarget.append("more than one layer requested");
-            return null;
+            if (!getConfig().isMultiLayerCachingEnabled()) {
+                requestMistmatchTarget.append("more than one layer requested");
+                return null;
+            }
+            return dispatchCoalesced(request, requestMistmatchTarget);
         }
 
         // GEOS-9431 acquire prefixed name if not prefixed already
@@ -813,6 +818,45 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
             log.log(Level.INFO, "Error dispatching tile request to GeoServer", e);
         }
         return tileResp;
+    }
+
+    /**
+     * Splits and assembles a coalesced multi-layer tile request. Cache headers are borrowed from the first member until
+     * a combined-policy header rule is built; {@code geowebcache-cache-result} is not yet computed per member, so it
+     * reports {@code UNKNOWN}.
+     */
+    private ConveyorTile dispatchCoalesced(GetMapRequest request, StringBuilder requestMismatchTarget) {
+        List<TileLayerMember> members = splitCoalescedRequest(request, requestMismatchTarget);
+        if (members == null) {
+            return null;
+        }
+
+        byte[] assembled;
+        try {
+            TileStackAssembler assembler = new TileStackAssembler(
+                    GeoServerExtensions.bean(ImageDecoderContainer.class),
+                    GeoServerExtensions.bean(ImageEncoderContainer.class));
+            assembled = assembler.assemble(members, members.get(0).tile().getMimeType());
+        } catch (Exception e) {
+            log.log(Level.INFO, "Error assembling coalesced tile", e);
+            requestMismatchTarget.append("error assembling coalesced tile: ").append(e.getMessage());
+            return null;
+        }
+
+        ConveyorTile firstMemberTile = members.get(0).tile();
+        // never persisted itself: only the per-member tiles it stacks are cached
+        ConveyorTile assembledTile = new ConveyorTile(
+                null,
+                request.getRawKvp().get("LAYERS"),
+                firstMemberTile.getGridSetId(),
+                firstMemberTile.getTileIndex(),
+                firstMemberTile.getMimeType(),
+                Collections.emptyMap(),
+                null,
+                null);
+        assembledTile.setBlob(new ByteArrayResource(assembled));
+        assembledTile.setTileLayer(members.get(0).tileLayer());
+        return assembledTile;
     }
 
     /**
