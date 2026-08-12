@@ -869,7 +869,7 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
                 requestMismatchTarget.append('\'').append(layerName).append("' tile layer disabled");
                 return null;
             }
-            if (hasIneligibleLabelsOrCompositing(styles.get(i), scaleDenominator)) {
+            if (isIneligibleAtScale(styles.get(i), scaleDenominator)) {
                 requestMismatchTarget
                         .append('\'')
                         .append(layerName)
@@ -920,11 +920,11 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
     }
 
     /**
-     * Whether {@code style} draws labels, or blends with the layers beneath it, in any {@code FeatureTypeStyle}
-     * active at {@code scaleDenominator}: a per-layer cached tile bakes either in without the rest of the stack, so
-     * it can't reproduce what a live render of the whole stack would draw.
+     * Whether {@code style} draws labels, or blends with the layers beneath it, in any {@code FeatureTypeStyle} active
+     * at {@code scaleDenominator}: a per-layer cached tile bakes either in without the rest of the stack, so it can't
+     * reproduce what a live render of the whole stack would draw.
      */
-    private static boolean hasIneligibleLabelsOrCompositing(Style style, double scaleDenominator) {
+    private static boolean isIneligibleAtScale(Style style, double scaleDenominator) {
         for (FeatureTypeStyle fts : style.featureTypeStyles()) {
             boolean active = false;
             boolean labels = false;
@@ -944,10 +944,10 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
             }
             if (fts.getOptions().containsKey(FeatureTypeStyle.COMPOSITE)
                     || fts.getOptions().containsKey(FeatureTypeStyle.COMPOSITE_BASE)) {
-                return true;
+                return true; // ineligible: composites with the layers beneath it at this scale
             }
             if (labels) {
-                return true;
+                return true; // ineligible: draws labels at this scale
             }
         }
         return false;

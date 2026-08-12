@@ -106,10 +106,10 @@ import org.geoserver.wms.map.RawMap;
 import org.geotools.api.filter.Filter;
 import org.geotools.api.style.FeatureTypeStyle;
 import org.geotools.api.style.Style;
+import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.filter.identity.FeatureIdImpl;
 import org.geotools.filter.text.cql2.CQL;
 import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.geotools.styling.StyleBuilder;
@@ -1660,10 +1660,10 @@ public class GWCTest {
     }
 
     @Test
-    public void testSplitCoalescedRequestRejectsLabelsAtScale() throws Exception {
+    public void testSplitRejectsOnLabeling() throws Exception {
         defaults.setMultiLayerCachingEnabled(true);
 
-        LayerInfo layer1 = mockLayer("member1", new String[] {}, PublishedType.RASTER);
+        LayerInfo layer1 = mockLayer("member1", new String[] {}, PublishedType.VECTOR);
         LayerInfo layer2 = mockLayer("member2", new String[] {}, PublishedType.RASTER);
         GeoServerTileLayer tl1 = mockTileLayer(new MapLayerInfo(layer1).getName(), Arrays.asList("EPSG:4326"));
         mockTileLayer(new MapLayerInfo(layer2).getName(), Arrays.asList("EPSG:4326"));
@@ -1682,7 +1682,7 @@ public class GWCTest {
     }
 
     @Test
-    public void testSplitCoalescedRequestRejectsCompositingAtScale() throws Exception {
+    public void testSplitRejectsOnCompositing() throws Exception {
         defaults.setMultiLayerCachingEnabled(true);
 
         LayerInfo layer1 = mockLayer("member1", new String[] {}, PublishedType.RASTER);
@@ -1706,7 +1706,59 @@ public class GWCTest {
     }
 
     @Test
-    public void testSplitCoalescedRequestFallsBackWhenAMemberIsNotCacheable() throws Exception {
+    public void testSplitAllowsOutOfScaleLabels() throws Exception {
+        defaults.setMultiLayerCachingEnabled(true);
+
+        LayerInfo layer1 = mockLayer("member1", new String[] {}, PublishedType.VECTOR);
+        LayerInfo layer2 = mockLayer("member2", new String[] {}, PublishedType.RASTER);
+        GeoServerTileLayer tl1 = mockTileLayer(new MapLayerInfo(layer1).getName(), Arrays.asList("EPSG:4326"));
+        mockTileLayer(new MapLayerInfo(layer2).getName(), Arrays.asList("EPSG:4326"));
+
+        BoundingBox bounds = tl1.getGridSubset("EPSG:4326").boundsFromIndex(new long[] {0, 0, 0});
+        Envelope bbox = new Envelope(bounds.getMinX(), bounds.getMaxX(), bounds.getMinY(), bounds.getMaxY());
+        GetMapRequest request = coalescedRequest(bbox, layer1, layer2);
+
+        StyleBuilder sb = new StyleBuilder();
+        // labels only active between scale denominators 1 and 2, nowhere near a zoom-0 world tile's scale
+        request.getStyles().set(1, sb.createStyle(sb.createTextSymbolizer(), 1, 2));
+        StringBuilder mismatch = new StringBuilder();
+
+        List<GWC.TileLayerMember> members = mediator.splitCoalescedRequest(request, mismatch);
+
+        assertEquals(0, mismatch.length());
+        assertNotNull(members);
+        assertEquals(2, members.size());
+    }
+
+    @Test
+    public void testSplitAllowsOutOfScaleCompositing() throws Exception {
+        defaults.setMultiLayerCachingEnabled(true);
+
+        LayerInfo layer1 = mockLayer("member1", new String[] {}, PublishedType.RASTER);
+        GeoServerTileLayer tl1 = mockTileLayer(new MapLayerInfo(layer1).getName(), Arrays.asList("EPSG:4326"));
+
+        BoundingBox bounds = tl1.getGridSubset("EPSG:4326").boundsFromIndex(new long[] {0, 0, 0});
+        Envelope bbox = new Envelope(bounds.getMinX(), bounds.getMaxX(), bounds.getMinY(), bounds.getMaxY());
+        GetMapRequest request = coalescedRequest(bbox, layer1);
+
+        StyleBuilder sb = new StyleBuilder();
+        // composite only active between scale denominators 1 and 2, nowhere near a zoom-0 world tile's scale
+        FeatureTypeStyle fts = sb.createFeatureTypeStyle(sb.createPolygonSymbolizer(), 1, 2);
+        fts.getOptions().put(FeatureTypeStyle.COMPOSITE, "multiply");
+        Style compositingStyle = sb.createStyle();
+        compositingStyle.featureTypeStyles().add(fts);
+        request.getStyles().set(0, compositingStyle);
+        StringBuilder mismatch = new StringBuilder();
+
+        List<GWC.TileLayerMember> members = mediator.splitCoalescedRequest(request, mismatch);
+
+        assertEquals(0, mismatch.length());
+        assertNotNull(members);
+        assertEquals(1, members.size());
+    }
+
+    @Test
+    public void testSplitOnNotCacheable() throws Exception {
         defaults.setMultiLayerCachingEnabled(true);
 
         LayerInfo layer1 = mockLayer("member1", new String[] {}, PublishedType.RASTER);
