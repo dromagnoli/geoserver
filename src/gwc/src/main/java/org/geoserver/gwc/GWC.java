@@ -96,6 +96,8 @@ import org.geotools.api.filter.Filter;
 import org.geotools.api.filter.FilterFactory;
 import org.geotools.api.filter.MultiValuedFilter.MatchAction;
 import org.geotools.api.filter.Or;
+import org.geotools.api.filter.sort.SortBy;
+import org.geotools.api.filter.sort.SortOrder;
 import org.geotools.api.metadata.extent.GeographicBoundingBox;
 import org.geotools.api.referencing.FactoryException;
 import org.geotools.api.referencing.NoSuchAuthorityCodeException;
@@ -107,6 +109,7 @@ import org.geotools.api.style.Style;
 import org.geotools.api.style.Symbolizer;
 import org.geotools.api.style.TextSymbolizer;
 import org.geotools.factory.CommonFactoryFinder;
+import org.geotools.filter.text.ecql.ECQL;
 import org.geotools.geometry.GeneralBounds;
 import org.geotools.geometry.jts.JTS;
 import org.geotools.geometry.jts.ReferencedEnvelope;
@@ -829,14 +832,38 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
     }
 
     /**
+     * Internal signaling channel from {@link #dispatchCoalesced} to {@link org.geoserver.gwc.wms.CachingWebMapService}:
+     * the assembled {@code ConveyorTile}'s {@code geowebcache-cache-result} value, computed per member ({@code HIT},
+     * {@code MISS}, or {@code PARTIAL n/N}), since {@link Conveyor.CacheResult} has no such value. Piggybacks on the
+     * unused filtering-parameters map of a tile that is never itself persisted or looked up.
+     */
+    public static final String COALESCED_CACHE_RESULT_KEY = "gwc.coalesced.cacheResult";
+
+    /**
      * Splits and assembles a coalesced multi-layer tile request. Cache headers are borrowed from the first member until
-     * a combined-policy header rule is built; {@code geowebcache-cache-result} is not yet computed per member, so it
-     * reports {@code UNKNOWN}.
+     * a combined-policy header rule is built (see {@link #COALESCED_CACHE_RESULT_KEY} for
+     * {@code geowebcache-cache-result}, which is computed correctly).
      */
     private ConveyorTile dispatchCoalesced(GetMapRequest request, StringBuilder requestMismatchTarget) {
+        long deadline = -1;
+        int maxRenderingTime = WMS.get().getServiceInfo().getMaxRenderingTime();
+        if (maxRenderingTime > 0) {
+            deadline = System.currentTimeMillis() + maxRenderingTime * 1000L;
+        }
+
         List<TileLayerMember> members = splitCoalescedRequest(request, requestMismatchTarget);
         if (members == null) {
             return null;
+        }
+
+        int maxRequestMemoryKB = WMS.get().getServiceInfo().getMaxRequestMemory();
+        if (maxRequestMemoryKB > 0) {
+            // peak residency: every member's decoded input plus the output tile, all ARGB
+            long peakBytes = (long) (members.size() + 1) * request.getWidth() * request.getHeight() * 4;
+            if (peakBytes > (long) maxRequestMemoryKB * 1024) {
+                requestMismatchTarget.append("coalesced tile would exceed max request memory");
+                return null;
+            }
         }
 
         byte[] assembled;
@@ -844,7 +871,10 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
             TileStackAssembler assembler = new TileStackAssembler(
                     GeoServerExtensions.bean(ImageDecoderContainer.class),
                     GeoServerExtensions.bean(ImageEncoderContainer.class));
-            assembled = assembler.assemble(members, members.get(0).tile().getMimeType());
+            assembled = assembler.assemble(members, members.get(0).tile().getMimeType(), deadline);
+        } catch (RuntimeException e) {
+            // e.g. the assembler's own deadline check: fail hard, a live re-render would just hit the same wall
+            throw e;
         } catch (Exception e) {
             log.log(Level.INFO, "Error assembling coalesced tile", e);
             requestMismatchTarget.append("error assembling coalesced tile: ").append(e.getMessage());
@@ -852,6 +882,8 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
         }
 
         ConveyorTile firstMemberTile = members.get(0).tile();
+        Map<String, String> signaling =
+                Collections.singletonMap(COALESCED_CACHE_RESULT_KEY, coalescedCacheResultHeader(members));
         // never persisted itself: only the per-member tiles it stacks are cached
         ConveyorTile assembledTile = new ConveyorTile(
                 null,
@@ -859,7 +891,7 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
                 firstMemberTile.getGridSetId(),
                 firstMemberTile.getTileIndex(),
                 firstMemberTile.getMimeType(),
-                Collections.emptyMap(),
+                signaling,
                 null,
                 null);
         assembledTile.setBlob(new ByteArrayResource(assembled));
@@ -867,12 +899,22 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
         return assembledTile;
     }
 
-    /**
-     * KVP params that are positional per {@code LAYERS} member but whose per-member raw-KVP slice this split does not
-     * yet reconstruct; their presence makes a coalesced request ineligible for multi-layer tile caching.
-     */
-    private static final List<String> UNSUPPORTED_POSITIONAL_PARAMS =
-            Arrays.asList("CQL_FILTER", "FILTER", "SORTBY", "VIEWPARAMS");
+    /** {@code HIT} if every member was cached, {@code MISS} if none was, else {@code PARTIAL n/N}. */
+    private static String coalescedCacheResultHeader(List<TileLayerMember> members) {
+        int hits = 0;
+        for (TileLayerMember member : members) {
+            if (member.tile().getCacheResult() == Conveyor.CacheResult.HIT) {
+                hits++;
+            }
+        }
+        if (hits == members.size()) {
+            return Conveyor.CacheResult.HIT.toString();
+        }
+        if (hits == 0) {
+            return Conveyor.CacheResult.MISS.toString();
+        }
+        return "PARTIAL " + hits + "/" + members.size();
+    }
 
     /** A {@code LAYERS} member of a coalesced request, split into its own single-layer prepared tile request. */
     record TileLayerMember(TileLayer tileLayer, ConveyorTile tile) {}
@@ -895,20 +937,20 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
             return null;
         }
         final Map<String, String> rawKvp = request.getRawKvp();
-        for (String unsupported : UNSUPPORTED_POSITIONAL_PARAMS) {
-            if (rawKvp.get(unsupported) != null) {
-                requestMismatchTarget.append(unsupported).append(" not yet supported for multi-layer tile caching");
-                return null;
-            }
-        }
 
         final List<MapLayerInfo> layers = request.getLayers();
         final List<Style> styles = request.getStyles();
+        final List<Filter> cqlFilters = request.getCQLFilter();
+        final List<Filter> filters = request.getFilter();
+        final List<List<SortBy>> sortBys = request.getSortBy();
+        final List<Map<String, String>> viewParams = request.getViewParams();
         final double scaleDenominator = computeScaleDenominator(request);
         // the raw multi-layer request is authorized nowhere else, so each member needs its own coarse gate
         final ReferencedEnvelope securityBbox =
                 getConfig().isSecurityEnabled() ? parseRequestBbox(request, rawKvp.get("LAYERS")) : null;
         final List<TileLayerMember> members = new ArrayList<>(layers.size());
+        String gridSetId = null;
+        long[] tileIndex = null;
         for (int i = 0; i < layers.size(); i++) {
             String layerName = layers.get(i).getName();
             if (!tld.layerExists(layerName)) {
@@ -949,11 +991,52 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
             if (rawKvp.get("STYLES") != null) {
                 memberKvp.put("STYLES", styles.get(i).getName());
             }
+            if (cqlFilters != null && i < cqlFilters.size()) {
+                Filter memberCqlFilter = cqlFilters.get(i);
+                memberRequest.setCQLFilter(Collections.singletonList(memberCqlFilter));
+                if (rawKvp.get("CQL_FILTER") != null) {
+                    memberKvp.put("CQL_FILTER", ECQL.toCQL(memberCqlFilter));
+                }
+            }
+            if (filters != null && i < filters.size()) {
+                Filter memberFilter = filters.get(i);
+                memberRequest.setFilter(Collections.singletonList(memberFilter));
+                if (rawKvp.get("FILTER") != null) {
+                    memberKvp.put("FILTER", ECQL.toCQL(memberFilter));
+                }
+            }
+            if (sortBys != null && i < sortBys.size()) {
+                List<SortBy> memberSortBy = sortBys.get(i);
+                memberRequest.setSortBy(Collections.singletonList(memberSortBy));
+                if (rawKvp.get("SORTBY") != null) {
+                    memberKvp.put("SORTBY", encodeSortBy(memberSortBy));
+                }
+            }
+            if (viewParams != null && i < viewParams.size()) {
+                Map<String, String> memberViewParams = viewParams.get(i);
+                memberRequest.setViewParams(Collections.singletonList(memberViewParams));
+                if (rawKvp.get("VIEWPARAMS") != null) {
+                    memberKvp.put("VIEWPARAMS", encodeViewParams(memberViewParams));
+                }
+            }
             memberRequest.setRawKvp(memberKvp);
 
             ConveyorTile memberTile = prepareRequest(tileLayer, memberRequest, requestMismatchTarget);
             if (memberTile == null) {
                 requestMismatchTarget.insert(0, "'" + layerName + "': ");
+                return null;
+            }
+            if (members.isEmpty()) {
+                gridSetId = memberTile.getGridSetId();
+                tileIndex = memberTile.getTileIndex();
+            } else if (!gridSetId.equals(memberTile.getGridSetId())
+                    || !Arrays.equals(tileIndex, memberTile.getTileIndex())) {
+                // members share one footprint, gridloc and zoom: TileStackAssembler stacks raw pixels with no
+                // knowledge of gridset identity, so a mismatch here would silently misalign the assembled tile
+                requestMismatchTarget
+                        .append('\'')
+                        .append(layerName)
+                        .append("' resolved to a different gridset/tile than the other members");
                 return null;
             }
             members.add(new TileLayerMember(tileLayer, memberTile));
@@ -977,6 +1060,31 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
         } finally {
             mapContent.dispose();
         }
+    }
+
+    /** Re-encodes a member's sort clauses in the {@code SORTBY} KVP syntax: {@code "prop1 A,prop2 D"}. */
+    private static String encodeSortBy(List<SortBy> sortBy) {
+        StringBuilder encoded = new StringBuilder();
+        for (SortBy s : sortBy) {
+            if (encoded.length() > 0) {
+                encoded.append(',');
+            }
+            boolean descending = s.getSortOrder() == SortOrder.DESCENDING;
+            encoded.append(s.getPropertyName().getPropertyName()).append(descending ? " D" : " A");
+        }
+        return encoded.toString();
+    }
+
+    /** Re-encodes a member's view params in the {@code VIEWPARAMS} KVP syntax: {@code "key1:val1;key2:val2"}. */
+    private static String encodeViewParams(Map<String, String> viewParams) {
+        StringBuilder encoded = new StringBuilder();
+        for (Map.Entry<String, String> entry : viewParams.entrySet()) {
+            if (encoded.length() > 0) {
+                encoded.append(';');
+            }
+            encoded.append(entry.getKey()).append(':').append(entry.getValue());
+        }
+        return encoded.toString();
     }
 
     /** Mirrors the private rule scale-range check in {@code org.geotools.renderer.lite.StreamingRenderer}. */

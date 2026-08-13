@@ -120,6 +120,13 @@ public class CachingWebMapService implements MethodInterceptor {
         GWC.setCacheControlHeaders(headers, layer, (int) cachedTile.getTileIndex()[2]);
         GWC.setConditionalGetHeaders(headers, cachedTile, etag, request.getHttpRequestHeader("If-Modified-Since"));
         GWC.setCacheMetadataHeaders(headers, cachedTile, layer);
+        // a coalesced multi-layer tile's real per-member cache result (HIT/MISS/PARTIAL n/N) can't be expressed as
+        // a single Conveyor.CacheResult, so GWC.dispatchCoalesced smuggles it through the tile's own filtering
+        // parameters (never used for anything else on a tile that is never itself persisted or looked up)
+        String coalescedCacheResult = cachedTile.getFilteringParameters().get(GWC.COALESCED_CACHE_RESULT_KEY);
+        if (coalescedCacheResult != null) {
+            headers.put("geowebcache-cache-result", coalescedCacheResult);
+        }
         headers.forEach((k, v) -> map.setResponseHeader(k, v));
 
         return map;

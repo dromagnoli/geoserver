@@ -129,6 +129,7 @@ import org.geowebcache.conveyor.ConveyorTile;
 import org.geowebcache.diskquota.DiskQuotaMonitor;
 import org.geowebcache.diskquota.QuotaStore;
 import org.geowebcache.diskquota.jdbc.JDBCConfiguration;
+import org.geowebcache.filter.parameters.RegexParameterFilter;
 import org.geowebcache.grid.BoundingBox;
 import org.geowebcache.grid.GridSet;
 import org.geowebcache.grid.GridSetBroker;
@@ -1623,15 +1624,38 @@ public class GWCTest {
     }
 
     @Test
-    public void testSplitCoalescedRequestRejectsPositionalFilterParams() throws Exception {
+    public void testSplitReslicesCqlFilterPerMember() throws Exception {
         defaults.setMultiLayerCachingEnabled(true);
 
-        GetMapRequest request = coalescedRequest(new Envelope(0, 1, 0, 1), layer, layer);
-        request.getRawKvp().put("CQL_FILTER", "include;include");
+        LayerInfo layer1 = mockLayer("member1", new String[] {}, PublishedType.RASTER);
+        LayerInfo layer2 = mockLayer("member2", new String[] {}, PublishedType.RASTER);
+        GeoServerTileLayer tl1 = mockTileLayer(new MapLayerInfo(layer1).getName(), List.of("EPSG:4326"));
+        GeoServerTileLayer tl2 = mockTileLayer(new MapLayerInfo(layer2).getName(), List.of("EPSG:4326"));
+
+        // anchored to the WHOLE value: only matches if this member sees just its own clause, not
+        // the combined multi-layer CQL_FILTER string
+        RegexParameterFilter filter1 = new RegexParameterFilter();
+        filter1.setKey("CQL_FILTER");
+        filter1.setRegex("^NAME\\s*=\\s*'a'$");
+        when(tl1.getParameterFilters()).thenReturn(List.of(filter1));
+
+        RegexParameterFilter filter2 = new RegexParameterFilter();
+        filter2.setKey("CQL_FILTER");
+        filter2.setRegex("^NAME\\s*=\\s*'b'$");
+        when(tl2.getParameterFilters()).thenReturn(List.of(filter2));
+
+        BoundingBox bounds = tl1.getGridSubset("EPSG:4326").boundsFromIndex(new long[] {0, 0, 0});
+        Envelope bbox = new Envelope(bounds.getMinX(), bounds.getMaxX(), bounds.getMinY(), bounds.getMaxY());
+        GetMapRequest request = coalescedRequest(bbox, layer1, layer2);
+        request.setCQLFilter(List.of(CQL.toFilter("NAME = 'a'"), CQL.toFilter("NAME = 'b'")));
+        request.getRawKvp().put("CQL_FILTER", "NAME = 'a';NAME = 'b'");
         StringBuilder mismatch = new StringBuilder();
 
-        assertNull(mediator.splitCoalescedRequest(request, mismatch));
-        assertTrue(mismatch.toString().contains("CQL_FILTER not yet supported"));
+        List<GWC.TileLayerMember> members = mediator.splitCoalescedRequest(request, mismatch);
+
+        assertEquals(0, mismatch.length());
+        assertNotNull(members);
+        assertEquals(2, members.size());
     }
 
     @Test
@@ -1640,8 +1664,8 @@ public class GWCTest {
 
         LayerInfo layer1 = mockLayer("member1", new String[] {}, PublishedType.RASTER);
         LayerInfo layer2 = mockLayer("member2", new String[] {}, PublishedType.RASTER);
-        GeoServerTileLayer tl1 = mockTileLayer(new MapLayerInfo(layer1).getName(), Arrays.asList("EPSG:4326"));
-        GeoServerTileLayer tl2 = mockTileLayer(new MapLayerInfo(layer2).getName(), Arrays.asList("EPSG:4326"));
+        GeoServerTileLayer tl1 = mockTileLayer(new MapLayerInfo(layer1).getName(), List.of("EPSG:4326"));
+        GeoServerTileLayer tl2 = mockTileLayer(new MapLayerInfo(layer2).getName(), List.of("EPSG:4326"));
 
         BoundingBox bounds = tl1.getGridSubset("EPSG:4326").boundsFromIndex(new long[] {0, 0, 0});
         Envelope bbox = new Envelope(bounds.getMinX(), bounds.getMaxX(), bounds.getMinY(), bounds.getMaxY());
@@ -1665,8 +1689,8 @@ public class GWCTest {
 
         LayerInfo layer1 = mockLayer("member1", new String[] {}, PublishedType.VECTOR);
         LayerInfo layer2 = mockLayer("member2", new String[] {}, PublishedType.RASTER);
-        GeoServerTileLayer tl1 = mockTileLayer(new MapLayerInfo(layer1).getName(), Arrays.asList("EPSG:4326"));
-        mockTileLayer(new MapLayerInfo(layer2).getName(), Arrays.asList("EPSG:4326"));
+        GeoServerTileLayer tl1 = mockTileLayer(new MapLayerInfo(layer1).getName(), List.of("EPSG:4326"));
+        mockTileLayer(new MapLayerInfo(layer2).getName(), List.of("EPSG:4326"));
 
         BoundingBox bounds = tl1.getGridSubset("EPSG:4326").boundsFromIndex(new long[] {0, 0, 0});
         Envelope bbox = new Envelope(bounds.getMinX(), bounds.getMaxX(), bounds.getMinY(), bounds.getMaxY());
@@ -1686,7 +1710,7 @@ public class GWCTest {
         defaults.setMultiLayerCachingEnabled(true);
 
         LayerInfo layer1 = mockLayer("member1", new String[] {}, PublishedType.RASTER);
-        GeoServerTileLayer tl1 = mockTileLayer(new MapLayerInfo(layer1).getName(), Arrays.asList("EPSG:4326"));
+        GeoServerTileLayer tl1 = mockTileLayer(new MapLayerInfo(layer1).getName(), List.of("EPSG:4326"));
 
         BoundingBox bounds = tl1.getGridSubset("EPSG:4326").boundsFromIndex(new long[] {0, 0, 0});
         Envelope bbox = new Envelope(bounds.getMinX(), bounds.getMaxX(), bounds.getMinY(), bounds.getMaxY());
@@ -1711,8 +1735,8 @@ public class GWCTest {
 
         LayerInfo layer1 = mockLayer("member1", new String[] {}, PublishedType.VECTOR);
         LayerInfo layer2 = mockLayer("member2", new String[] {}, PublishedType.RASTER);
-        GeoServerTileLayer tl1 = mockTileLayer(new MapLayerInfo(layer1).getName(), Arrays.asList("EPSG:4326"));
-        mockTileLayer(new MapLayerInfo(layer2).getName(), Arrays.asList("EPSG:4326"));
+        GeoServerTileLayer tl1 = mockTileLayer(new MapLayerInfo(layer1).getName(), List.of("EPSG:4326"));
+        mockTileLayer(new MapLayerInfo(layer2).getName(), List.of("EPSG:4326"));
 
         BoundingBox bounds = tl1.getGridSubset("EPSG:4326").boundsFromIndex(new long[] {0, 0, 0});
         Envelope bbox = new Envelope(bounds.getMinX(), bounds.getMaxX(), bounds.getMinY(), bounds.getMaxY());
@@ -1735,7 +1759,7 @@ public class GWCTest {
         defaults.setMultiLayerCachingEnabled(true);
 
         LayerInfo layer1 = mockLayer("member1", new String[] {}, PublishedType.RASTER);
-        GeoServerTileLayer tl1 = mockTileLayer(new MapLayerInfo(layer1).getName(), Arrays.asList("EPSG:4326"));
+        GeoServerTileLayer tl1 = mockTileLayer(new MapLayerInfo(layer1).getName(), List.of("EPSG:4326"));
 
         BoundingBox bounds = tl1.getGridSubset("EPSG:4326").boundsFromIndex(new long[] {0, 0, 0});
         Envelope bbox = new Envelope(bounds.getMinX(), bounds.getMaxX(), bounds.getMinY(), bounds.getMaxY());
@@ -1763,7 +1787,7 @@ public class GWCTest {
 
         LayerInfo layer1 = mockLayer("member1", new String[] {}, PublishedType.RASTER);
         LayerInfo notCached = mockLayer("notCached", new String[] {}, PublishedType.RASTER);
-        GeoServerTileLayer tl1 = mockTileLayer(new MapLayerInfo(layer1).getName(), Arrays.asList("EPSG:4326"));
+        GeoServerTileLayer tl1 = mockTileLayer(new MapLayerInfo(layer1).getName(), List.of("EPSG:4326"));
 
         BoundingBox bounds = tl1.getGridSubset("EPSG:4326").boundsFromIndex(new long[] {0, 0, 0});
         Envelope bbox = new Envelope(bounds.getMinX(), bounds.getMaxX(), bounds.getMinY(), bounds.getMaxY());
@@ -1776,14 +1800,47 @@ public class GWCTest {
     }
 
     @Test
+    public void testSplitRejectsOnDifferentGridsets() throws Exception {
+        defaults.setMultiLayerCachingEnabled(true);
+
+        LayerInfo layer1 = mockLayer("member1", new String[] {}, PublishedType.RASTER);
+        LayerInfo layer2 = mockLayer("member2", new String[] {}, PublishedType.RASTER);
+        GeoServerTileLayer tl1 = mockTileLayer(new MapLayerInfo(layer1).getName(), List.of("EPSG:4326"));
+
+        // same grid definition as EPSG:4326 (so the exact same bbox/tile matches), but registered
+        // under a different name: member2 resolves to a distinct gridSetId for that identical tile
+        GridSet renamedGridSet =
+                namedGridsetCopy("MY4326", gridSetBroker.getDefaults().worldEpsg4326());
+        GridSubset renamedSubset = GridSubsetFactory.createGridSubSet(renamedGridSet);
+        String name2 = new MapLayerInfo(layer2).getName();
+        GeoServerTileLayer tl2 = mock(GeoServerTileLayer.class);
+        when(tld.layerExists(eq(name2))).thenReturn(true);
+        when(tld.getTileLayer(eq(name2))).thenReturn(tl2);
+        when(tl2.getName()).thenReturn(name2);
+        when(tl2.isEnabled()).thenReturn(true);
+        when(tl2.getMimeTypes()).thenReturn(ImmutableList.of(MimeType.createFromFormat("image/png")));
+        when(tl2.getGridSubset(eq("MY4326"))).thenReturn(renamedSubset);
+        when(tl2.getGridSubsetsForSRS(eq(renamedGridSet.getSrs()))).thenReturn(ImmutableList.of(renamedSubset));
+
+        BoundingBox bounds = tl1.getGridSubset("EPSG:4326").boundsFromIndex(new long[] {0, 0, 0});
+        Envelope bbox = new Envelope(bounds.getMinX(), bounds.getMaxX(), bounds.getMinY(), bounds.getMaxY());
+        GetMapRequest request = coalescedRequest(bbox, layer1, layer2);
+        StringBuilder mismatch = new StringBuilder();
+
+        assertNull(mediator.splitCoalescedRequest(request, mismatch));
+        assertTrue(mismatch.toString().contains(name2));
+        assertTrue(mismatch.toString().contains("different gridset/tile"));
+    }
+
+    @Test
     public void testSplitVerifiesAccessPerMember() throws Exception {
         defaults.setMultiLayerCachingEnabled(true);
         defaults.setSecurityEnabled(true);
 
         LayerInfo layer1 = mockLayer("member1", new String[] {}, PublishedType.RASTER);
         LayerInfo layer2 = mockLayer("member2", new String[] {}, PublishedType.RASTER);
-        GeoServerTileLayer tl1 = mockTileLayer(new MapLayerInfo(layer1).getName(), Arrays.asList("EPSG:4326"));
-        mockTileLayer(new MapLayerInfo(layer2).getName(), Arrays.asList("EPSG:4326"));
+        GeoServerTileLayer tl1 = mockTileLayer(new MapLayerInfo(layer1).getName(), List.of("EPSG:4326"));
+        mockTileLayer(new MapLayerInfo(layer2).getName(), List.of("EPSG:4326"));
 
         BoundingBox bounds = tl1.getGridSubset("EPSG:4326").boundsFromIndex(new long[] {0, 0, 0});
         Envelope bbox = new Envelope(bounds.getMinX(), bounds.getMaxX(), bounds.getMinY(), bounds.getMaxY());
@@ -1808,7 +1865,7 @@ public class GWCTest {
         // securityEnabled left at its default: false
 
         LayerInfo layer1 = mockLayer("member1", new String[] {}, PublishedType.RASTER);
-        GeoServerTileLayer tl1 = mockTileLayer(new MapLayerInfo(layer1).getName(), Arrays.asList("EPSG:4326"));
+        GeoServerTileLayer tl1 = mockTileLayer(new MapLayerInfo(layer1).getName(), List.of("EPSG:4326"));
 
         BoundingBox bounds = tl1.getGridSubset("EPSG:4326").boundsFromIndex(new long[] {0, 0, 0});
         Envelope bbox = new Envelope(bounds.getMinX(), bounds.getMaxX(), bounds.getMinY(), bounds.getMaxY());
