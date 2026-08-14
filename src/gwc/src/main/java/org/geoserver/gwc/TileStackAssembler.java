@@ -60,7 +60,8 @@ class TileStackAssembler {
                     graphics = canvas.createGraphics();
                 }
                 graphics.drawImage(memberImage, 0, 0, null);
-                // flush now rather than leaving it to GC: a group can hold many decoded members at once
+                // drops cached/accelerated surface copies now rather than waiting for GC; does not free the raster
+                // itself, so it's no substitute for letting memberImage go out of scope after each member
                 memberImage.flush();
             }
         } finally {

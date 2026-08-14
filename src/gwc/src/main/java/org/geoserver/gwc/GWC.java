@@ -845,25 +845,16 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
      * {@code geowebcache-cache-result}, which is computed correctly).
      */
     private ConveyorTile dispatchCoalesced(GetMapRequest request, StringBuilder requestMismatchTarget) {
-        long deadline = -1;
-        int maxRenderingTime = WMS.get().getServiceInfo().getMaxRenderingTime();
-        if (maxRenderingTime > 0) {
-            deadline = System.currentTimeMillis() + maxRenderingTime * 1000L;
-        }
+        long deadline = computeRenderingDeadline();
 
         List<TileLayerMember> members = splitCoalescedRequest(request, requestMismatchTarget);
         if (members == null) {
             return null;
         }
 
-        int maxRequestMemoryKB = WMS.get().getServiceInfo().getMaxRequestMemory();
-        if (maxRequestMemoryKB > 0) {
-            // peak residency: every member's decoded input plus the output tile, all ARGB
-            long peakBytes = (long) (members.size() + 1) * request.getWidth() * request.getHeight() * 4;
-            if (peakBytes > (long) maxRequestMemoryKB * 1024) {
-                requestMismatchTarget.append("coalesced tile would exceed max request memory");
-                return null;
-            }
+        if (exceedsMaxRequestMemory(members.size(), request)) {
+            requestMismatchTarget.append("coalesced tile would exceed max request memory");
+            return null;
         }
 
         byte[] assembled;
@@ -875,6 +866,12 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
         } catch (RuntimeException e) {
             // e.g. the assembler's own deadline check: fail hard, a live re-render would just hit the same wall
             throw e;
+        } catch (OutsideCoverageException e) {
+            // routine for a sparse member layer, not an error: same handling as the single-layer path
+            final String msg = e.getMessage() != null ? e.getMessage() : "tile outside coverage";
+            requestMismatchTarget.append(msg);
+            log.log(Level.FINE, msg);
+            return null;
         } catch (Exception e) {
             log.log(Level.INFO, "Error assembling coalesced tile", e);
             requestMismatchTarget.append("error assembling coalesced tile: ").append(e.getMessage());
@@ -897,6 +894,31 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
         assembledTile.setBlob(new ByteArrayResource(assembled));
         assembledTile.setTileLayer(members.get(0).tileLayer());
         return assembledTile;
+    }
+
+    /**
+     * Wall-clock deadline for {@link TileStackAssembler#assemble}, mirroring the WMS {@code maxRenderingTime} contract.
+     *
+     * @return {@code System.currentTimeMillis()} plus the configured {@code maxRenderingTime}, or {@code -1} if
+     *     unlimited
+     */
+    long computeRenderingDeadline() {
+        int maxRenderingTime = WMS.get().getServiceInfo().getMaxRenderingTime();
+        return maxRenderingTime > 0 ? System.currentTimeMillis() + maxRenderingTime * 1000L : -1;
+    }
+
+    /**
+     * Whether assembling {@code memberCount} members at {@code request}'s tile size would exceed WMS's configured
+     * {@code maxRequestMemory}; always {@code false} when unlimited.
+     */
+    boolean exceedsMaxRequestMemory(int memberCount, GetMapRequest request) {
+        int maxRequestMemoryKB = WMS.get().getServiceInfo().getMaxRequestMemory();
+        if (maxRequestMemoryKB <= 0) {
+            return false;
+        }
+        // peak residency: every member's decoded input plus the output tile, all ARGB
+        long peakBytes = (long) (memberCount + 1) * request.getWidth() * request.getHeight() * 4;
+        return peakBytes > (long) maxRequestMemoryKB * 1024;
     }
 
     /** {@code HIT} if every member was cached, {@code MISS} if none was, else {@code PARTIAL n/N}. */
@@ -946,8 +968,13 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
         final List<Map<String, String>> viewParams = request.getViewParams();
         final double scaleDenominator = computeScaleDenominator(request);
         // the raw multi-layer request is authorized nowhere else, so each member needs its own coarse gate
-        final ReferencedEnvelope securityBbox =
-                getConfig().isSecurityEnabled() ? parseRequestBbox(request, rawKvp.get("LAYERS")) : null;
+        final ReferencedEnvelope securityBbox;
+        try {
+            securityBbox = getConfig().isSecurityEnabled() ? parseRequestBbox(request, rawKvp.get("LAYERS")) : null;
+        } catch (RuntimeException e) {
+            requestMismatchTarget.append("invalid request for access check: ").append(e.getMessage());
+            return null;
+        }
         final List<TileLayerMember> members = new ArrayList<>(layers.size());
         String gridSetId = null;
         long[] tileIndex = null;

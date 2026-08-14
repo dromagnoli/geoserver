@@ -97,6 +97,8 @@ import org.geoserver.platform.resource.Resources;
 import org.geoserver.wms.DefaultWebMapService;
 import org.geoserver.wms.GetMapRequest;
 import org.geoserver.wms.MapLayerInfo;
+import org.geoserver.wms.WMS;
+import org.geoserver.wms.WMSInfo;
 import org.geoserver.wms.WMSMapContent;
 import org.geoserver.wms.WebMap;
 import org.geoserver.wms.WebMapService;
@@ -207,6 +209,10 @@ public class GWCTest {
     private JDBCConfigurationStorage jdbcStorage;
 
     private GWCSynchEnv synchEnv;
+
+    private WMSInfo wmsInfo;
+
+    private WMS wms;
 
     static Resource tmpDir() throws IOException {
         Resource root = Files.asResource(new File(System.getProperty("java.io.tmpdir", ".")));
@@ -368,6 +374,15 @@ public class GWCTest {
                 .anyTimes();
         expect(appContext.getBean("resourceLoader")).andReturn(loader).anyTimes();
         expect(appContext.isSingleton("resourceLoader")).andReturn(true).anyTimes();
+
+        wmsInfo = mock(WMSInfo.class);
+        wms = mock(WMS.class);
+        when(wms.getServiceInfo()).thenReturn(wmsInfo);
+        expect(appContext.getBeanNamesForType(WMS.class))
+                .andReturn(new String[] {"wms"})
+                .anyTimes();
+        expect(appContext.getBean("wms")).andReturn(wms).anyTimes();
+        expect(appContext.isSingleton("wms")).andReturn(true).anyTimes();
 
         replay(appContext);
 
@@ -1876,6 +1891,55 @@ public class GWCTest {
 
         assertNotNull(members);
         verify(mediator, never()).verifyAccessLayer(any(), any());
+    }
+
+    @Test
+    public void testComputeRenderingDeadlineUnlimitedWhenNotConfigured() {
+        when(wmsInfo.getMaxRenderingTime()).thenReturn(0);
+
+        assertEquals(-1L, mediator.computeRenderingDeadline());
+    }
+
+    @Test
+    public void testComputeRenderingDeadlineAddsConfiguredSecondsToNow() {
+        when(wmsInfo.getMaxRenderingTime()).thenReturn(5);
+
+        long before = System.currentTimeMillis();
+        long deadline = mediator.computeRenderingDeadline();
+        long after = System.currentTimeMillis();
+
+        assertTrue(deadline >= before + 5000);
+        assertTrue(deadline <= after + 5000);
+    }
+
+    @Test
+    public void testExceedsMaxRequestMemoryNeverWhenUnlimited() {
+        when(wmsInfo.getMaxRequestMemory()).thenReturn(0);
+        GetMapRequest request = new GetMapRequest();
+        request.setWidth(256);
+        request.setHeight(256);
+
+        assertFalse(mediator.exceedsMaxRequestMemory(10, request));
+    }
+
+    @Test
+    public void testExceedsMaxRequestMemoryOverBudget() {
+        when(wmsInfo.getMaxRequestMemory()).thenReturn(1); // 1 KB, way under a 256x256 ARGB tile stack
+        GetMapRequest request = new GetMapRequest();
+        request.setWidth(256);
+        request.setHeight(256);
+
+        assertTrue(mediator.exceedsMaxRequestMemory(2, request));
+    }
+
+    @Test
+    public void testExceedsMaxRequestMemoryWithinBudget() {
+        when(wmsInfo.getMaxRequestMemory()).thenReturn(10_000); // 10 MB, comfortably over a 3-member 256x256 stack
+        GetMapRequest request = new GetMapRequest();
+        request.setWidth(256);
+        request.setHeight(256);
+
+        assertFalse(mediator.exceedsMaxRequestMemory(2, request));
     }
 
     /** A tiled, transparent-PNG multi-layer {@code GetMap} request over the given {@code LAYERS} members. */
