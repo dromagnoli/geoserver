@@ -1815,6 +1815,36 @@ public class GWCTest {
     }
 
     @Test
+    public void testClassifyGroupsConsecutiveNonCacheableMembersIntoOneLiveSegment() throws Exception {
+        defaults.setMultiLayerCachingEnabled(true);
+
+        LayerInfo layer1 = mockLayer("member1", new String[] {}, PublishedType.RASTER);
+        LayerInfo layer2 = mockLayer("member2", new String[] {}, PublishedType.RASTER);
+        LayerInfo layer3 = mockLayer("member3", new String[] {}, PublishedType.RASTER);
+        LayerInfo layer4 = mockLayer("member4", new String[] {}, PublishedType.RASTER);
+        GeoServerTileLayer tl1 = mockTileLayer(new MapLayerInfo(layer1).getName(), List.of("EPSG:4326"));
+        // layer2 and layer3 are deliberately never registered as GWC tile layers
+        mockTileLayer(new MapLayerInfo(layer4).getName(), List.of("EPSG:4326"));
+
+        BoundingBox bounds = tl1.getGridSubset("EPSG:4326").boundsFromIndex(new long[] {0, 0, 0});
+        Envelope bbox = new Envelope(bounds.getMinX(), bounds.getMaxX(), bounds.getMinY(), bounds.getMaxY());
+        GetMapRequest request = coalescedRequest(bbox, layer1, layer2, layer3, layer4);
+        StringBuilder mismatch = new StringBuilder();
+
+        List<GWC.Segment> segments = mediator.classifyCoalescedMembers(request, mismatch);
+
+        assertNotNull(segments);
+        assertEquals(0, mismatch.length());
+        // member1 cached, member2+member3 grouped into one live run, member4 cached
+        assertEquals(3, segments.size());
+        assertTrue(segments.get(0) instanceof GWC.CachedSegment);
+        assertTrue(segments.get(1) instanceof GWC.LiveSegment);
+        assertEquals(List.of(1, 2), ((GWC.LiveSegment) segments.get(1)).memberIndices());
+        assertTrue(((GWC.LiveSegment) segments.get(1)).reason().contains(new MapLayerInfo(layer2).getName()));
+        assertTrue(segments.get(2) instanceof GWC.CachedSegment);
+    }
+
+    @Test
     public void testSplitRejectsOnDifferentGridsets() throws Exception {
         defaults.setMultiLayerCachingEnabled(true);
 
