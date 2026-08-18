@@ -1617,7 +1617,7 @@ public class GWCTest {
         GetMapRequest request = coalescedRequest(new Envelope(0, 1, 0, 1), layer, layer);
         StringBuilder mismatch = new StringBuilder();
 
-        assertNull(mediator.splitCoalescedRequest(request, mismatch));
+        assertNull(mediator.classifyCoalescedMembers(request, mismatch));
         assertTrue(mismatch.toString().contains("multi-layer tile caching disabled"));
     }
 
@@ -1628,13 +1628,13 @@ public class GWCTest {
         GetMapRequest request = coalescedRequest(new Envelope(0, 1, 0, 1), layer, layer);
         request.setFormat("image/jpeg");
         StringBuilder mismatch = new StringBuilder();
-        assertNull(mediator.splitCoalescedRequest(request, mismatch));
+        assertNull(mediator.classifyCoalescedMembers(request, mismatch));
         assertTrue(mismatch.toString().contains("requires transparent image/png"));
 
         request.setFormat("image/png");
         request.setTransparent(false);
         mismatch = new StringBuilder();
-        assertNull(mediator.splitCoalescedRequest(request, mismatch));
+        assertNull(mediator.classifyCoalescedMembers(request, mismatch));
         assertTrue(mismatch.toString().contains("requires transparent image/png"));
     }
 
@@ -1666,11 +1666,11 @@ public class GWCTest {
         request.getRawKvp().put("CQL_FILTER", "NAME = 'a';NAME = 'b'");
         StringBuilder mismatch = new StringBuilder();
 
-        List<GWC.TileLayerMember> members = mediator.splitCoalescedRequest(request, mismatch);
+        List<GWC.Segment> segments = mediator.classifyCoalescedMembers(request, mismatch);
 
         assertEquals(0, mismatch.length());
-        assertNotNull(members);
-        assertEquals(2, members.size());
+        assertNotNull(segments);
+        assertEquals(2, segments.size());
     }
 
     @Test
@@ -1687,15 +1687,17 @@ public class GWCTest {
         GetMapRequest request = coalescedRequest(bbox, layer1, layer2);
         StringBuilder mismatch = new StringBuilder();
 
-        List<GWC.TileLayerMember> members = mediator.splitCoalescedRequest(request, mismatch);
+        List<GWC.Segment> segments = mediator.classifyCoalescedMembers(request, mismatch);
 
         assertEquals(0, mismatch.length());
-        assertNotNull(members);
-        assertEquals(2, members.size());
-        assertSame(tl1, members.get(0).tileLayer());
-        assertSame(tl2, members.get(1).tileLayer());
-        assertEquals("EPSG:4326", members.get(0).tile().getGridSetId());
-        assertEquals("EPSG:4326", members.get(1).tile().getGridSetId());
+        assertNotNull(segments);
+        assertEquals(2, segments.size());
+        GWC.CachedSegment segment1 = (GWC.CachedSegment) segments.get(0);
+        GWC.CachedSegment segment2 = (GWC.CachedSegment) segments.get(1);
+        assertSame(tl1, segment1.member().tileLayer());
+        assertSame(tl2, segment2.member().tileLayer());
+        assertEquals("EPSG:4326", segment1.member().tile().getGridSetId());
+        assertEquals("EPSG:4326", segment2.member().tile().getGridSetId());
     }
 
     @Test
@@ -1715,7 +1717,7 @@ public class GWCTest {
         request.getStyles().set(1, sb.createStyle(sb.createTextSymbolizer()));
         StringBuilder mismatch = new StringBuilder();
 
-        assertNull(mediator.splitCoalescedRequest(request, mismatch));
+        assertNull(mediator.classifyCoalescedMembers(request, mismatch));
         assertTrue(mismatch.toString().contains(new MapLayerInfo(layer2).getName()));
         assertTrue(mismatch.toString().contains("draws labels or composites"));
     }
@@ -1739,7 +1741,7 @@ public class GWCTest {
         request.getStyles().set(0, compositingStyle);
         StringBuilder mismatch = new StringBuilder();
 
-        assertNull(mediator.splitCoalescedRequest(request, mismatch));
+        assertNull(mediator.classifyCoalescedMembers(request, mismatch));
         assertTrue(mismatch.toString().contains(new MapLayerInfo(layer1).getName()));
         assertTrue(mismatch.toString().contains("draws labels or composites"));
     }
@@ -1762,11 +1764,11 @@ public class GWCTest {
         request.getStyles().set(1, sb.createStyle(sb.createTextSymbolizer(), 1, 2));
         StringBuilder mismatch = new StringBuilder();
 
-        List<GWC.TileLayerMember> members = mediator.splitCoalescedRequest(request, mismatch);
+        List<GWC.Segment> segments = mediator.classifyCoalescedMembers(request, mismatch);
 
         assertEquals(0, mismatch.length());
-        assertNotNull(members);
-        assertEquals(2, members.size());
+        assertNotNull(segments);
+        assertEquals(2, segments.size());
     }
 
     @Test
@@ -1789,15 +1791,15 @@ public class GWCTest {
         request.getStyles().set(0, compositingStyle);
         StringBuilder mismatch = new StringBuilder();
 
-        List<GWC.TileLayerMember> members = mediator.splitCoalescedRequest(request, mismatch);
+        List<GWC.Segment> segments = mediator.classifyCoalescedMembers(request, mismatch);
 
         assertEquals(0, mismatch.length());
-        assertNotNull(members);
-        assertEquals(1, members.size());
+        assertNotNull(segments);
+        assertEquals(1, segments.size());
     }
 
     @Test
-    public void testSplitOnNotCacheable() throws Exception {
+    public void testClassifyBatchesNotCacheableMember() throws Exception {
         defaults.setMultiLayerCachingEnabled(true);
 
         LayerInfo layer1 = mockLayer("member1", new String[] {}, PublishedType.RASTER);
@@ -1809,9 +1811,16 @@ public class GWCTest {
         GetMapRequest request = coalescedRequest(bbox, layer1, notCached);
         StringBuilder mismatch = new StringBuilder();
 
-        assertNull(mediator.splitCoalescedRequest(request, mismatch));
-        assertTrue(mismatch.toString().contains(new MapLayerInfo(notCached).getName()));
-        assertTrue(mismatch.toString().contains("is not a tile layer"));
+        List<GWC.Segment> segments = mediator.classifyCoalescedMembers(request, mismatch);
+
+        assertNotNull(segments);
+        assertEquals(0, mismatch.length());
+        assertEquals(2, segments.size());
+        assertTrue(segments.get(0) instanceof GWC.CachedSegment);
+        GWC.LiveSegment live = (GWC.LiveSegment) segments.get(1);
+        assertEquals(List.of(1), live.memberIndices());
+        assertTrue(live.reason().contains(new MapLayerInfo(notCached).getName()));
+        assertTrue(live.reason().contains("is not a tile layer"));
     }
 
     @Test
@@ -1845,7 +1854,7 @@ public class GWCTest {
     }
 
     @Test
-    public void testSplitRejectsOnDifferentGridsets() throws Exception {
+    public void testClassifyBatchesDifferentGridsetMember() throws Exception {
         defaults.setMultiLayerCachingEnabled(true);
 
         LayerInfo layer1 = mockLayer("member1", new String[] {}, PublishedType.RASTER);
@@ -1872,9 +1881,16 @@ public class GWCTest {
         GetMapRequest request = coalescedRequest(bbox, layer1, layer2);
         StringBuilder mismatch = new StringBuilder();
 
-        assertNull(mediator.splitCoalescedRequest(request, mismatch));
-        assertTrue(mismatch.toString().contains(name2));
-        assertTrue(mismatch.toString().contains("different gridset/tile"));
+        List<GWC.Segment> segments = mediator.classifyCoalescedMembers(request, mismatch);
+
+        assertNotNull(segments);
+        assertEquals(0, mismatch.length());
+        assertEquals(2, segments.size());
+        assertTrue(segments.get(0) instanceof GWC.CachedSegment);
+        GWC.LiveSegment live = (GWC.LiveSegment) segments.get(1);
+        assertEquals(List.of(1), live.memberIndices());
+        assertTrue(live.reason().contains(name2));
+        assertTrue(live.reason().contains("different gridset/tile"));
     }
 
     @Test
@@ -1897,7 +1913,7 @@ public class GWCTest {
         doThrow(new SecurityException("denied")).when(mediator).verifyAccessLayer(eq(name2), any());
         StringBuilder mismatch = new StringBuilder();
 
-        assertNull(mediator.splitCoalescedRequest(request, mismatch));
+        assertNull(mediator.classifyCoalescedMembers(request, mismatch));
         assertTrue(mismatch.toString().contains(name2));
         assertTrue(mismatch.toString().contains("access denied"));
         verify(mediator).verifyAccessLayer(eq(name1), any());
@@ -1917,9 +1933,9 @@ public class GWCTest {
         GetMapRequest request = coalescedRequest(bbox, layer1);
         StringBuilder mismatch = new StringBuilder();
 
-        List<GWC.TileLayerMember> members = mediator.splitCoalescedRequest(request, mismatch);
+        List<GWC.Segment> segments = mediator.classifyCoalescedMembers(request, mismatch);
 
-        assertNotNull(members);
+        assertNotNull(segments);
         verify(mediator, never()).verifyAccessLayer(any(), any());
     }
 

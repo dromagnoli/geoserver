@@ -41,6 +41,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
@@ -856,12 +857,22 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
     private ConveyorTile dispatchCoalesced(GetMapRequest request, StringBuilder requestMismatchTarget) {
         long deadline = computeRenderingDeadline();
 
-        List<TileLayerMember> members = splitCoalescedRequest(request, requestMismatchTarget);
-        if (members == null) {
+        List<Segment> segments = classifyCoalescedMembers(request, requestMismatchTarget);
+        if (segments == null) {
+            return null;
+        }
+        Optional<CachedSegment> firstCached = segments.stream()
+                .filter(CachedSegment.class::isInstance)
+                .map(CachedSegment.class::cast)
+                .findFirst();
+        if (firstCached.isEmpty()) {
+            // nothing in the request is actually cacheable: no per-member tile to key the assembled result on,
+            // and nothing gained over just falling all the way back to a plain live render
+            requestMismatchTarget.append("no member of the coalesced request is cacheable");
             return null;
         }
 
-        if (exceedsMaxRequestMemory(members.size(), request)) {
+        if (exceedsMaxRequestMemory(segments.size(), request)) {
             requestMismatchTarget.append("coalesced tile would exceed max request memory");
             return null;
         }
@@ -871,7 +882,8 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
             TileStackAssembler assembler = new TileStackAssembler(
                     GeoServerExtensions.bean(ImageDecoderContainer.class),
                     GeoServerExtensions.bean(ImageEncoderContainer.class));
-            assembled = assembler.assemble(members, members.get(0).tile().getMimeType(), deadline);
+            assembled = assembler.assemble(
+                    this, request, segments, firstCached.get().member().tile().getMimeType(), deadline);
         } catch (RuntimeException e) {
             // e.g. the assembler's own deadline check: fail hard, a live re-render would just hit the same wall
             throw e;
@@ -887,9 +899,9 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
             return null;
         }
 
-        ConveyorTile firstMemberTile = members.get(0).tile();
+        ConveyorTile firstMemberTile = firstCached.get().member().tile();
         Map<String, String> signaling =
-                Collections.singletonMap(COALESCED_CACHE_RESULT_KEY, coalescedCacheResultHeader(members));
+                Collections.singletonMap(COALESCED_CACHE_RESULT_KEY, coalescedCacheResultHeader(segments));
         // never persisted itself: only the per-member tiles it stacks are cached
         ConveyorTile assembledTile = new ConveyorTile(
                 null,
@@ -901,7 +913,7 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
                 null,
                 null);
         assembledTile.setBlob(new ByteArrayResource(assembled));
-        assembledTile.setTileLayer(members.get(0).tileLayer());
+        assembledTile.setTileLayer(firstCached.get().member().tileLayer());
         return assembledTile;
     }
 
@@ -917,34 +929,45 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
     }
 
     /**
-     * Whether assembling {@code memberCount} members at {@code request}'s tile size would exceed WMS's configured
+     * Whether assembling {@code segmentCount} segments at {@code request}'s tile size would exceed WMS's configured
      * {@code maxRequestMemory}; always {@code false} when unlimited.
      */
-    boolean exceedsMaxRequestMemory(int memberCount, GetMapRequest request) {
+    boolean exceedsMaxRequestMemory(int segmentCount, GetMapRequest request) {
         int maxRequestMemoryKB = WMS.get().getServiceInfo().getMaxRequestMemory();
         if (maxRequestMemoryKB <= 0) {
             return false;
         }
-        // peak residency: every member's decoded input plus the output tile, all ARGB
-        long peakBytes = (long) (memberCount + 1) * request.getWidth() * request.getHeight() * 4;
+        // peak residency: every segment's decoded raster (one buffer per segment, live or cached) plus the output
+        // tile, all ARGB
+        long peakBytes = (long) (segmentCount + 1) * request.getWidth() * request.getHeight() * 4;
         return peakBytes > (long) maxRequestMemoryKB * 1024;
     }
 
-    /** {@code HIT} if every member was cached, {@code MISS} if none was, else {@code PARTIAL n/N}. */
-    private static String coalescedCacheResultHeader(List<TileLayerMember> members) {
+    /**
+     * {@code HIT} if every original {@code LAYERS} member is a cache hit, {@code MISS} if none is, else {@code PARTIAL
+     * n/N}; every member of a {@link LiveSegment} run counts as a miss, since none of them was served from its own
+     * cache.
+     */
+    private static String coalescedCacheResultHeader(List<Segment> segments) {
         int hits = 0;
-        for (TileLayerMember member : members) {
-            if (member.tile().getCacheResult() == Conveyor.CacheResult.HIT) {
-                hits++;
+        int total = 0;
+        for (Segment segment : segments) {
+            if (segment instanceof CachedSegment cached) {
+                total++;
+                if (cached.member().tile().getCacheResult() == Conveyor.CacheResult.HIT) {
+                    hits++;
+                }
+            } else {
+                total += ((LiveSegment) segment).memberIndices().size();
             }
         }
-        if (hits == members.size()) {
+        if (hits == total) {
             return Conveyor.CacheResult.HIT.toString();
         }
         if (hits == 0) {
             return Conveyor.CacheResult.MISS.toString();
         }
-        return "PARTIAL " + hits + "/" + members.size();
+        return "PARTIAL " + hits + "/" + total;
     }
 
     /** A {@code LAYERS} member of a coalesced request, split into its own single-layer prepared tile request. */
@@ -1014,44 +1037,6 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
     }
 
     /**
-     * Splits a tiled, transparent-PNG multi-layer {@code GetMap} request into one single-layer view per {@code LAYERS}
-     * member and runs each through the same eligibility checks as an ordinary single-layer tile request.
-     *
-     * @return the per-member tile layer and prepared tile request, in {@code LAYERS} order, or {@code null} if the
-     *     request or any member is not eligible, with the reason appended to {@code requestMismatchTarget}
-     */
-    List<TileLayerMember> splitCoalescedRequest(GetMapRequest request, StringBuilder requestMismatchTarget) {
-        // re-checked here (dispatch() already checked it): this method is also called directly, e.g. from tests
-        if (!getConfig().isMultiLayerCachingEnabled()) {
-            requestMismatchTarget.append("multi-layer tile caching disabled");
-            return null;
-        }
-        if (!"image/png".equals(request.getFormat()) || !request.isTransparent()) {
-            requestMismatchTarget.append("multi-layer tile caching requires transparent image/png");
-            return null;
-        }
-
-        List<Segment> segments = classifyCoalescedMembers(request, requestMismatchTarget);
-        if (segments == null) {
-            return null;
-        }
-        // batching non-cacheable runs into a live sub-render is not implemented yet (phase 2, subphase 2.2+):
-        // for now any such run still falls back to a full live render of the whole coalesced request, using the
-        // run's own representative reason so the mismatch message matches what a phase-1-only build would report
-        for (Segment segment : segments) {
-            if (segment instanceof LiveSegment live) {
-                requestMismatchTarget.append(live.reason());
-                return null;
-            }
-        }
-        List<TileLayerMember> members = new ArrayList<>(segments.size());
-        for (Segment segment : segments) {
-            members.add(((CachedSegment) segment).member());
-        }
-        return members;
-    }
-
-    /**
      * Classifies each {@code LAYERS} member as cacheable or as needing a live render, grouping consecutive
      * non-cacheable members into one {@link LiveSegment} per member run. A member is non-cacheable when it has no GWC
      * tile layer, that layer is disabled, its {@link #prepareRequest} fails (e.g. no matching gridset, or a declared
@@ -1063,6 +1048,15 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
      *     {@code requestMismatchTarget}
      */
     List<Segment> classifyCoalescedMembers(GetMapRequest request, StringBuilder requestMismatchTarget) {
+        if (!getConfig().isMultiLayerCachingEnabled()) {
+            requestMismatchTarget.append("multi-layer tile caching disabled");
+            return null;
+        }
+        if (!"image/png".equals(request.getFormat()) || !request.isTransparent()) {
+            requestMismatchTarget.append("multi-layer tile caching requires transparent image/png");
+            return null;
+        }
+
         final Map<String, String> rawKvp = request.getRawKvp();
         final List<MapLayerInfo> layers = request.getLayers();
         final List<Style> styles = request.getStyles();

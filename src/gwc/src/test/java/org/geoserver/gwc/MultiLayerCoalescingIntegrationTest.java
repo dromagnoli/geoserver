@@ -6,6 +6,7 @@
 package org.geoserver.gwc;
 
 import static org.geoserver.data.test.MockData.BASIC_POLYGONS;
+import static org.geoserver.data.test.MockData.FORESTS;
 import static org.geoserver.data.test.MockData.LAKES;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -149,6 +150,56 @@ public class MultiLayerCoalescingIntegrationTest extends GeoServerSystemTestSupp
 
         // the re-rendered member is now cached again too
         assertNotEquals(StorageObject.Status.MISS, sampleTile(layer2).getStatus());
+    }
+
+    @Test
+    public void testNonCacheableMemberIsLiveRenderedAndSplicedIntoTheStack() throws Exception {
+        // populate layer1's own cache first
+        getAsServletResponse(coalescedGetMap(layer1 + "," + layer2));
+        assertNotEquals(StorageObject.Status.MISS, sampleTile(layer1).getStatus());
+
+        GWC gwc = GWC.get();
+        TileLayer forestsTileLayer = gwc.getTileLayerByName(getLayerId(FORESTS));
+        forestsTileLayer.setEnabled(false);
+        try {
+            MockHttpServletResponse response =
+                    getAsServletResponse(coalescedGetMap(layer1 + "," + getLayerId(FORESTS)));
+
+            assertEquals(200, response.getStatus());
+            assertEquals("image/png", response.getContentType());
+            // layer1 is a cache hit, the disabled member always misses
+            assertEquals("PARTIAL 1/2", response.getHeader("geowebcache-cache-result"));
+
+            // stacking happened: the coalesced result differs from layer1 rendered alone
+            byte[] coalescedBytes = response.getContentAsByteArray();
+            MockHttpServletResponse layer1Response = getAsServletResponse(coalescedGetMap(layer1));
+            assertFalse(Arrays.equals(coalescedBytes, layer1Response.getContentAsByteArray()));
+        } finally {
+            forestsTileLayer.setEnabled(true);
+        }
+    }
+
+    @Test
+    public void testPartialCacheResultCountsEveryMemberOfABatchedLiveRun() throws Exception {
+        // populate both cacheable members' caches first
+        getAsServletResponse(coalescedGetMap(layer1 + "," + layer2));
+        assertNotEquals(StorageObject.Status.MISS, sampleTile(layer1).getStatus());
+        assertNotEquals(StorageObject.Status.MISS, sampleTile(layer2).getStatus());
+
+        GWC gwc = GWC.get();
+        TileLayer forestsTileLayer = gwc.getTileLayerByName(getLayerId(FORESTS));
+        forestsTileLayer.setEnabled(false);
+        try {
+            String forests = getLayerId(FORESTS);
+            String layers = layer1 + "," + forests + "," + forests + "," + layer2;
+            MockHttpServletResponse response = getAsServletResponse(coalescedGetMap(layers));
+
+            assertEquals(200, response.getStatus());
+            // 4 original members: layer1 and layer2 are cache hits, both forests slots always miss
+            assertEquals("PARTIAL 2/4", response.getHeader("geowebcache-cache-result"));
+        } finally {
+            forestsTileLayer.setEnabled(true);
+        }
     }
 
     @Test

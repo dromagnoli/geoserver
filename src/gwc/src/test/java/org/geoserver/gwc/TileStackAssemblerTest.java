@@ -63,30 +63,32 @@ public class TileStackAssemblerTest {
 
     @Test
     public void testAssembleStacksMembersInLayersOrder() throws Exception {
-        GWC.TileLayerMember bottom = member(solidTile(Color.RED));
-        GWC.TileLayerMember top = member(solidTile(Color.BLUE));
+        GWC.Segment bottom = segment(solidTile(Color.RED));
+        GWC.Segment top = segment(solidTile(Color.BLUE));
 
-        BufferedImage result = decode(assembler.assemble(List.of(bottom, top), png, -1));
+        BufferedImage result = decode(assembler.assemble(null, null, List.of(bottom, top), png, -1));
 
         assertEquals(Color.BLUE.getRGB(), result.getRGB(0, 0));
     }
 
     @Test
     public void testAssembleAppliesAlphaOverCompositing() throws Exception {
-        GWC.TileLayerMember bottom = member(solidTile(Color.RED));
-        GWC.TileLayerMember transparentTop = member(solidTile(new Color(0, 0, 255, 0)));
+        GWC.Segment bottom = segment(solidTile(Color.RED));
+        GWC.Segment transparentTop = segment(solidTile(new Color(0, 0, 255, 0)));
 
-        BufferedImage result = decode(assembler.assemble(List.of(bottom, transparentTop), png, -1));
+        BufferedImage result = decode(assembler.assemble(null, null, List.of(bottom, transparentTop), png, -1));
 
         assertEquals(Color.RED.getRGB(), result.getRGB(0, 0));
     }
 
     @Test
     public void testAssembleFailsWhenDeadlineHasPassed() throws Exception {
-        GWC.TileLayerMember member = member(solidTile(Color.RED));
+        GWC.Segment segment = segment(solidTile(Color.RED));
         long deadlineAlreadyPassed = System.currentTimeMillis() - 1000;
 
-        assertThrows(ServiceException.class, () -> assembler.assemble(List.of(member), png, deadlineAlreadyPassed));
+        assertThrows(
+                ServiceException.class,
+                () -> assembler.assemble(null, null, List.of(segment), png, deadlineAlreadyPassed));
     }
 
     private byte[] solidTile(Color color) throws Exception {
@@ -104,8 +106,8 @@ public class TileStackAssemblerTest {
         return ImageIO.read(new ByteArrayInputStream(encoded));
     }
 
-    /** A member whose {@code TileLayer.getTile} just stamps the given PNG bytes as the tile's blob. */
-    private GWC.TileLayerMember member(byte[] pngBytes) throws Exception {
+    /** A cached segment whose {@code TileLayer.getTile} just stamps the given PNG bytes as the tile's blob. */
+    private GWC.CachedSegment segment(byte[] pngBytes) throws Exception {
         ConveyorTile tile = new ConveyorTile(null, "member", "TEST", new long[] {0, 0, 0}, png, Map.of(), null, null);
         TileLayer tileLayer = mock(TileLayer.class);
         doAnswer(invocation -> {
@@ -115,6 +117,6 @@ public class TileStackAssemblerTest {
                 })
                 .when(tileLayer)
                 .getTile(any(ConveyorTile.class));
-        return new GWC.TileLayerMember(tileLayer, tile);
+        return new GWC.CachedSegment(new GWC.TileLayerMember(tileLayer, tile));
     }
 }
