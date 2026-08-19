@@ -8,7 +8,7 @@
       
       
       
-        <link rel="canonical" href="https://docs.geoserver.org/3.0.x/latest/en/user/security/webadmin/ugr/">
+        <link rel="canonical" href="https://docs.geoserver.org/3.1.x/latest/en/user/security/webadmin/ugr/">
       
       
         <link rel="prev" href="../passwords/">
@@ -21,15 +21,15 @@
       
       
       <link rel="icon" href="../../../../../img/geoserver.ico">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>Users, Groups, Roles - GeoServer Documentation</title>
+        <title>Users, Groups, Roles - Documentation</title>
       
     
     
-      <link rel="stylesheet" href="../../../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../../../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -143,11 +143,30 @@
     
       <div data-md-color-scheme="default" data-md-component="outdated" hidden>
         
+          <aside class="md-banner md-banner--warning">
+            <div class="md-banner__inner md-grid md-typeset">
+              
+  You're not viewing the stable version.
+  
+<a href="../../../../../.."> 
+    
+<strong>Click here to go to stable.</strong>
+  
+</a>
+
+            </div>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../../../../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
+          </aside>
+        
       </div>
     
     
-      <header class="md-header" data-md-component="header">
-  <nav class="md-header__inner md-grid" aria-label="Header"><a href="../../../../.." title="GeoServer Documentation" class="md-header__button md-logo" aria-label="GeoServer Documentation" data-md-component="logo">
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header"><a href="../../../../.." title="Documentation" class="md-header__button md-logo" aria-label="Documentation" data-md-component="logo">
       
   <img src="../../../../../img/geoserver-logo.svg" alt="logo">
 
@@ -157,7 +176,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            GeoServer Documentation
+            Documentation
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -385,12 +404,12 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../../../.." title="GeoServer Documentation" class="md-nav__button md-logo" aria-label="GeoServer Documentation" data-md-component="logo">
+    <a href="../../../../.." title="Documentation" class="md-nav__button md-logo" aria-label="Documentation" data-md-component="logo">
       
   <img src="../../../../../img/geoserver-logo.svg" alt="logo">
 
     </a>
-    GeoServer Documentation
+    Documentation
   </label>
   
     <div class="md-nav__source">
@@ -13929,9 +13948,10 @@
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
+    <nav class="md-nav" aria-label="User Group Services">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#add-new-xml-usergroup-service" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -13941,8 +13961,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#add-new-jdbc-usergroup-service" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -13952,8 +13972,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#add-new-ldap-usergroup-service" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -13963,8 +13983,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#edit-usergroup-service" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -13973,7 +13993,29 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Edit user/group service">
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#settings-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings tab
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#users-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Users tab
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Users tab">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -13988,7 +14030,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#security_webadmin_groups" class="md-nav__link">
+  <a href="#remove-user" class="md-nav__link">
     <span class="md-ellipsis">
       
         Remove User
@@ -13998,6 +14040,23 @@
   
 </li>
         
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#security_webadmin_groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Groups tab
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Groups tab">
+      <ul class="md-nav__list">
+        
           <li class="md-nav__item">
   <a href="#add-group" class="md-nav__link">
     <span class="md-ellipsis">
@@ -14006,6 +14065,11 @@
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -14023,9 +14087,10 @@
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
+    <nav class="md-nav" aria-label="Role services">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#add-new-xml-role-service" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -14035,8 +14100,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#add-new-jdbc-role-service" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -14046,8 +14111,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#add-new-ldap-role-service" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -14057,8 +14122,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#edit-role-service" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -14078,6 +14143,11 @@
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -15888,6 +15958,8 @@
       
         
           
+        
+      
         
       
         
@@ -19028,6 +19100,22 @@
       
         
       
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
     
     
     
@@ -19040,6 +19128,363 @@
         
         
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_16_27" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../extensions/oidc/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OAuth2 OpenID Connect
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_16_27" id="__nav_2_16_27_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_16_27_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_16_27">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    OAuth2 OpenID Connect
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../extensions/oidc/installing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installing the OAUTH2/OIDC module
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../extensions/oidc/configuring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OAUTH2/OIDC configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../extensions/oidc/oauth2/google/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configure the Google authentication provider
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../extensions/oidc/oauth2/github/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configure the GitHub authentication provider
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../extensions/oidc/oauth2/azure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configure the Microsoft Azure authentication provider
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../extensions/oidc/oauth2/keycloak/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuring with Keycloak
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../extensions/oidc/oauth2/generic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuring with a Generic OIDC IDP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../extensions/oidc/role-config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuring the roles source
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../extensions/oidc/advanced/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced Information
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../extensions/oidc/migrating/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from the legacy OAuth2/OIDC plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_16_28" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -19061,14 +19506,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_2_16_27" id="__nav_2_16_27_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_2_16_28" id="__nav_2_16_28_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_16_27_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_16_27">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_16_28_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_16_28">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -19172,7 +19617,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_16_28" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_16_29" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -19194,14 +19639,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_2_16_28" id="__nav_2_16_28_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_2_16_29" id="__nav_2_16_29_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_16_28_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_16_28">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_16_29_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_16_29">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -19307,7 +19752,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_16_29" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_16_30" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -19329,14 +19774,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_2_16_29" id="__nav_2_16_29_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_2_16_30" id="__nav_2_16_30_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_16_29_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_16_29">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_16_30_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_16_30">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -19468,7 +19913,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_16_30" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_16_31" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -19490,14 +19935,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_2_16_30" id="__nav_2_16_30_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_2_16_31" id="__nav_2_16_31_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_16_30_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_16_30">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_16_31_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_16_31">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -19629,7 +20074,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_16_32" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_16_33" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -19651,14 +20096,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_2_16_32" id="__nav_2_16_32_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_2_16_33" id="__nav_2_16_33_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_16_32_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_16_32">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_16_33_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_16_33">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -19766,7 +20211,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_16_33" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_16_34" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -19788,14 +20233,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_2_16_33" id="__nav_2_16_33_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_2_16_34" id="__nav_2_16_34_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_16_33_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_16_33">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_16_34_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_16_34">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -19959,7 +20404,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_16_34" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_16_35" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -19981,14 +20426,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_2_16_34" id="__nav_2_16_34_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_2_16_35" id="__nav_2_16_35_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_16_34_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_16_34">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_16_35_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_16_35">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -20148,7 +20593,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_16_35" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_16_36" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -20170,14 +20615,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_2_16_35" id="__nav_2_16_35_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_2_16_36" id="__nav_2_16_36_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_16_35_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_16_35">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_16_36_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_16_36">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -20281,7 +20726,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_16_36" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_16_37" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -20303,14 +20748,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_2_16_36" id="__nav_2_16_36_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_2_16_37" id="__nav_2_16_37_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_16_36_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_16_36">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_16_37_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_16_37">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -20997,6 +21442,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -21019,7 +21468,7 @@
   <span class="md-ellipsis">
     
   
-    Backup and Restore Documentation
+    Backup and Restore
   
 
     
@@ -21041,7 +21490,7 @@
             <span class="md-nav__icon md-icon"></span>
             
   
-    Backup and Restore Documentation
+    Backup and Restore
   
 
           </label>
@@ -21091,7 +21540,7 @@
   <span class="md-ellipsis">
     
   
-    Usage Via GeoServer's User Interface
+    Usage via the web interface
   
 
     
@@ -21119,7 +21568,35 @@
   <span class="md-ellipsis">
     
   
-    Usage Via GeoServer's REST API
+    Usage via GeoServer's REST API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/backuprestore/options/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup and Restore options
   
 
     
@@ -21147,7 +21624,7 @@
   <span class="md-ellipsis">
     
   
-    Backup and Restore Extension for the management of ImageMosaic indexers
+    ImageMosaic indexer extension
   
 
     
@@ -21175,7 +21652,35 @@
   <span class="md-ellipsis">
     
   
-    Use Cases
+    Use cases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/backuprestore/migration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    What changed between 2.x and 3.x
   
 
     
@@ -21836,7 +22341,7 @@
   <span class="md-ellipsis">
     
   
-    Features Templatring Rest API
+    Features Templating Rest API
   
 
     
@@ -23446,6 +23951,139 @@
   
   
   
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_17_31" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../community/keycloak/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keycloak Role Service
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_17_31" id="__nav_2_17_31_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_17_31_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_17_31">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Keycloak Role Service
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/keycloak/installing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installing the Keycloak Role Service module
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/keycloak/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuring the Keycloak Role Service
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="../../../community/libdeflate/" class="md-nav__link">
         
@@ -23498,7 +24136,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_17_32" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_17_33" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -23520,14 +24158,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_2_17_32" id="__nav_2_17_32_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_2_17_33" id="__nav_2_17_33_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_17_32_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_17_32">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_17_33_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_17_33">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -23661,7 +24299,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_17_33" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_17_34" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -23683,14 +24321,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_2_17_33" id="__nav_2_17_33_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_2_17_34" id="__nav_2_17_34_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_17_33_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_17_33">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_17_34_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_17_34">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -23824,7 +24462,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_17_34" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_17_35" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -23846,14 +24484,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_2_17_34" id="__nav_2_17_34_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_2_17_35" id="__nav_2_17_35_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_17_34_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_17_34">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_17_35_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_17_35">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -24081,7 +24719,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_17_38" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_17_39" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -24103,14 +24741,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_2_17_38" id="__nav_2_17_38_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_2_17_39" id="__nav_2_17_39_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_17_38_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_17_38">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_17_39_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_17_39">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -24377,349 +25015,6 @@
   
 
       </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-      
-        
-          
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_17_40" >
-        
-          
-          <div class="md-nav__link md-nav__container">
-            <a href="../../../community/oidc/" class="md-nav__link ">
-              
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    OAuth2 OpenID Connect
-  
-
-    
-  </span>
-  
-  
-
-            </a>
-            
-              
-              <label class="md-nav__link " for="__nav_2_17_40" id="__nav_2_17_40_label" tabindex="0">
-                <span class="md-nav__icon md-icon"></span>
-              </label>
-            
-          </div>
-        
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_17_40_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_17_40">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    OAuth2 OpenID Connect
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../community/oidc/installing/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Installing the OAUTH2/OIDC module
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../community/oidc/configuring/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    OAUTH2/OIDC configuration
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../community/oidc/oauth2/google/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Configure the Google authentication provider
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../community/oidc/oauth2/github/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Configure the GitHub authentication provider
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../community/oidc/oauth2/azure/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Configure the Microsoft Azure authentication provider
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../community/oidc/oauth2/keycloak/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Configuring with Keycloak
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../community/oidc/oauth2/generic/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Configuring with a Generic OIDC IDP
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../community/oidc/role-config/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Configuring the roles source
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../community/oidc/advanced/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Advanced Information
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
     </li>
   
 
@@ -29971,9 +30266,10 @@
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
+    <nav class="md-nav" aria-label="User Group Services">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#add-new-xml-usergroup-service" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -29983,8 +30279,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#add-new-jdbc-usergroup-service" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -29994,8 +30290,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#add-new-ldap-usergroup-service" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -30005,8 +30301,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#edit-usergroup-service" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -30015,7 +30311,29 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Edit user/group service">
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#settings-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings tab
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#users-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Users tab
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Users tab">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -30030,7 +30348,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#security_webadmin_groups" class="md-nav__link">
+  <a href="#remove-user" class="md-nav__link">
     <span class="md-ellipsis">
       
         Remove User
@@ -30040,6 +30358,23 @@
   
 </li>
         
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#security_webadmin_groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Groups tab
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Groups tab">
+      <ul class="md-nav__list">
+        
           <li class="md-nav__item">
   <a href="#add-group" class="md-nav__link">
     <span class="md-ellipsis">
@@ -30048,6 +30383,11 @@
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -30065,9 +30405,10 @@
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
+    <nav class="md-nav" aria-label="Role services">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#add-new-xml-role-service" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -30077,8 +30418,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#add-new-jdbc-role-service" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -30088,8 +30429,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#add-new-ldap-role-service" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -30099,8 +30440,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#edit-role-service" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -30120,6 +30461,11 @@
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -30157,18 +30503,21 @@
 <p>This section provides the configuration options for <a href="../../usergrouprole/usergroupservices/">User/group services</a> and <a href="../../usergrouprole/roleservices/">Role services</a>. In addition, users, groups, and roles themselves and can be added, edited, or removed. A great deal of configuration can be accomplished in this section and related pages.</p>
 <h2 id="security_webadmin_usergroupservices">User Group Services<a class="headerlink" href="#security_webadmin_usergroupservices" title="Permanent link">&para;</a></h2>
 <p>In this menu, user/group services can be added, removed, or edited. By default, there is one user/group service in GeoServer, which is <a href="../../usergrouprole/usergroupservices/#security_rolesystem_usergroupxml">XML-based</a>. It is encrypted with <a href="../../passwd/#security_passwd_encryption">Weak PBE</a> and uses the default <a href="../../passwd/#security_passwd_policy">password policy</a>. It is also possible to have a user/group service based on <a href="../../usergrouprole/usergroupservices/#security_rolesystem_usergroupjdbc">JDBC</a>, with or without JNDI.</p>
-<p><img alt="" src="../images/ugr_usergroup.png" /></p>
-<p><em>User/group services</em></p>
+<p><img alt="" src="../images/ugr_usergroup.png" /><br />
+<em>User/group services</em></p>
 <p>Clicking an existing user/group service will enable editing, while clicking the <strong>Add new</strong> link will configure a new user/group service.</p>
+<p><img alt="" src="../images/usgr_new.png" /><br />
+<em>Add new</em></p>
 <p>There are three tabs for configuration: Settings, Users, and Groups.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>When creating a new user/group service, the form filled out initially can be found under the Settings tab.</p>
 </div>
-<h2 id="add-new-xml-usergroup-service">Add new XML user/group service<a class="headerlink" href="#add-new-xml-usergroup-service" title="Permanent link">&para;</a></h2>
-<p>To add a new XML user/group service, click the <strong>Add new</strong> link. XML is the default option. The following figure shows the configuration options for an XML user/group service.</p>
-<p><img alt="" src="../images/ugr_ugxmlsettings.png" /></p>
-<p><em>Adding an XML user/group service</em></p>
+<h3 id="add-new-xml-usergroup-service">Add new XML user/group service<a class="headerlink" href="#add-new-xml-usergroup-service" title="Permanent link">&para;</a></h3>
+<p>To add a new XML user/group service, click the <strong>Add new</strong> link. XML is the default option.</p>
+<p><img alt="" src="../images/ugr_ugxmlsettings.png" /><br />
+<em>XML user/group service</em></p>
+<p>The following table describes the configuration options for an XML user/group service.</p>
 <table>
 <thead>
 <tr>
@@ -30203,10 +30552,10 @@
 </tr>
 </tbody>
 </table>
-<h2 id="add-new-jdbc-usergroup-service">Add new JDBC user/group service<a class="headerlink" href="#add-new-jdbc-usergroup-service" title="Permanent link">&para;</a></h2>
+<h3 id="add-new-jdbc-usergroup-service">Add new JDBC user/group service<a class="headerlink" href="#add-new-jdbc-usergroup-service" title="Permanent link">&para;</a></h3>
 <p>To add a new JDBC user/group service, click the <strong>Add new</strong> link, and then the <strong>JDBC</strong> option at the top of the following form. The following figure shows the configuration options for a JDBC user/group service.</p>
 <p><img alt="" src="../images/ugr_ugjdbcsettings.png" /></p>
-<p><em>Adding a user/group service via JDBC</em></p>
+<p><em>JDBC User/group Configuration</em></p>
 <table>
 <thead>
 <tr>
@@ -30227,6 +30576,19 @@
 <td>Password policy</td>
 <td>The <a href="../../passwd/#security_passwd_policy">policy</a> to use to enforce constraints on user passwords</td>
 </tr>
+</tbody>
+</table>
+<p><strong>Connection</strong> configuration include a <strong>Test Connection</strong> button for verification.</p>
+<p><img alt="" src="../images/ugr_ugjdbcconnection.png" /><br />
+<em>JDBC User/group Connection</em></p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
 <tr>
 <td>JNDI</td>
 <td>When unchecked, specifies a direct connection to the database. When checked, specifies an existing connection located through <a href="../../../data/database/jndi/">JNDI</a>.</td>
@@ -30247,23 +30609,11 @@
 <td>Password</td>
 <td>Password to use when connecting to the database</td>
 </tr>
-<tr>
-<td>Create database tables</td>
-<td>Specifies whether to create all the necessary tables in the underlying database</td>
-</tr>
-<tr>
-<td>Data Definition Language (DDL) file</td>
-<td>Specifies a custom DDL file to use for creating tables in the underlying database, for cases where the default DDL statements fail on the given database. If left blank, internal defaults are used.</td>
-</tr>
-<tr>
-<td>Data Manipulation Language (DML) file</td>
-<td>Specifies a custom DML file to use for accessing tables in the underlying database, for cases where the default DML statements fail on the given database. If left blank, internal defaults are used.</td>
-</tr>
 </tbody>
 </table>
 <p>In addition to the parameters listed above, the following additional parameter will apply when the <a href="../../../data/database/jndi/">JNDI</a> flag is set.</p>
-<p><img alt="" src="../images/ugr_ugjdbcjndisettings.png" /></p>
-<p><em>Adding a user/group service via JDBC with JNDI</em></p>
+<p><img alt="" src="../images/ugr_ugjdbcjndi.png" /><br />
+<em>JDBC User/group Connection JNDI</em></p>
 <table>
 <thead>
 <tr>
@@ -30278,10 +30628,35 @@
 </tr>
 </tbody>
 </table>
-<h2 id="add-new-ldap-usergroup-service">Add new LDAP user/group service<a class="headerlink" href="#add-new-ldap-usergroup-service" title="Permanent link">&para;</a></h2>
+<p><strong>Database Initialization</strong> configuration settings.</p>
+<p><img alt="" src="../images/ugr_ugjdbcinit.png" /><br />
+<em>JDBC User/group Database Initialization</em></p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Create database tables</td>
+<td>Specifies whether to create all the necessary tables in the underlying database</td>
+</tr>
+<tr>
+<td>Data Definition Language (DDL) file</td>
+<td>Specifies a custom DDL file to use for creating tables in the underlying database, for cases where the default DDL statements fail on the given database. If left blank, internal defaults are used.</td>
+</tr>
+<tr>
+<td>Data Manipulation Language (DML) file</td>
+<td>Specifies a custom DML file to use for accessing tables in the underlying database, for cases where the default DML statements fail on the given database. If left blank, internal defaults are used.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="add-new-ldap-usergroup-service">Add new LDAP user/group service<a class="headerlink" href="#add-new-ldap-usergroup-service" title="Permanent link">&para;</a></h3>
 <p>To add a new LDAP user/group service, click the <strong>Add new</strong> link, and then the <strong>LDAP</strong> option at the top of the following form. The following figure shows the configuration options for a LDAP user/group service.</p>
-<p><img alt="" src="../images/ldap_group_service.png" /></p>
-<p><em>Adding a user/group service via LDAP</em></p>
+<p><img alt="" src="../images/ugr_ugldap.png" /><br />
+<em>LDAP User/Group Service</em></p>
 <table>
 <thead>
 <tr>
@@ -30292,7 +30667,7 @@
 <tbody>
 <tr>
 <td>Name</td>
-<td>Name of the LDAP role service in GeoServer</td>
+<td>Name of the JDBC user/group service in GeoServer</td>
 </tr>
 <tr>
 <td>Password encryption</td>
@@ -30302,6 +30677,19 @@
 <td>Password policy</td>
 <td>The <a href="../../passwd/#security_passwd_policy">policy</a> to use to enforce constraints on user passwords</td>
 </tr>
+</tbody>
+</table>
+<p><strong>LDAP Settings</strong> provide connection details for the LDAP service.</p>
+<p><img alt="" src="../images/ugr_ugldapsettings.png" /><br />
+<em>LDAP Settings</em></p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
 <tr>
 <td>Server URL</td>
 <td>URL for the LDAP server connection. It must include the protocol, host, and port, as well as the "distinguished name" (DN) for the root of the LDAP tree.</td>
@@ -30310,6 +30698,19 @@
 <td>TLS</td>
 <td>Enables a STARTTLS connection. (See the section on <a href="../../auth/providers/#security_auth_provider_ldap_secure">Secure LDAP connections</a>.)</td>
 </tr>
+</tbody>
+</table>
+<p><strong>Group lookup options</strong> are used to list all groups, lookup group by name, and establish group name.</p>
+<p><img alt="" src="../images/ugr_ugldapgrouplookup.png" /><br />
+<em>Group lookup options</em></p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
 <tr>
 <td>Group search base</td>
 <td>Relative name of the node in the tree to use as the base for LDAP groups. Example: <code>ou=groups</code>. The root DN specified as port of the <em>Server URL</em> is automatically appended.</td>
@@ -30326,6 +30727,19 @@
 <td>Attribute which contains the name of the group</td>
 <td>Sets attribute containing the group name. Leave blank to derive from name filter.</td>
 </tr>
+</tbody>
+</table>
+<p><img alt="" src="../images/ugr_ugldapuserlookup.png" /><br />
+<strong>User lookup options</strong> are used to list all users, and to find and describe individual users.</p>
+<p><em>User lookup options</em></p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
 <tr>
 <td>Query format to retrieve the user/group mapping</td>
 <td>Query format used for mapping user/group memberships. Leave blank to derive from attribute. This may contain some placeholder values:<br><code>{0}</code>, the <code>username</code> of the user, for example <code>bob</code>.<br><code>{1}</code>, the full DN of the user, for example <code>uid=bob,ou=users</code>.</td>
@@ -30333,6 +30747,10 @@
 <tr>
 <td>Attribute name to retrieve the user/group mapping</td>
 <td>Attribute name used for mapping user/group memberships. Leave blank to derive from filter.</td>
+</tr>
+<tr>
+<td>Key for converting group member to username</td>
+<td>Some LDAP systems need a conversion from the username listed as a member of a group to the username used in a search for that user.  <br>For example, the group's member might be <code>"cn=Adm-AD-Blasby,ou=Administration,ou=Production,ou=Accounts,ou=ApplicationServerManagement,dc=ad,dc=geocat,dc=net"</code>, but we need to search for the user using just the information in the <code>"cn="</code> part.  In this case, we would configure <code>"cn"</code> here to extract that username. <br> In this example, <code>"Adm-AD-Blasby"</code> will be used in the user search (see configuration option "Filter to search user by name").  If this is blank, then no conversion is done.</td>
 </tr>
 <tr>
 <td>User search base</td>
@@ -30354,6 +30772,19 @@
 <td>List of attributes to populate</td>
 <td>Sets a comma separated list of attributes to populate on users.</td>
 </tr>
+</tbody>
+</table>
+<p><strong>LDAP privileged user authentication</strong> supplies credentials for use in LDAP searches.</p>
+<p><img alt="" src="../images/ugr_ugldapprivilegeduser.png" /><br />
+<em>LDAP privileged user authentication</em></p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
 <tr>
 <td>Authenticated onto the LDAP before querying</td>
 <td>When checked all LDAP searches will be done in authenticated mode, using the credentials given with the <em>Username</em> and <em>Password</em> options</td>
@@ -30366,6 +30797,19 @@
 <td>Password</td>
 <td>Password to use when connecting to the LDAP server. Only applicable when the <em>Authenticated onto the LDAP before querying</em> parameter is <strong>checked</strong>.</td>
 </tr>
+</tbody>
+</table>
+<p><strong>Hierarchical groups options</strong> provides options for hierarchical searches.</p>
+<p><img alt="" src="../images/ugr_ugldaphierarchical.png" /><br />
+<em>Hierarchical groups options</em></p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
 <tr>
 <td>Enable Hierarchical groups search</td>
 <td>When checked all LDAP group searches will use hierarchical mode, retrieving LDAP parent groups too.</td>
@@ -30380,14 +30824,24 @@
 </tr>
 </tbody>
 </table>
-<h2 id="edit-usergroup-service">Edit user/group service<a class="headerlink" href="#edit-usergroup-service" title="Permanent link">&para;</a></h2>
-<p>Once the new user/group service is added (either XML or JDBC), clicking on it in the list of user/group services will allow additional options to be specified, such as the users and groups associated with the service.</p>
-<p>There are three tabs in the resulting menu: <strong>Settings</strong>, <strong>Users</strong>, and <strong>Groups</strong>. The Settings tab is identical to that found when creating the user/group service, while the others are described below.</p>
+<h3 id="edit-usergroup-service">Edit user/group service<a class="headerlink" href="#edit-usergroup-service" title="Permanent link">&para;</a></h3>
+<p>Once the new user/group service is added (either XML, JDNC or LDAP), clicking on it in the list of user/group services will allow additional options to be specified, such as the users and groups associated with the service.</p>
+<h3 id="settings-tab">Settings tab<a class="headerlink" href="#settings-tab" title="Permanent link">&para;</a></h3>
+<p>The Settings tab is identical to that found when creating the user/group service.</p>
+<p><img alt="" src="../images/ugr_ugsettings.png" /><br />
+<em>User/Group Settings tab</em></p>
+<h3 id="users-tab">Users tab<a class="headerlink" href="#users-tab" title="Permanent link">&para;</a></h3>
 <p>The Users tab provides options to configure users in the user/group service.</p>
-<p><img alt="" src="../images/ugr_ugusers.png" /></p>
-<p><em>Users tab</em></p>
-<p>Clicking a username will allow its parameters to be changed, while clicking the <strong>Add new</strong> link will create a new user.</p>
-<h3 id="security_webadmin_users">Add user<a class="headerlink" href="#security_webadmin_users" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Users list</strong>: Clicking a username in the table will allow its parameters to be changed.</li>
+<li><strong>Add new user</strong>: Ceate a new user.</li>
+<li><strong>Remove Selected</strong>: Use checkbox to select one or more users to remove.</li>
+<li><strong>Remove Selected and remove role assoications</strong>: Use checkbox to remove one or more users, along with any role associations.</li>
+</ul>
+<p><img alt="" src="../images/ugr_ugusers.png" />
+<em>User/Group Users tab</em></p>
+<h4 id="security_webadmin_users">Add user<a class="headerlink" href="#security_webadmin_users" title="Permanent link">&para;</a></h4>
+<p>Clicking the <strong>Add new</strong> link will create a new user.</p>
 <p><img alt="" src="../images/ugr_newuser.png" /></p>
 <p><em>Creating or editing a user</em></p>
 <table>
@@ -30440,18 +30894,17 @@
 </tr>
 </tbody>
 </table>
-<p>The Groups tab provides configuration options for groups in this user/group service. There are options to add and remove a group, with an additional option to remove a group and the roles associated with that group.</p>
-<p><img alt="" src="../images/ugr_uggroups.png" /></p>
-<p><em>Groups tab</em></p>
-<h3 id="security_webadmin_groups">Remove User<a class="headerlink" href="#security_webadmin_groups" title="Permanent link">&para;</a></h3>
-<p>There are two related buttons that are responsible for removing users: <strong>Remove Selected</strong>, and <strong>Remove Selected and remove role associations</strong>.</p>
+<h4 id="remove-user">Remove User<a class="headerlink" href="#remove-user" title="Permanent link">&para;</a></h4>
+<p>From the <strong>Users tab</strong> there are two related buttons that are responsible for removing users: <strong>Remove Selected</strong>, and <strong>Remove Selected and remove role associations</strong>.</p>
 <ul>
 <li><strong>Remove Selected</strong> removes user from <a href="https://github.com/geoserver/geoserver/blob/main/data/release/security/usergroup/default/users.xml">users.xml</a> and leave untouched <a href="https://github.com/geoserver/geoserver/blob/main/data/release/security/role/default/roles.xml">roles.xml</a>.</li>
 <li><strong>Remove Selected and remove role associations</strong> removes user from <a href="https://github.com/geoserver/geoserver/blob/main/data/release/security/usergroup/default/users.xml">users.xml</a> and also removes user and associated role to user from <a href="https://github.com/geoserver/geoserver/blob/main/data/release/security/role/default/roles.xml">roles.xml</a>.</li>
 </ul>
-<p><img alt="" src="../images/ugr_ugusers.png" /></p>
-<p><em>Users tab</em></p>
-<h3 id="add-group">Add group<a class="headerlink" href="#add-group" title="Permanent link">&para;</a></h3>
+<h3 id="security_webadmin_groups">Groups tab<a class="headerlink" href="#security_webadmin_groups" title="Permanent link">&para;</a></h3>
+<p>The Groups tab provides configuration options for groups in this user/group service. There are options to add and remove a group, with an additional option to remove a group and the roles associated with that group.</p>
+<p><img alt="" src="../images/ugr_uggroups.png" /><br />
+<em>Groups tab</em></p>
+<h4 id="add-group">Add group<a class="headerlink" href="#add-group" title="Permanent link">&para;</a></h4>
 <p><img alt="" src="../images/ugr_newgroup.png" /></p>
 <p><em>Creating or editing a group</em></p>
 <table>
@@ -30480,9 +30933,8 @@
 </tr>
 </tbody>
 </table>
-<p>In this menu, user/group services can be added, removed, or edited. By default, there is one user/group service in GeoServer, which is <a href="../../usergrouprole/usergroupservices/#security_rolesystem_usergroupxml">XML-based</a>. It is encrypted with <a href="../../passwd/#security_passwd_encryption">Weak PBE</a> and uses the default <a href="../../passwd/#security_passwd_policy">password policy</a>. It is also possible to have a user/group service based on <a href="../../usergrouprole/usergroupservices/#security_rolesystem_usergroupjdbc">JDBC</a> with or without JNDI.</p>
 <h2 id="security_webadmin_roleservices">Role services<a class="headerlink" href="#security_webadmin_roleservices" title="Permanent link">&para;</a></h2>
-<p>In this menu, role services can be added, removed, or edited. By default, the active role service in GeoServer is <a href="../../usergrouprole/roleservices/#security_rolesystem_rolexml">XML-based</a>, but it is also possible to have a role service based on <a href="../../usergrouprole/roleservices/#security_rolesystem_rolejdbc">JDBC</a>, with or without JNDI.</p>
+<p>In this menu, role services can be added, removed, or edited. By default, the active role service in GeoServer is <a href="../../usergrouprole/roleservices/#security_rolesystem_rolexml">XML-based</a>, but it is also possible to have a role service based on <a href="../../usergrouprole/roleservices/#security_rolesystem_rolejdbc">JDBC</a> (with or without JNDI), LDAP, or J2EE. </p>
 <p>The Administrator role is called <code>ROLE_ADMINISTRATOR</code>.</p>
 <p><img alt="" src="../images/ugr_roleservices.png" /></p>
 <p><em>Role services</em></p>
@@ -30492,7 +30944,7 @@
 <p class="admonition-title">Note</p>
 <p>When creating a new role service, the form filled out initially can be found under the Settings tab.</p>
 </div>
-<h2 id="add-new-xml-role-service">Add new XML role service<a class="headerlink" href="#add-new-xml-role-service" title="Permanent link">&para;</a></h2>
+<h3 id="add-new-xml-role-service">Add new XML role service<a class="headerlink" href="#add-new-xml-role-service" title="Permanent link">&para;</a></h3>
 <p>To add a new XML role service, click the <strong>Add new</strong> link. XML is the default option. The following figure shows the configuration options for an XML role service.</p>
 <p><img alt="" src="../images/ugr_rolexmlsettings.png" /></p>
 <p><em>Adding an XML role service</em></p>
@@ -30522,7 +30974,7 @@
 </tr>
 </tbody>
 </table>
-<h2 id="add-new-jdbc-role-service">Add new JDBC role service<a class="headerlink" href="#add-new-jdbc-role-service" title="Permanent link">&para;</a></h2>
+<h3 id="add-new-jdbc-role-service">Add new JDBC role service<a class="headerlink" href="#add-new-jdbc-role-service" title="Permanent link">&para;</a></h3>
 <p>To add a new XML role service, click the <strong>Add new</strong> link, and then the <strong>JDBC</strong> option at the top of the following form. The following figure shows the configuration options for a JDBC role service.</p>
 <p><img alt="" src="../images/ugr_rolejdbcsettings.png" /></p>
 <p><em>Adding a role service via JDBC</em></p>
@@ -30593,7 +31045,7 @@
 </tr>
 </tbody>
 </table>
-<h2 id="add-new-ldap-role-service">Add new LDAP role service<a class="headerlink" href="#add-new-ldap-role-service" title="Permanent link">&para;</a></h2>
+<h3 id="add-new-ldap-role-service">Add new LDAP role service<a class="headerlink" href="#add-new-ldap-role-service" title="Permanent link">&para;</a></h3>
 <p>To add a new LDAP role service, click the <strong>Add new</strong> link, and then the <strong>LDAP</strong> option at the top of the following form. The following figure shows the configuration options for a LDAP role service.</p>
 <p><img alt="" src="../images/ldap_role_empty.png" /></p>
 <p><em>Adding a role service via LDAP</em></p>
@@ -30675,13 +31127,13 @@
 </tr>
 </tbody>
 </table>
-<h2 id="edit-role-service">Edit role service<a class="headerlink" href="#edit-role-service" title="Permanent link">&para;</a></h2>
+<h3 id="edit-role-service">Edit role service<a class="headerlink" href="#edit-role-service" title="Permanent link">&para;</a></h3>
 <p>Once the new role service is added (either XML or JDBC), clicking it in the list of role services will allow the additional options to be specified, such as the roles associated with the service.</p>
 <p>There are two tabs in the resulting menu: <strong>Settings</strong> and <strong>Roles</strong>. The Settings tab is identical to that found when creating the role service, while the Roles tab is described below.</p>
 <p><img alt="" src="../images/ugr_roleroles.png" /></p>
 <p><em>Roles tab</em></p>
 <p>Clicking a role will allow its parameters to be changed, while clicking the <strong>Add new</strong> link will create a new role.</p>
-<h3 id="security_webadmin_roles">Add role<a class="headerlink" href="#security_webadmin_roles" title="Permanent link">&para;</a></h3>
+<h4 id="security_webadmin_roles">Add role<a class="headerlink" href="#security_webadmin_roles" title="Permanent link">&para;</a></h4>
 <p><img alt="" src="../images/ugr_newrole.png" /></p>
 <p><em>Creating or editing a role</em></p>
 <table>
@@ -30830,10 +31282,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../../../..", "features": ["search.suggest", "search.highlight", "content.code.copy", "content.tabs.link", "content.action.edit", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.tracking", "navigation.indexes", "navigation.footer"], "search": "../../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../../..", "features": ["search.suggest", "search.highlight", "content.code.copy", "content.tabs.link", "content.action.edit", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.tracking", "navigation.indexes", "navigation.footer"], "search": "../../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": false, "default": ["latest", "stable", "3.0.x"], "provider": "mike"}}</script>
     
     
-      <script src="../../../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../../../../../javascripts/hide-empty-toc.js"></script>
       
