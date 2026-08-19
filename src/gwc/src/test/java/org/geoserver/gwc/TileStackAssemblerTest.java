@@ -91,11 +91,25 @@ public class TileStackAssemblerTest {
                 () -> assembler.assemble(null, null, List.of(segment), png, deadlineAlreadyPassed));
     }
 
+    @Test
+    public void testAssembleFailsWhenASegmentSizeDoesNotMatchTheCanvas() throws Exception {
+        GWC.Segment bottom = segment(solidTile(Color.RED, 2, 2));
+        GWC.Segment mismatched = segment(solidTile(Color.BLUE, 3, 3));
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> assembler.assemble(null, null, List.of(bottom, mismatched), png, -1));
+    }
+
     private byte[] solidTile(Color color) throws Exception {
-        BufferedImage image = new BufferedImage(2, 2, BufferedImage.TYPE_INT_ARGB);
+        return solidTile(color, 2, 2);
+    }
+
+    private byte[] solidTile(Color color, int width, int height) throws Exception {
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();
         g.setColor(color);
-        g.fillRect(0, 0, 2, 2);
+        g.fillRect(0, 0, width, height);
         g.dispose();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ImageIO.write(image, "png", out);

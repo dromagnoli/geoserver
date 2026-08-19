@@ -52,12 +52,20 @@ class TileStackAssembler {
             for (GWC.Segment segment : segments) {
                 BufferedImage segmentImage = segment instanceof GWC.CachedSegment cached
                         ? decodeCachedSegment(cached)
-                        : gwc.renderLiveSegment(request, (GWC.LiveSegment) segment);
+                        : gwc.renderLiveSegment(request, (GWC.LiveSegment) segment, deadline);
 
                 if (canvas == null) {
                     canvas = new BufferedImage(
                             segmentImage.getWidth(), segmentImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
                     graphics = canvas.createGraphics();
+                } else if (segmentImage.getWidth() != canvas.getWidth()
+                        || segmentImage.getHeight() != canvas.getHeight()) {
+                    // members share one footprint, gridloc and zoom (enforced in GWC.classifyCoalescedMembers); a
+                    // live segment's own render is the one segment kind that isn't grid-checked, so a mismatch here
+                    // would otherwise silently misalign the stack instead of failing loudly
+                    throw new IllegalStateException(
+                            "Coalesced segment image size " + segmentImage.getWidth() + "x" + segmentImage.getHeight()
+                                    + " does not match the tile size " + canvas.getWidth() + "x" + canvas.getHeight());
                 }
                 graphics.drawImage(segmentImage, 0, 0, null);
                 // drops cached/accelerated surface copies now rather than waiting for GC; does not free the raster

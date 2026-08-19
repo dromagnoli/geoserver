@@ -991,9 +991,23 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
     /**
      * Renders a {@link LiveSegment}'s members as a single in-process {@code GetMap}, bypassing GWC's own
      * {@code WebMapService} interceptor so a live segment cannot recurse back into tile caching.
+     *
+     * @param deadline the coalesced request's own deadline (see {@link #computeRenderingDeadline}), shared with this
+     *     live render via the {@code timeout} format option so a slow segment can't each get its own full
+     *     {@code maxRenderingTime} budget
+     * @throws org.geoserver.platform.ServiceException if {@code deadline} has already passed before this segment's
+     *     render could even start
      */
-    BufferedImage renderLiveSegment(GetMapRequest request, LiveSegment segment) throws Exception {
-        GetMapRequest subRequest = sliceLiveSegment(request, segment.memberIndices());
+    BufferedImage renderLiveSegment(GetMapRequest request, LiveSegment segment, long deadline) throws Exception {
+        long remainingMillis = 0;
+        if (deadline > 0) {
+            remainingMillis = deadline - System.currentTimeMillis();
+            if (remainingMillis <= 0) {
+                throw new org.geoserver.platform.ServiceException(
+                        "This request used more time than allowed and has been forcefully stopped.");
+            }
+        }
+        GetMapRequest subRequest = sliceLiveSegment(request, segment.memberIndices(), remainingMillis);
         WebMap webMap = GeoServerExtensions.bean(GetMap.class).run(subRequest);
         if (!(webMap instanceof RenderedImageMap renderedImageMap)) {
             throw new IllegalStateException("Live render of a coalesced segment did not produce a raster: " + webMap);
@@ -1005,7 +1019,13 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
         return PlanarImage.wrapRenderedImage(image).getAsBufferedImage();
     }
 
-    private static GetMapRequest sliceLiveSegment(GetMapRequest request, List<Integer> memberIndices) {
+    /**
+     * @param remainingMillis this segment's share of the coalesced request's own deadline, or {@code <= 0} for no
+     *     deadline; passed through as the {@code timeout} format option, the only way to shrink a single in-process
+     *     {@code GetMap}'s own {@code maxRenderingTime} below the server-wide setting
+     */
+    private static GetMapRequest sliceLiveSegment(
+            GetMapRequest request, List<Integer> memberIndices, long remainingMillis) {
         GetMapRequest subRequest = (GetMapRequest) request.clone();
         subRequest.setLayers(pickByIndex(request.getLayers(), memberIndices));
         subRequest.setStyles(pickByIndex(request.getStyles(), memberIndices));
@@ -1024,6 +1044,12 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
         List<Map<String, String>> viewParams = request.getViewParams();
         if (viewParams != null) {
             subRequest.setViewParams(pickByIndex(viewParams, memberIndices));
+        }
+        if (remainingMillis > 0) {
+            // GetMapRequest.clone() shares the formatOptions map with the original request; copy it before writing
+            Map<String, Object> formatOptions = new CaseInsensitiveMap<>(new HashMap<>(request.getFormatOptions()));
+            formatOptions.put("timeout", remainingMillis);
+            subRequest.setFormatOptions(formatOptions);
         }
         return subRequest;
     }
