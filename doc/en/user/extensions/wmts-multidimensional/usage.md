@@ -446,3 +446,28 @@ and the result will be similar to this:
 ```
 
 Note how this result correlate with the correspondent `DescribeDomains` operation result.
+
+## Security
+
+The domain responses honor the data security restrictions configured for the layer. When a rule or a security
+extension limits which records a user can read, `DescribeDomains`, `GetDomainValues`, `GetHistogram` and
+`GetFeature` only report the values found in the records that user is allowed to see. Domain values that no
+readable record carries are left out, and the reported sizes and histogram counts shrink accordingly.
+
+This covers vector layers and the raster layers whose store keeps an index of the single granules, image mosaic
+and the mosaic based NetCDF and GRIB stores being the common cases. **A raster layer that does not expose its
+granules reports the dimension domain declared by its store as is**, so the values listed there do not shrink
+with the restrictions. The data itself is still protected, the user only gets to see domain values for which no
+data will be served.
+
+The restrictions apply to the multidimensional domain responses only. The dimension values advertised in the
+WMS and WCS capabilities documents are read from the store as a whole, so **the capabilities can list time or
+elevation values that the domain responses leave out**, image mosaic and the other granule indexed stores
+included. Only the list of values is wider: no data is served for the values the restrictions hide.
+
+Sidecar summary tables are the exception. A vector layer configured to extract its domains from a sidecar table
+has that table queried in place of the original one, and **doing so bypasses every restriction configured on the
+layer**, security included, which is why such layers have to be public. See [performance](performance.md).
+
+It is to be noted that **the same layer can report different domains to different users**. A layer whose
+restriction excludes every record reports empty domains, not an error.

@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 import org.eclipse.imagen.Interpolation;
 import org.geoserver.catalog.Predicates;
 import org.geoserver.data.util.CoverageUtils;
@@ -41,6 +42,7 @@ import org.geotools.geometry.jts.JTS;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.CRS;
 import org.geotools.util.factory.Hints;
+import org.geotools.util.logging.Logging;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.MultiPolygon;
@@ -51,6 +53,8 @@ import org.locationtech.jts.geom.MultiPolygon;
  * @author Andrea Aime - GeoSolutions
  */
 public class SecuredGridCoverage2DReader extends DecoratingGridCoverage2DReader {
+
+    private static final Logger LOGGER = Logging.getLogger(SecuredGridCoverage2DReader.class);
 
     /** Parameters used to control the {@link Crop} operation. */
     private static final ParameterValueGroup cropParams;
@@ -85,10 +89,21 @@ public class SecuredGridCoverage2DReader extends DecoratingGridCoverage2DReader 
 
     @Override
     public GridCoverage2D read(GeneralParameterValue... parameters) throws IllegalArgumentException, IOException {
-        return SecuredGridCoverage2DReader.read(delegate, policy, parameters);
+        return SecuredGridCoverage2DReader.read(delegate, policy, null, parameters);
     }
 
-    static GridCoverage2D read(GridCoverage2DReader delegate, WrapperPolicy policy, GeneralParameterValue... parameters)
+    @Override
+    public GridCoverage2D read(String coverageName, GeneralParameterValue... parameters)
+            throws IllegalArgumentException, IOException {
+        return SecuredGridCoverage2DReader.read(delegate, policy, coverageName, parameters);
+    }
+
+    /** @param coverageName the coverage to read, {@code null} to read the only/default one */
+    static GridCoverage2D read(
+            GridCoverage2DReader delegate,
+            WrapperPolicy policy,
+            String coverageName,
+            GeneralParameterValue... parameters)
             throws IllegalArgumentException, IOException {
         // Package private static method to share reading code with Structured reader
         MultiPolygon rasterFilter = null;
@@ -102,7 +117,8 @@ public class SecuredGridCoverage2DReader extends DecoratingGridCoverage2DReader 
             // update the read params
             final GeneralParameterValue[] limitParams = limits.getParams();
             if (parameters == null || parameters.length == 0) { // beware a no-args call means an empty array
-                parameters = limitParams;
+                // limits without params leave nothing to read with, and the filter scan below would walk a null array
+                parameters = limitParams != null ? limitParams : new GeneralParameterValue[0];
             } else if (limitParams != null) {
                 // scan the input params, add and overwrite with the limits params as needed
                 List<GeneralParameterValue> params = new ArrayList<>(Arrays.asList(parameters));
@@ -130,6 +146,8 @@ public class SecuredGridCoverage2DReader extends DecoratingGridCoverage2DReader 
                         readParameters.getDescriptor().descriptors();
 
                 // scan all the params looking for the one we want to add
+                // pre-existing: setValue below writes into the caller's own parameter, so a caller reusing the same
+                // array across two reads gets the filter ANDed twice. Only narrows, so it is left alone here
                 boolean replacedOriginalFilter = false;
                 for (GeneralParameterValue pv : parameters) {
                     String pdCode = pv.getDescriptor().getName().getCode();
@@ -146,12 +164,21 @@ public class SecuredGridCoverage2DReader extends DecoratingGridCoverage2DReader 
                     }
                 }
                 if (!replacedOriginalFilter) {
-                    parameters = CoverageUtils.mergeParameter(descriptors, parameters, readFilter, "FILTER", "Filter");
+                    // mergeParameter is a no-op when the format declares no such parameter, and the whole coverage
+                    // would then be served: report the misconfiguration rather than let it pass unnoticed
+                    if (supportsFilterParameter(descriptors)) {
+                        parameters =
+                                CoverageUtils.mergeParameter(descriptors, parameters, readFilter, "FILTER", "Filter");
+                    } else {
+                        LOGGER.warning("Read restrictions " + readFilter + " are not applied to the data, format "
+                                + format.getName() + " has no FILTER read parameter to pass them through");
+                    }
                 }
             }
         }
 
-        GridCoverage2D grid = delegate.read(parameters);
+        GridCoverage2D grid =
+                coverageName == null ? delegate.read(parameters) : delegate.read(coverageName, parameters);
 
         // crop if necessary
         if (rasterFilter != null && grid != null) {
@@ -193,6 +220,13 @@ public class SecuredGridCoverage2DReader extends DecoratingGridCoverage2DReader 
             }
         }
         return grid;
+    }
+
+    /** True when the format declares the read parameter the security read filter is passed through. */
+    private static boolean supportsFilterParameter(List<GeneralParameterDescriptor> descriptors) {
+        return descriptors.stream()
+                .map(descriptor -> descriptor.getName().getCode())
+                .anyMatch(code -> "FILTER".equals(code) || "Filter".equals(code));
     }
 
     private static RequestedMapArea getRequestedMapArea() {

@@ -240,3 +240,32 @@ Given a `coverageconfig.xml`:
 *Response*
 
     201 Created
+
+# Granules and data security
+
+Data security rules that limit which records a user can read also apply to the granule index. A user reading
+the granule list, or its count and bounds, only gets the granules that user is allowed to see, and a removal or
+an update is likewise confined to them, so a request cannot touch granules it could not list in the first place.
+Adding granules is held to the same rule: a granule whose values fall outside the restriction is refused, since
+its own author would not be able to read it back.
+
+A refused add stops at the offending granule, so **the granules that came before it in the same request stay in
+the index**, all of them within the restriction. Send the request inside a transaction and roll it back if the
+batch has to land whole or not at all.
+
+Updates are held to it twice over. Besides being confined to the visible granules, **an update that writes one
+of the attributes the restriction is based on is refused outright**, whatever the new value, since it could
+push the granule out of the caller's own view. A restriction on `time`, say, leaves that attribute unwritable
+for the restricted user, who has to remove the granule and harvest it again to change it.
+
+**Harvesting is the exception.** Granule values are worked out from the file while it is being indexed, not sent
+in with the request, so they are only known once the granules are already in the index, and there is no way to
+check them beforehand. A harvest therefore only requires write access on the store, and it can index granules
+that the read restrictions will then hide from the user who harvested them. It is to be noted that this is a
+surprise rather than a loosening of the restrictions: those granules stay invisible to that user afterwards,
+in the granule listing and in the data served. Users who are allowed to read them do see them.
+
+It does leave granules that their own author cannot clean up: a removal is confined to the granules that user
+can see, so **granules harvested outside the restriction can only be removed by a user the restriction lets
+read them**, an administrator with no limits being the usual case. Worth keeping in mind when granting write
+access on a store whose layer is restricted.
