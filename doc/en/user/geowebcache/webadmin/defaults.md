@@ -227,7 +227,7 @@ Where the tiles are kept. GeoServer provides:
 
 - **Heap (single node)**: tiles are kept in the memory of each GeoServer node, up to **Maximum size on each node, in MB** (64 by default). The cache is not shared, and a truncate on one node does not reach the others, so use it on a single node only. Saving this page empties it.
 
-Other backends are added by extensions.
+Other backends are added by extensions, such as the [GWC Hazelcast tile cache plugin](../../community/gwc-hazelcast/index.md), which shares the tiles among all the nodes of a cluster.
 
 ### Behavior on failures and truncation
 
