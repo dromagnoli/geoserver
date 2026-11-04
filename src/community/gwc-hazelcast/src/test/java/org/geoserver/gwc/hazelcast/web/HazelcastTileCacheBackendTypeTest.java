@@ -4,6 +4,9 @@
  */
 package org.geoserver.gwc.hazelcast.web;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
@@ -11,6 +14,8 @@ import java.util.List;
 import java.util.stream.IntStream;
 import org.apache.wicket.markup.html.form.DropDownChoice;
 import org.apache.wicket.util.tester.FormTester;
+import org.geoserver.gwc.ConfigurableLockProvider;
+import org.geoserver.gwc.GWC;
 import org.geoserver.gwc.web.GWCSettingsPage;
 import org.geoserver.gwc.web.tilecache.TileCacheBackendType;
 import org.geoserver.platform.GeoServerExtensions;
@@ -18,12 +23,13 @@ import org.geoserver.web.GeoServerWicketTestSupport;
 import org.geowebcache.config.XMLConfiguration;
 import org.geowebcache.hazelcast.HazelcastClientTileCacheBackendInfo;
 import org.geowebcache.hazelcast.HazelcastEmbeddedTileCacheBackendInfo;
+import org.geowebcache.hazelcast.HazelcastLockProvider;
 import org.geowebcache.storage.tilecache.TileCacheBackendInfo;
 import org.geowebcache.storage.tilecache.TileCacheInfo;
 import org.junit.Before;
 import org.junit.Test;
 
-/** Switches the caching defaults page to each Hazelcast backend and saves its settings. */
+/** Switches the caching defaults page to each Hazelcast backend and to the Hazelcast locks, and saves them. */
 public class HazelcastTileCacheBackendTypeTest extends GeoServerWicketTestSupport {
 
     private static final String SETTINGS = "tileCachePanel:settings:";
@@ -68,6 +74,24 @@ public class HazelcastTileCacheBackendTypeTest extends GeoServerWicketTestSuppor
 
         tester.assertNoErrorMessage();
         assertEquals("tiles", ((HazelcastEmbeddedTileCacheBackendInfo) savedBackend()).getMapName());
+    }
+
+    @Test
+    public void testHazelcastLockSelected() {
+        String lockProvider = "cachingOptionsPanel:container:configs:lockProvider";
+        tester.startPage(GWCSettingsPage.class);
+        DropDownChoice<?> locks = (DropDownChoice<?>) tester.getComponentFromLastRenderedPage("form:" + lockProvider);
+        int index = locks.getChoices().indexOf("hazelcastLock");
+        assertThat(index, greaterThanOrEqualTo(0));
+        tester.assertContains("Hazelcast cluster locking");
+
+        FormTester form = tester.newFormTester("form");
+        form.select(lockProvider, index);
+        form.submit("submit");
+
+        tester.assertNoErrorMessage();
+        ConfigurableLockProvider selected = (ConfigurableLockProvider) GWC.get().getLockProvider();
+        assertThat(selected.getDelegate(), instanceOf(HazelcastLockProvider.class));
     }
 
     /** Opens the page and picks the backend editing {@code settingsClass}, returning a form showing its panel. */

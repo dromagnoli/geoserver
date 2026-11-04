@@ -25,6 +25,7 @@
         <constructor-arg ref="resourceStore"/>
       </bean>
     </constructor-arg>
+    <property name="lockProvider" ref="hazelcastLock"/>
   </bean>
 
   <bean id="gwcHazelcastEmbeddedTileCacheBackend" class="org.geowebcache.hazelcast.HazelcastEmbeddedTileCacheBackend">
@@ -34,7 +35,11 @@
         <constructor-arg ref="resourceStore"/>
       </bean>
     </constructor-arg>
+    <property name="lockProvider" ref="hazelcastLock"/>
   </bean>
+
+  <!-- Offered in the tile locking mechanism of the caching defaults, locks on the cluster of the selected backend -->
+  <bean id="hazelcastLock" class="org.geowebcache.hazelcast.HazelcastLockProvider"/>
 
   <bean class="org.geoserver.gwc.hazelcast.web.HazelcastClientTileCacheBackendType"/>
   <bean class="org.geoserver.gwc.hazelcast.web.HazelcastEmbeddedTileCacheBackendType"/>
