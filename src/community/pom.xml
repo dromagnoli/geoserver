@@ -170,6 +170,7 @@
         <module>png-wind</module>
         <module>fips</module>
         <module>updates-checker</module>
+        <module>pgstac</module>
       </modules>
     </profile>
     <profile>
@@ -334,6 +335,12 @@
       <id>oseo</id>
       <modules>
         <module>oseo</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>pgstac</id>
+      <modules>
+        <module>pgstac</module>
       </modules>
     </profile>
     <profile>

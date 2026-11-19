@@ -62,7 +62,7 @@ public class OpenAPIBuilder<T extends ServiceInfo> {
      */
     public OpenAPI build(T service) throws IOException {
         GeoServerOpenAPI api = readTemplate();
-        api.setServiceBase(this.serviceAnnotation.landingPage());
+        api.setServiceBase(APIDispatcher.getLandingPage(this.serviceAnnotation));
         addAPIInfo(service, api);
         addServers(api);
         addBasePathFormats(api);
@@ -87,7 +87,7 @@ public class OpenAPIBuilder<T extends ServiceInfo> {
         // the servers
         String wfsUrl = ResponseUtils.buildURL(
                 APIRequestInfo.get().getBaseURL(),
-                this.serviceAnnotation.landingPage(),
+                APIDispatcher.getLandingPage(this.serviceAnnotation),
                 null,
                 URLMangler.URLType.SERVICE);
         api.servers(Arrays.asList(new Server().description("This server").url(wfsUrl)));

@@ -66,7 +66,7 @@ public class FreemarkerTemplateSupport {
 
                 APIService service = clazz.getAnnotation(APIService.class);
                 if (service != null) {
-                    source = super.findTemplateSource(service.landingPage() + "/" + path);
+                    source = super.findTemplateSource(APIDispatcher.getLandingPage(service) + "/" + path);
                 }
 
                 if (source == null) {

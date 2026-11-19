@@ -43,6 +43,7 @@ import org.geoserver.platform.ServiceException;
 import org.geotools.util.Version;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.env.Environment;
 import org.springframework.format.support.FormattingConversionService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.InvalidMediaTypeException;
@@ -121,6 +122,8 @@ public class APIDispatcher extends AbstractController {
 
         this.mappingHandler = new APIRequestHandlerMapping();
         this.mappingHandler.setApplicationContext(context);
+        // not a container bean, so Spring does not inject the resolver of ${...} in @RequestMapping paths
+        this.mappingHandler.setEmbeddedValueResolver(context.getEnvironment()::resolvePlaceholders);
         this.mappingHandler.afterPropertiesSet();
 
         // create the one handler adapter we need similar to how DispatcherServlet does it
@@ -325,13 +328,14 @@ public class APIDispatcher extends AbstractController {
     private void dispatchService(Request dr, HandlerMethod handler) {
         // get the annotations and set service, version and request
         APIService annotation = getApiServiceAnnotation(handler.getBeanType());
-        dr.setService(annotation.service());
+        String serviceName = getServiceName(annotation);
+        dr.setService(serviceName);
         dr.setVersion(annotation.version());
         dr.setRequest(getOperationName(handler.getMethod()));
 
         // comply with DispatcherCallback and fire a service dispatched callback
-        Service service = new Service(
-                annotation.service(), handler.getBean(), new Version(annotation.service()), Collections.emptyList());
+        Service service =
+                new Service(serviceName, handler.getBean(), new Version(serviceName), Collections.emptyList());
         dr.setServiceDescriptor(service);
 
         service = fireServiceDispatchedCallback(dr, service);
@@ -355,6 +359,23 @@ public class APIDispatcher extends AbstractController {
         }
 
         return annotation;
+    }
+
+    /** Returns {@link APIService#service()} with its {@code ${name:default}} placeholders resolved. */
+    public static String getServiceName(APIService annotation) {
+        return resolvePlaceholders(annotation.service());
+    }
+
+    /** Returns {@link APIService#landingPage()} with its {@code ${name:default}} placeholders resolved. */
+    public static String getLandingPage(APIService annotation) {
+        return resolvePlaceholders(annotation.landingPage());
+    }
+
+    /** Resolves against the Spring environment, as done for the {@link RequestMapping} paths of the services. */
+    private static String resolvePlaceholders(String value) {
+        if (!value.contains("${")) return value;
+        Environment environment = GeoServerExtensions.bean(Environment.class);
+        return environment == null ? value : environment.resolvePlaceholders(value);
     }
 
     private HandlerMethod getHandlerMethod(HttpServletRequest httpRequest, Request dr) throws Exception {

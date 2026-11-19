@@ -48,10 +48,12 @@ public class APIServiceFactoryBean implements FactoryBean, ApplicationContextAwa
 
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        // the name can be a placeholder, like the @APIService one it must match
+        String serviceName = applicationContext.getEnvironment().resolvePlaceholders(this.serviceName);
         List<Object> serviceBeans = applicationContext.getBeansWithAnnotation(APIService.class).values().stream()
                 .filter(bean -> {
                     APIService annotation = APIDispatcher.getApiServiceAnnotation(bean.getClass());
-                    return serviceName.equalsIgnoreCase(annotation.service())
+                    return serviceName.equalsIgnoreCase(APIDispatcher.getServiceName(annotation))
                             && version.equals(new Version(annotation.version()));
                 })
                 .collect(Collectors.toList());
@@ -100,7 +102,7 @@ public class APIServiceFactoryBean implements FactoryBean, ApplicationContextAwa
                 .sorted()
                 .collect(Collectors.toList());
 
-        this.service = new Service(annotation.service(), coreBean, version, operations);
-        this.service.setCustomCapabilitiesLink("../" + annotation.landingPage());
+        this.service = new Service(APIDispatcher.getServiceName(annotation), coreBean, version, operations);
+        this.service.setCustomCapabilitiesLink("../" + APIDispatcher.getLandingPage(annotation));
     }
 }

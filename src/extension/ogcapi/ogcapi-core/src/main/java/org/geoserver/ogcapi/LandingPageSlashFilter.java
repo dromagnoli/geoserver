@@ -71,7 +71,7 @@ public class LandingPageSlashFilter implements GeoServerFilter, ApplicationConte
      */
     private boolean matchesServiceLandingPage(String path, APIService s) {
         // global service
-        String landingPageSlash = s.landingPage() + "/";
+        String landingPageSlash = APIDispatcher.getLandingPage(s) + "/";
         if (path.equals(landingPageSlash)) return true;
 
         // workspace local service then?

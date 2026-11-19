@@ -57,8 +57,9 @@ public class LinkInfoConverter {
     private static void addLinksToDocument(AbstractDocument document, Class serviceClass, List<LinkInfo> links) {
         if (links != null) {
             APIService annotation = APIDispatcher.getApiServiceAnnotation(serviceClass);
-            String service =
-                    Optional.ofNullable(annotation).map(s -> s.service()).orElse(null);
+            String service = Optional.ofNullable(annotation)
+                    .map(APIDispatcher::getServiceName)
+                    .orElse(null);
             links.stream().filter(l -> serviceMatch(l, service)).forEach(l -> addLinkToDocument(l, document));
         }
     }

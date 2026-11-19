@@ -196,7 +196,7 @@ public class APIRequestInfo {
                 .map(sd -> sd.getService())
                 .map(s -> s.getClass())
                 .map(c -> APIDispatcher.getApiServiceAnnotation(c))
-                .map(a -> a.landingPage())
+                .map(APIDispatcher::getLandingPage)
                 .orElseThrow(
                         () -> new RuntimeException(
                                 "Could not find a service base URL at this stage, maybe the service has not been dispatched yet"));

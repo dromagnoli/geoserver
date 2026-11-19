@@ -165,7 +165,7 @@ class LinkInfoEditor extends FormComponentPanel<List<LinkInfo>> {
         return beans.values().stream()
                 .map(s -> APIDispatcher.getApiServiceAnnotation(s.getClass()))
                 .filter(a -> a != null && a.core())
-                .map(a -> a.service())
+                .map(APIDispatcher::getServiceName)
                 .sorted()
                 .collect(Collectors.toList());
     }
