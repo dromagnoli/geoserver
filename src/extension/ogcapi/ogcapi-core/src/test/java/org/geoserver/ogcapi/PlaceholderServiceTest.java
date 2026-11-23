@@ -60,7 +60,11 @@ public class PlaceholderServiceTest extends OGCApiTestSupport {
                 "Renamed ogc/renamed/v1",
                 getAsJSONPath("ogc/renamed/v1/info", 200).read("message"));
         assertEquals(404, getAsServletResponse("ogc/placeholder/v1/info").getStatus());
-        assertEquals("Renamed", applicationContext.getBean("placeholderServiceFactory", Service.class).getId());
+        assertEquals(
+                "Renamed",
+                applicationContext
+                        .getBean("placeholderServiceFactory", Service.class)
+                        .getId());
     }
 
     @Test
