@@ -12,11 +12,15 @@ import org.geoserver.ogcapi.APIFilterParser;
 import org.geoserver.pgstac.PgStacException;
 import org.geoserver.pgstac.PgStacFilters;
 import org.geoserver.pgstac.PgStacServiceInfo;
+import org.geotools.api.referencing.FactoryException;
+import org.geotools.referencing.CRS;
+import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.IntNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
@@ -72,13 +76,57 @@ public class SearchRequestBuilder {
         for (String name : PASSTHROUGH) {
             if (body.has(name)) search.set(name, body.get(name));
         }
-        JsonNode bbox = search.get("bbox");
-        if (bbox != null && bbox.size() != 4 && bbox.size() != 6)
-            throw badRequest("Invalid bbox " + bbox + ", must have 4 or 6 numbers");
+        checkBbox(search);
         search.put("limit", limit(body.get("limit"), info));
         putFilter(search, body);
         search.putObject("conf").put("context", info.isSkipNumberMatched() ? "off" : "counted");
         return search;
+    }
+
+    /** Builds the PgSTAC {@code collection_search()} request for the paging parameters of GET /collections. */
+    public ObjectNode fromCollectionsQuery(Map<String, String> params, PgStacServiceInfo info) throws PgStacException {
+        String limit = params.get("limit");
+        String offset = params.get("offset");
+        int start = offset == null ? 0 : parseInt("offset", offset);
+        if (start < 0) throw badRequest("Invalid offset " + offset + ", must not be negative");
+        ObjectNode search = MAPPER.createObjectNode();
+        search.put("limit", limit(limit == null ? null : IntNode.valueOf(parseInt("limit", limit)), info));
+        search.put("offset", start);
+        return search;
+    }
+
+    /** Fails on a malformed bbox, and replaces one crossing the antimeridian with an equivalent intersects. */
+    private static void checkBbox(ObjectNode search) throws PgStacException {
+        JsonNode bbox = search.get("bbox");
+        if (bbox == null) return;
+        boolean numbers = bbox.isArray() && bbox.valueStream().allMatch(JsonNode::isNumber);
+        if (!numbers || (bbox.size() != 4 && bbox.size() != 6))
+            throw badRequest("Invalid bbox " + bbox + ", must have 4 or 6 numbers");
+        // STAC API item search, the split below needs intersects free anyway
+        if (search.has("intersects")) throw badRequest("Only one of bbox and intersects can be used");
+
+        // the east longitude starts the second half, 2D or 3D
+        int half = bbox.size() / 2;
+        double west = bbox.get(0).doubleValue();
+        double east = bbox.get(half).doubleValue();
+        // west > east crosses the antimeridian (RFC 7946 section 5.2), PgSTAC would read it as east to west instead
+        if (west <= east) return;
+        double south = bbox.get(1).doubleValue();
+        double north = bbox.get(half + 1).doubleValue();
+        ObjectNode split = MAPPER.createObjectNode().put("type", "MultiPolygon");
+        ArrayNode polygons = split.putArray("coordinates");
+        addBox(polygons, west, south, 180, north);
+        addBox(polygons, -180, south, east, north);
+        // the height range of a 3D bbox is dropped, the split is 2D
+        search.remove("bbox");
+        search.set("intersects", split);
+    }
+
+    /** Adds a GeoJSON polygon, exterior ring counterclockwise as RFC 7946 section 3.1.6 asks. */
+    private static void addBox(ArrayNode polygons, double minX, double minY, double maxX, double maxY) {
+        ArrayNode ring = polygons.addArray().addArray();
+        double[][] corners = {{minX, minY}, {maxX, minY}, {maxX, maxY}, {minX, maxY}, {minX, minY}};
+        for (double[] corner : corners) ring.addArray().add(corner[0]).add(corner[1]);
     }
 
     private static int limit(JsonNode limit, PgStacServiceInfo info) throws PgStacException {
@@ -94,7 +142,7 @@ public class SearchRequestBuilder {
         if (filter == null || filter.isNull()) return;
         String crs = body.path("filter-crs").asString(null);
         // PgSTAC compares geometries as they are, in lon/lat order
-        if (crs != null && !CRS84.equals(crs))
+        if (crs != null && !isCRS84(crs))
             throw badRequest("Unsupported filter-crs " + crs + ", only " + CRS84 + " is supported");
 
         // CQL2 JSON goes to PgSTAC as is, avoiding a GeoTools round trip; text languages are converted and checked
@@ -107,6 +155,15 @@ public class SearchRequestBuilder {
             search.set("filter", PgStacFilters.toCQL2Json(filterParser.parse(filter.asString(), lang)));
         }
         search.put("filter-lang", CQL2_JSON);
+    }
+
+    /** True for any spelling of CRS84 (URI, URN, {@code CRS:84}), never for a latitude-first CRS. */
+    private static boolean isCRS84(String crs) {
+        try {
+            return CRS.equalsIgnoreMetadata(CRS.decode(crs), DefaultGeographicCRS.WGS84);
+        } catch (FactoryException e) {
+            return false;
+        }
     }
 
     private static void putList(ObjectNode body, String name, String value) {

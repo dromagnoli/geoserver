@@ -44,7 +44,7 @@ public class PgStacHydration {
 
     static JsonNode hydrateItem(ObjectNode item, JsonNode fields) {
         JsonNode base = item.remove(BASE_ITEM);
-        return merge(project(item, fields), project(base, fields));
+        return merge(applyFields(item, fields), applyFields(base, fields));
     }
 
     /**
@@ -99,7 +99,7 @@ public class PgStacHydration {
      * Port of PgSTAC {@code jsonb_fields}: keeps the dotted {@code include} paths, plus {@code id} and
      * {@code collection}, as null when missing, then removes the dotted {@code exclude} paths.
      */
-    static JsonNode project(JsonNode json, JsonNode fields) {
+    static JsonNode applyFields(JsonNode json, JsonNode fields) {
         if (!(json instanceof ObjectNode object) || fields == null) return json;
         ObjectNode result = include(object, fields.path("include"));
         for (JsonNode path : fields.path("exclude")) {
@@ -109,7 +109,6 @@ public class PgStacHydration {
     }
 
     private static ObjectNode include(ObjectNode json, JsonNode includes) {
-        // the page is ours, projecting in place or sharing subtrees is fine
         if (includes.isEmpty()) return json;
         List<String> paths = new ArrayList<>();
         includes.forEach(path -> paths.add(path.asString()));

@@ -8,7 +8,7 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
-  <!-- PgStacSTACService itself is picked up by the org.geoserver.pgstac scan in gs-pgstac-core -->
+  <!-- PgStacService itself is picked up by the org.geoserver.pgstac scan in gs-pgstac-core -->
 
   <!-- Bridges the OGC API service to an OWS service, the name must match the @APIService one -->
   <bean id="pgstacServiceFactory" class="org.geoserver.ogcapi.APIServiceFactoryBean">

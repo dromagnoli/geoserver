@@ -46,7 +46,7 @@ public class SecurePgStacFacade implements PgStacFacade {
 
     private static final JsonMapper MAPPER = new JsonMapper();
 
-    private final PgStacFacade delegate;
+    private final DefaultPgStacFacade delegate;
     private final GeoServer geoServer;
     private final GeoServerSecurityManager securityManager;
 

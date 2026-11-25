@@ -7,7 +7,6 @@ package org.geoserver.pgstac;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 import javax.sql.DataSource;
 import org.geoserver.catalog.ResourcePool;
 import org.geoserver.config.GeoServer;
@@ -28,7 +27,7 @@ public class PgStacConnectionManager implements DisposableBean {
 
     private final GeoServer geoServer;
     private final GeoServerResourceLoader resourceLoader;
-    private final AtomicReference<PoolState> state = new AtomicReference<>();
+    private volatile PoolState state;
 
     public PgStacConnectionManager(GeoServer geoServer, GeoServerResourceLoader resourceLoader) {
         this.geoServer = geoServer;
@@ -37,36 +36,40 @@ public class PgStacConnectionManager implements DisposableBean {
 
     /**
      * Returns the pooled {@link DataSource} for the current {@link PgStacServiceInfo} connection parameters, rebuilding
-     * the pool if the configuration changed since the last call.
+     * the pool if the configuration changed since the last call. A rebuild closes the previous pool, so a caller must
+     * not keep the returned {@link DataSource} across requests.
      */
     public DataSource getDataSource() throws IOException {
-        PgStacServiceInfo info = geoServer.getService(PgStacServiceInfo.class);
-        Map<String, Serializable> params = ResourcePool.getParams(info.getConnectionParameters(), resourceLoader);
-        // pool creation is unlocked, so concurrent callers can race to rebuild: each builds its own
-        // candidate (fresh) and CASes it in; the loser's pool is disposed here rather than left
-        // dangling, and it re-reads state to pick up the winner's pool before re-checking params
-        PoolState current = state.get();
-        while (current == null || !params.equals(current.params())) {
+        PoolState current = state;
+        if (current != null && currentParams().equals(current.params()))
+            return current.store().getDataSource();
+        // a single rebuild per change, as creating the pool opens a connection to check the database
+        synchronized (this) {
+            // re-read under the lock, so a caller holding stale config cannot replace a newer pool
+            Map<String, Serializable> params = currentParams();
+            current = state;
+            if (current != null && params.equals(current.params()))
+                return current.store().getDataSource();
             JDBCDataStore store = (JDBCDataStore) DataStoreFinder.getDataStore(params);
             if (store == null) {
                 throw new IOException("Could not create pgstac connection pool, check connection parameters");
             }
-            PoolState fresh = new PoolState(params, store);
-            if (state.compareAndSet(current, fresh)) {
-                if (current != null) current.store().dispose(); // closes idle conns; borrowed ones finish in flight
-                current = fresh;
-            } else {
-                store.dispose(); // lost the race, this pool was never handed out
-                current = state.get();
-            }
+            state = new PoolState(params, store);
+            if (current != null) current.store().dispose(); // borrowed connections are closed when returned
+            return store.getDataSource();
         }
-        return current.store().getDataSource();
+    }
+
+    private Map<String, Serializable> currentParams() throws IOException {
+        PgStacServiceInfo info = geoServer.getService(PgStacServiceInfo.class);
+        return ResourcePool.getParams(info.getConnectionParameters(), resourceLoader);
     }
 
     /** Closes the current pool on GeoServer shutdown; connections still borrowed are closed when returned. */
     @Override
-    public void destroy() {
-        PoolState current = state.getAndSet(null);
+    public synchronized void destroy() {
+        PoolState current = state;
+        state = null;
         if (current != null) current.store().dispose();
     }
 }

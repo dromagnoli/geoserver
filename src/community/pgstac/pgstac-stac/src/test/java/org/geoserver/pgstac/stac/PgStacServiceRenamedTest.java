@@ -16,7 +16,7 @@ import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 /** Checks the coexistence setup, with the service renamed and moved next to the OSEO STAC one. */
-public class PgStacSTACServiceRenamedTest extends OGCApiTestSupport {
+public class PgStacServiceRenamedTest extends OGCApiTestSupport {
 
     @BeforeClass
     public static void setOverrides() {

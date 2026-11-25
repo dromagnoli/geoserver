@@ -5,13 +5,16 @@
 package org.geoserver.pgstac.stac;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 
+import java.util.List;
 import java.util.Map;
 import org.geoserver.ogcapi.APIFilterParser;
 import org.geoserver.pgstac.PgStacException;
 import org.geoserver.pgstac.PgStacServiceInfoImpl;
 import org.junit.Test;
+import org.junit.function.ThrowingRunnable;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
@@ -49,6 +52,22 @@ public class SearchRequestBuilderTest {
     }
 
     @Test
+    public void testAntimeridianBbox() throws Exception {
+        JsonNode expected = MAPPER.readTree(
+                """
+                {"type": "MultiPolygon",
+                 "coordinates": [
+                   [[[175.0, 80.0], [180.0, 80.0], [180.0, 82.0], [175.0, 82.0], [175.0, 80.0]]],
+                   [[[-180.0, 80.0], [-175.0, 80.0], [-175.0, 82.0], [-180.0, 82.0], [-180.0, 80.0]]]]}
+                """);
+        for (String bbox : List.of("175,80,-175,82", "175,80,0,-175,82,100")) {
+            ObjectNode search = builder.fromQuery(Map.of("bbox", bbox), info);
+            assertEquals(bbox, expected, search.get("intersects"));
+            assertFalse(bbox, search.has("bbox"));
+        }
+    }
+
+    @Test
     public void testLimitDefaultsToPageSize() throws Exception {
         info.setSkipNumberMatched(true);
         ObjectNode search = builder.fromBody(MAPPER.createObjectNode(), info);
@@ -81,10 +100,33 @@ public class SearchRequestBuilderTest {
         assertBadRequest(Map.of("query", "{}"));
         assertBadRequest(Map.of("bbox", "1,2,3"));
         assertBadRequest(Map.of("bbox", "1,2,3,east"));
+        assertBadRequest(Map.of("bbox", "1,2,3,4", "intersects", "{\"type\": \"Point\", \"coordinates\": [1, 2]}"));
+        ObjectNode textBbox = MAPPER.createObjectNode();
+        textBbox.putArray("bbox").add(1).add(2).add(3).add("4");
+        assertBadRequest(() -> builder.fromBody(textBbox, info));
         assertBadRequest(Map.of("limit", "0"));
         assertBadRequest(Map.of("limit", "ten"));
         assertBadRequest(Map.of("intersects", "{not json"));
-        assertBadRequest(Map.of("filter", "gsd < 10", "filter-crs", "http://www.opengis.net/def/crs/EPSG/0/3857"));
+    }
+
+    @Test
+    public void testFilterCrs() throws Exception {
+        for (String crs :
+                List.of("http://www.opengis.net/def/crs/OGC/1.3/CRS84", "urn:ogc:def:crs:OGC:1.3:CRS84", "CRS:84")) {
+            assertEquals(
+                    crs,
+                    "<",
+                    filter(Map.of("filter", "gsd < 10", "filter-crs", crs))
+                            .path("op")
+                            .asString());
+        }
+        // the EPSG URI keeps the latitude-first axis order
+        for (String crs : List.of(
+                "http://www.opengis.net/def/crs/EPSG/0/3857",
+                "http://www.opengis.net/def/crs/EPSG/0/4326",
+                "not-a-crs")) {
+            assertBadRequest(Map.of("filter", "gsd < 10", "filter-crs", crs));
+        }
     }
 
     private JsonNode filter(Map<String, String> params) throws PgStacException {
@@ -94,7 +136,11 @@ public class SearchRequestBuilderTest {
     }
 
     private void assertBadRequest(Map<String, String> params) {
-        PgStacException e = assertThrows(PgStacException.class, () -> builder.fromQuery(params, info));
+        assertBadRequest(() -> builder.fromQuery(params, info));
+    }
+
+    private static void assertBadRequest(ThrowingRunnable request) {
+        PgStacException e = assertThrows(PgStacException.class, request);
         assertEquals(400, e.getHttpStatus());
     }
 }

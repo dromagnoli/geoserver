@@ -42,8 +42,8 @@ public class GeoServerMetadata {
     }
 
     /**
-     * Copies the stored {@code _geoserver} entries into {@code incoming}, in place, wherever {@code incoming} has none
-     * at the same position (top-level, or same asset key); assets missing from {@code incoming} are not re-added.
+     * Copies the stored {@code _geoserver} entries into {@code incoming} node, in place, wherever {@code incoming} has
+     * none at the same position (top-level, or same asset key); assets missing from {@code incoming} are not re-added.
      */
     public static void graft(ObjectNode stored, ObjectNode incoming) {
         if (stored == null) return; // nothing stored yet, the update itself reports the missing object

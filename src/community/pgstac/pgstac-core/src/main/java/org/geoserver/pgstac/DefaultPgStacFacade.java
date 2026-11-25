@@ -19,16 +19,12 @@ import tools.jackson.databind.node.ObjectNode;
  * JDBC-only {@link PgStacFacade}: every method opens a connection, calls exactly one {@code pgstac.*} function (or, for
  * {@code collections.private}, a direct SQL statement), and translates PostgreSQL errors to HTTP status codes.
  *
- * <p>Each call borrows a connection from the pool (cheap - no new TCP handshake) and prepares a fresh
- * {@link PreparedStatement}; no statement caching is done here since pgjdbc already promotes repeated SQL text to a
- * server-side prepared plan per physical connection ({@code prepareThreshold}).
+ * <p>Each call borrows a connection from the pool and prepares a fresh {@link PreparedStatement};
  */
 @Component
 public class DefaultPgStacFacade implements PgStacFacade {
 
-    /**
-     * Supported PgSTAC major.minor; minors break the SQL API (0.10 did), so each one needs a review before enabling.
-     */
+    /** Supported PgSTAC major.minor; minors can break the SQL API too, so each one needs a review before enabling. */
     private static final int SUPPORTED_MAJOR = 0;
 
     private static final int SUPPORTED_MINOR = 10;
@@ -82,6 +78,7 @@ public class DefaultPgStacFacade implements PgStacFacade {
     public ObjectNode search(ObjectNode request) throws IOException {
         getVersion();
         boolean apiHydrate = geoServer.getService(PgStacServiceInfo.class).isUseApiHydrate();
+        // don't delegate on PgStac hydrate.
         if (apiHydrate) request.withObjectProperty("conf").put("nohydrate", true);
         ObjectNode page = callForObject("SELECT pgstac.search(?::jsonb)", mapper.writeValueAsString(request));
         // without hydration PgSTAC also skips the fields projection, hydrate() applies it
@@ -225,7 +222,7 @@ public class DefaultPgStacFacade implements PgStacFacade {
         }
     }
 
-    /** Maps PostgreSQL/PgSTAC errors to HTTP status, per the facade error translation table (design notes §1c). */
+    /** Maps PostgreSQL/PgSTAC errors to HTTP status, per the facade error translation table. */
     static PgStacException translate(SQLException e) {
         String sqlState = e.getSQLState() == null ? "" : e.getSQLState();
         String message = e.getMessage();
