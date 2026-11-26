@@ -4,14 +4,29 @@
  */
 package org.geoserver.pgstac.stac;
 
+import static org.geoserver.ogcapi.SwaggerJSONAPIMessageConverter.OPEN_API_MEDIA_TYPE_VALUE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 
 import com.jayway.jsonpath.DocumentContext;
+import io.swagger.v3.core.util.Json;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.media.Schema;
+import java.lang.reflect.Method;
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.geoserver.ogcapi.OGCApiTestSupport;
+import org.geoserver.pgstac.PgStacServiceInfo;
 import org.geoserver.platform.Service;
 import org.junit.Test;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 
 /** Checks the service registers with its default name and path. */
 public class PgStacServiceTest extends OGCApiTestSupport {
@@ -38,5 +53,49 @@ public class PgStacServiceTest extends OGCApiTestSupport {
     public void testConformance() throws Exception {
         DocumentContext json = getAsJSONPath("ogc/stac/v1/conformance", 200);
         assertEquals(PgStacService.CONFORMANCE, json.read("conformsTo"));
+    }
+
+    @Test
+    public void testOpenAPI() throws Exception {
+        PgStacServiceInfo info = getGeoServer().getService(PgStacServiceInfo.class);
+        info.setDefaultPageSize(7);
+        info.setMaxFeatures(70);
+        getGeoServer().save(info);
+
+        MockHttpServletResponse response = getAsMockHttpServletResponse("ogc/stac/v1/openapi", 200);
+        assertThat(response.getContentType(), startsWith(OPEN_API_MEDIA_TYPE_VALUE));
+        // the swagger models bind with Jackson 2, as in the OGC API Features ApiTest
+        OpenAPI api = Json.mapper().readValue(response.getContentAsString(), OpenAPI.class);
+        assertEquals(
+                "http://localhost:8080/geoserver/ogc/stac/v1",
+                api.getServers().get(0).getUrl());
+        Schema<?> limit = api.getComponents().getParameters().get("limit").getSchema();
+        assertEquals(Integer.valueOf(7), limit.getDefault());
+        assertEquals(BigDecimal.valueOf(70), limit.getMaximum());
+        assertEquals(mappedPaths(), api.getPaths().keySet());
+    }
+
+    @Test
+    public void testServiceDescLink() throws Exception {
+        DocumentContext json = getAsJSONPath("ogc/stac/v1", 200);
+        assertThat(
+                json.read("links[?(@.rel == 'service-desc')].href"),
+                contains("http://localhost:8080/geoserver/ogc/stac/v1/openapi"));
+    }
+
+    /** The paths the controller maps, as OpenAPI templates: the first of each mapping, without regular expressions. */
+    private static Set<String> mappedPaths() {
+        return Arrays.stream(PgStacService.class.getMethods())
+                .flatMap(PgStacServiceTest::paths)
+                .map(p -> "/" + p.replaceAll(":[^}]*", ""))
+                .collect(Collectors.toSet());
+    }
+
+    private static Stream<String> paths(Method method) {
+        GetMapping get = method.getAnnotation(GetMapping.class);
+        PostMapping post = method.getAnnotation(PostMapping.class);
+        String[] paths = get != null ? get.path() : post != null ? post.path() : null;
+        if (paths == null) return Stream.empty();
+        return Stream.of(paths.length == 0 ? "" : paths[0]);
     }
 }

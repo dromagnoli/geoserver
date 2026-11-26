@@ -15,7 +15,11 @@ import static org.geoserver.ogcapi.ConformanceClass.CQL2_TEXT;
 import static org.geoserver.ogcapi.ConformanceClass.FEATURES_FILTER;
 import static org.geoserver.ogcapi.ConformanceClass.FILTER;
 import static org.geoserver.ogcapi.ConformanceClass.QUERYABLES;
+import static org.geoserver.ogcapi.SwaggerJSONAPIMessageConverter.OPEN_API_MEDIA_TYPE_VALUE;
+import static org.springframework.http.MediaType.APPLICATION_YAML_VALUE;
+import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
 
+import io.swagger.v3.oas.models.OpenAPI;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -25,6 +29,7 @@ import org.geoserver.config.GeoServer;
 import org.geoserver.ogcapi.APIException;
 import org.geoserver.ogcapi.APIRequestInfo;
 import org.geoserver.ogcapi.APIService;
+import org.geoserver.ogcapi.HTMLResponseBody;
 import org.geoserver.ows.URLMangler.URLType;
 import org.geoserver.ows.util.ResponseUtils;
 import org.geoserver.pgstac.GeoServerMetadata;
@@ -33,6 +38,8 @@ import org.geoserver.pgstac.PgStacServiceInfo;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -72,8 +79,12 @@ public class PgStacService {
             STAC_CONFORMANCE + "item-search#filter",
             STAC_CONFORMANCE + "item-search#sort",
             STAC_CONFORMANCE + "item-search#fields",
+            STAC_CONFORMANCE + "ogcapi-features#sort",
+            STAC_CONFORMANCE + "ogcapi-features#fields",
             FEATURES_CONFORMANCE + "core",
             FEATURES_CONFORMANCE + "geojson",
+            FEATURES_CONFORMANCE + "oas30",
+            FEATURES_CONFORMANCE + "html",
             QUERYABLES,
             FILTER,
             FEATURES_FILTER,
@@ -90,12 +101,19 @@ public class PgStacService {
     private static final String GEOJSON = "application/geo+json";
     private static final String SCHEMA_JSON = "application/schema+json";
 
-    /** Link relations the service sets itself, replacing any stored with the collection. */
-    private static final Set<String> SERVICE_RELS = Set.of("self", "root", "parent", "items");
+    /** Queryable types without an order, besides {@code geometry}. */
+    private static final Set<String> UNSORTABLE_TYPES = Set.of("object", "array");
+
+    /** Precedes the token in the PgSTAC paging links. */
+    private static final String TOKEN = "token=";
+
+    /** Link relations the service sets itself, replacing any stored with the collection or item. */
+    private static final Set<String> SERVICE_RELS = Set.of("self", "root", "parent", "items", "collection");
 
     private final GeoServer geoServer;
     private final PgStacFacade facade;
     private final SearchRequestBuilder requestBuilder;
+    private final PgStacAPIBuilder apiBuilder = new PgStacAPIBuilder();
 
     public PgStacService(GeoServer geoServer, PgStacFacade facade, SearchRequestBuilder requestBuilder) {
         this.geoServer = geoServer;
@@ -111,6 +129,7 @@ public class PgStacService {
     /** Returns the root STAC catalog. */
     @GetMapping(name = "getLandingPage")
     @ResponseBody
+    @HTMLResponseBody(templateName = "landingPage.ftl", fileName = "landingPage.html")
     public ObjectNode landingPage() {
         PgStacServiceInfo info = getServiceInfo();
         ObjectNode catalog = JsonNodeFactory.instance.objectNode();
@@ -123,25 +142,40 @@ public class PgStacService {
         ArrayNode links = catalog.putArray("links");
         addLink(links, "self", JSON, "");
         addLink(links, "root", JSON, "");
+        addLink(links, "service-desc", OPEN_API_MEDIA_TYPE_VALUE, "openapi");
         addLink(links, "conformance", JSON, "conformance");
         addLink(links, "data", JSON, "collections");
         addLink(links, "search", GEOJSON, "search");
         addLink(links, "http://www.opengis.net/def/rel/ogc/1.0/queryables", SCHEMA_JSON, "queryables");
+        addLink(links, "http://www.opengis.net/def/rel/ogc/1.0/sortables", SCHEMA_JSON, "sortables");
         return catalog;
     }
 
     /** Returns the conformance classes, the same as the landing page {@code conformsTo}. */
     @GetMapping(path = "conformance", name = "getConformanceDeclaration")
     @ResponseBody
+    @HTMLResponseBody(templateName = "conformance.ftl", fileName = "conformance.html")
     public ObjectNode conformance() {
         ObjectNode conformance = JsonNodeFactory.instance.objectNode();
         CONFORMANCE.forEach(conformance.putArray("conformsTo")::add);
         return conformance;
     }
 
+    /** Returns the OpenAPI definition of this service. */
+    @GetMapping(
+            path = {"openapi", "openapi.json", "openapi.yaml"},
+            name = "getApi",
+            produces = {OPEN_API_MEDIA_TYPE_VALUE, APPLICATION_YAML_VALUE, TEXT_HTML_VALUE})
+    @ResponseBody
+    @HTMLResponseBody(templateName = "api.ftl", fileName = "api.html")
+    public OpenAPI api() throws IOException {
+        return apiBuilder.build(getServiceInfo());
+    }
+
     /** Returns a page of the collections the user can see, paged by {@code limit} and {@code offset}. */
     @GetMapping(path = "collections", name = "getCollections")
     @ResponseBody
+    @HTMLResponseBody(templateName = "collections.ftl", fileName = "collections.html")
     public ObjectNode collections(@RequestParam Map<String, String> params) throws IOException {
         ObjectNode search = requestBuilder.fromCollectionsQuery(params, getServiceInfo());
         ObjectNode page = facade.collectionSearch(search);
@@ -168,6 +202,7 @@ public class PgStacService {
     /** Returns a single collection, 404 when missing or not visible to the user. */
     @GetMapping(path = "collections/{collectionId}", name = "getCollection")
     @ResponseBody
+    @HTMLResponseBody(templateName = "collection.ftl", fileName = "collection.html")
     public ObjectNode collection(@PathVariable("collectionId") String collectionId) throws IOException {
         ObjectNode collection = facade.getCollection(collectionId);
         if (collection == null) throw notFound("Collection not found: " + collectionId);
@@ -175,12 +210,101 @@ public class PgStacService {
         return collection;
     }
 
+    /** Returns a page of the items of a collection, 404 when the collection is missing or not visible. */
+    @GetMapping(
+            path = "collections/{collectionId}/items",
+            name = "getItems",
+            produces = {GEOJSON, JSON, TEXT_HTML_VALUE})
+    @ResponseBody
+    @HTMLResponseBody(templateName = "items.ftl", fileName = "items.html")
+    public ObjectNode items(@PathVariable("collectionId") String collectionId, @RequestParam Map<String, String> params)
+            throws IOException {
+        if (facade.getCollection(collectionId) == null) throw notFound("Collection not found: " + collectionId);
+        ObjectNode search = requestBuilder.fromQuery(params, getServiceInfo());
+        // the path wins over a collections parameter
+        search.putArray("collections").add(collectionId);
+        return preparePage(facade.search(search), collectionPath(collectionId) + "/items", params);
+    }
+
+    /** Returns a single item, 404 when missing or not visible to the user. */
+    @GetMapping(
+            path = "collections/{collectionId}/items/{itemId:.+}",
+            name = "getItem",
+            produces = {GEOJSON, JSON, TEXT_HTML_VALUE})
+    @ResponseBody
+    @HTMLResponseBody(templateName = "item.ftl", fileName = "item.html")
+    public ObjectNode item(@PathVariable("collectionId") String collectionId, @PathVariable("itemId") String itemId)
+            throws IOException {
+        ObjectNode item = facade.getItem(collectionId, itemId);
+        if (item == null) throw notFound("Item not found: " + itemId);
+        prepareItem(item);
+        return item;
+    }
+
+    /** Searches the items of all visible collections with the GET parameters of STAC item search. */
+    @GetMapping(
+            path = "search",
+            name = "searchGet",
+            produces = {GEOJSON, JSON, TEXT_HTML_VALUE})
+    @ResponseBody
+    @HTMLResponseBody(templateName = "items.ftl", fileName = "items.html")
+    public ObjectNode search(@RequestParam Map<String, String> params) throws IOException {
+        ObjectNode search = requestBuilder.fromQuery(params, getServiceInfo());
+        return preparePage(facade.search(search), "search", params);
+    }
+
+    /** Searches the items of all visible collections with a STAC item search POST body. */
+    @PostMapping(
+            path = "search",
+            name = "searchPost",
+            produces = {GEOJSON, JSON})
+    @ResponseBody
+    public ObjectNode searchPost(@RequestBody ObjectNode body) throws IOException {
+        ObjectNode search = requestBuilder.fromBody(body, getServiceInfo());
+        return preparePage(facade.search(search), "search", null);
+    }
+
+    /**
+     * Prepares the items of a search page and rebuilds its paging links, as the PgSTAC ones carry the token alone.
+     *
+     * @param params the GET parameters to repeat in the paging links, {@code null} for a POST search
+     */
+    private static ObjectNode preparePage(ObjectNode page, String path, Map<String, String> params) {
+        for (JsonNode item : page.path("features")) prepareItem((ObjectNode) item);
+        ArrayNode pgstacLinks = page.withArray("links");
+        ArrayNode links = page.putArray("links");
+        for (JsonNode link : pgstacLinks) {
+            String rel = link.path("rel").asString("");
+            if (!rel.equals("next") && !rel.equals("prev")) continue;
+            String href = link.path("href").asString();
+            links.add(pagingLink(rel, path, params, href.substring(href.indexOf(TOKEN) + TOKEN.length())));
+        }
+        links.addObject().put("rel", "self").put("type", GEOJSON).put("href", url(path, params));
+        addLink(links, "root", JSON, "");
+        return page;
+    }
+
+    /** A GET link repeating the request parameters, or a POST one merging the token into the request body. */
+    private static ObjectNode pagingLink(String rel, String path, Map<String, String> params, String token) {
+        ObjectNode link = JsonNodeFactory.instance.objectNode().put("rel", rel).put("type", GEOJSON);
+        if (params == null) {
+            // see the STAC API item search pagination, POST links
+            link.put("href", url(path, null)).put("method", "POST").put("merge", true);
+            link.putObject("body").put("token", token);
+            return link;
+        }
+        Map<String, String> kvp = new LinkedHashMap<>(params);
+        kvp.put("token", token);
+        return link.put("href", url(path, kvp));
+    }
+
     /** Returns the JSON schema of the properties usable in filters across all collections, 404 when there are none. */
     @GetMapping(
             path = "queryables",
             name = "getQueryables",
-            produces = {SCHEMA_JSON, JSON})
+            produces = {SCHEMA_JSON, JSON, TEXT_HTML_VALUE})
     @ResponseBody
+    @HTMLResponseBody(templateName = "schema.ftl", fileName = "schema.html")
     public ObjectNode queryables() throws IOException {
         // PgSTAC returns null on a database without collections
         return withSchemaId(facade.getQueryables(null), "queryables", "No collections available");
@@ -190,10 +314,11 @@ public class PgStacService {
     @GetMapping(
             path = "collections/{collectionId}/queryables",
             name = "getCollectionQueryables",
-            produces = {SCHEMA_JSON, JSON})
+            produces = {SCHEMA_JSON, JSON, TEXT_HTML_VALUE})
     @ResponseBody
+    @HTMLResponseBody(templateName = "schema.ftl", fileName = "schema.html")
     public ObjectNode collectionQueryables(@PathVariable("collectionId") String collectionId) throws IOException {
-        String path = "collections/" + ResponseUtils.urlEncode(collectionId) + "/queryables";
+        String path = collectionPath(collectionId) + "/queryables";
         return withSchemaId(facade.getQueryables(collectionId), path, "Collection not found: " + collectionId);
     }
 
@@ -204,20 +329,81 @@ public class PgStacService {
         return queryables;
     }
 
+    /** Returns the JSON schema of the properties usable in sortby across all collections, 404 when there are none. */
+    @GetMapping(
+            path = "sortables",
+            name = "getSortables",
+            produces = {SCHEMA_JSON, JSON, TEXT_HTML_VALUE})
+    @ResponseBody
+    @HTMLResponseBody(templateName = "schema.ftl", fileName = "schema.html")
+    public ObjectNode sortables() throws IOException {
+        return toSortables(queryables(), "sortables");
+    }
+
+    /** Returns the JSON schema of the properties usable in sortby on a collection, 404 when not visible. */
+    @GetMapping(
+            path = "collections/{collectionId}/sortables",
+            name = "getCollectionSortables",
+            produces = {SCHEMA_JSON, JSON, TEXT_HTML_VALUE})
+    @ResponseBody
+    @HTMLResponseBody(templateName = "schema.ftl", fileName = "schema.html")
+    public ObjectNode collectionSortables(@PathVariable("collectionId") String collectionId) throws IOException {
+        return toSortables(collectionQueryables(collectionId), collectionPath(collectionId) + "/sortables");
+    }
+
+    /**
+     * Keeps the queryables with an order. PgSTAC sorts any other property as text and without an index, so it is
+     * accepted in sortby but not advertised.
+     */
+    private static ObjectNode toSortables(ObjectNode queryables, String path) {
+        ObjectNode properties = queryables.withObject("properties");
+        properties.remove("geometry");
+        List<String> unsortable = properties
+                .propertyStream()
+                .filter(p -> UNSORTABLE_TYPES.contains(p.getValue().path("type").asString("")))
+                .map(Map.Entry::getKey)
+                .toList();
+        properties.remove(unsortable);
+        // additionalProperties tells which other names filters accept, it does not apply to sorting
+        queryables.remove("additionalProperties");
+        return queryables.put("title", "Sortables").put("$id", url(path, null));
+    }
+
     /** Removes the GeoServer-only metadata and sets the links pointing back at this service. */
     private static void prepareCollection(ObjectNode collection) {
-        GeoServerMetadata.strip(collection);
-        String path =
-                "collections/" + ResponseUtils.urlEncode(collection.path("id").asString());
-        ArrayNode stored = collection.withArray("links");
-        ArrayNode links = collection.putArray("links");
-        for (JsonNode link : stored) {
-            if (!SERVICE_RELS.contains(link.path("rel").asString(""))) links.add(link);
-        }
+        ArrayNode links = prepare(collection);
+        String path = collectionPath(collection.path("id").asString());
         addLink(links, "self", JSON, path);
         addLink(links, "root", JSON, "");
         addLink(links, "parent", JSON, "");
         addLink(links, "items", GEOJSON, path + "/items");
+    }
+
+    /** Removes the GeoServer-only metadata and sets the links pointing back at this service. */
+    private static void prepareItem(ObjectNode item) {
+        ArrayNode links = prepare(item);
+        String collection = collectionPath(item.path("collection").asString());
+        String self =
+                collection + "/items/" + ResponseUtils.urlEncode(item.path("id").asString());
+        addLink(links, "self", GEOJSON, self);
+        addLink(links, "parent", JSON, collection);
+        addLink(links, "collection", JSON, collection);
+        addLink(links, "root", JSON, "");
+    }
+
+    /** Strips a collection or an item, returning its stored links without the ones this service sets. */
+    private static ArrayNode prepare(ObjectNode node) {
+        GeoServerMetadata.strip(node);
+        ArrayNode stored = node.withArray("links");
+        ArrayNode links = node.putArray("links");
+        for (JsonNode link : stored) {
+            if (!SERVICE_RELS.contains(link.path("rel").asString(""))) links.add(link);
+        }
+        return links;
+    }
+
+    private static String collectionPath(String collectionId) {
+        return "collections/" + ResponseUtils.urlEncode(collectionId);
     }
 
     private static void addLink(ArrayNode links, String rel, String type, String path) {
