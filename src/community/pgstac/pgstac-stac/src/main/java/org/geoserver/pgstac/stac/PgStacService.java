@@ -4,6 +4,7 @@
  */
 package org.geoserver.pgstac.stac;
 
+import static org.geoserver.ogcapi.APIException.INVALID_PARAMETER_VALUE;
 import static org.geoserver.ogcapi.ConformanceClass.CQL2_ADVANCED;
 import static org.geoserver.ogcapi.ConformanceClass.CQL2_ARRAY;
 import static org.geoserver.ogcapi.ConformanceClass.CQL2_BASIC;
@@ -21,10 +22,12 @@ import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import java.io.IOException;
+import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 import org.geoserver.config.GeoServer;
 import org.geoserver.ogcapi.APIException;
 import org.geoserver.ogcapi.APIRequestInfo;
@@ -35,14 +38,19 @@ import org.geoserver.ows.util.ResponseUtils;
 import org.geoserver.pgstac.GeoServerMetadata;
 import org.geoserver.pgstac.PgStacFacade;
 import org.geoserver.pgstac.PgStacServiceInfo;
+import org.geoserver.pgstac.PgStacServiceInfo.ServiceLevel;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.JsonNodeFactory;
@@ -97,6 +105,11 @@ public class PgStacService {
             CQL2_TEMPORAL,
             CQL2_ARRAY);
 
+    /** Added to {@link #CONFORMANCE} while the service level allows transactions. */
+    static final List<String> TRANSACTION_CONFORMANCE = List.of(
+            STAC_CONFORMANCE + "ogcapi-features/extensions/transaction",
+            STAC_CONFORMANCE + "collections/extensions/transaction");
+
     private static final String JSON = "application/json";
     private static final String GEOJSON = "application/geo+json";
     private static final String SCHEMA_JSON = "application/schema+json";
@@ -138,7 +151,7 @@ public class PgStacService {
         catalog.put("stac_version", STAC_VERSION);
         catalog.put("title", info.getTitle());
         catalog.put("description", info.getAbstract());
-        CONFORMANCE.forEach(catalog.putArray("conformsTo")::add);
+        conformsTo().forEach(catalog.putArray("conformsTo")::add);
         ArrayNode links = catalog.putArray("links");
         addLink(links, "self", JSON, "");
         addLink(links, "root", JSON, "");
@@ -157,8 +170,14 @@ public class PgStacService {
     @HTMLResponseBody(templateName = "conformance.ftl", fileName = "conformance.html")
     public ObjectNode conformance() {
         ObjectNode conformance = JsonNodeFactory.instance.objectNode();
-        CONFORMANCE.forEach(conformance.putArray("conformsTo")::add);
+        conformsTo().forEach(conformance.putArray("conformsTo")::add);
         return conformance;
+    }
+
+    private List<String> conformsTo() {
+        if (getServiceInfo().getServiceLevel() != ServiceLevel.TRANSACTIONAL) return CONFORMANCE;
+        return Stream.concat(CONFORMANCE.stream(), TRANSACTION_CONFORMANCE.stream())
+                .toList();
     }
 
     /** Returns the OpenAPI definition of this service. */
@@ -210,6 +229,31 @@ public class PgStacService {
         return collection;
     }
 
+    /** Creates a collection and returns it with a 201 and its location; 409 when the id is taken. */
+    @PostMapping(path = "collections", name = "createCollection", produces = JSON)
+    public ResponseEntity<ObjectNode> createCollection(@RequestBody ObjectNode collection) throws IOException {
+        String id = requireId(collection);
+        facade.createCollection(collection);
+        return created(collectionPath(id), collection(id));
+    }
+
+    /** Replaces a collection and returns the stored one; 404 when missing, 400 when the body has another id. */
+    @PutMapping(path = "collections/{collectionId}", name = "replaceCollection", produces = JSON)
+    @ResponseBody
+    public ObjectNode replaceCollection(
+            @PathVariable("collectionId") String collectionId, @RequestBody ObjectNode collection) throws IOException {
+        claim(collection, "id", collectionId);
+        facade.updateCollection(collection);
+        return collection(collectionId);
+    }
+
+    /** Deletes a collection with its items; 404 when missing. */
+    @DeleteMapping(path = "collections/{collectionId}", name = "deleteCollection")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteCollection(@PathVariable("collectionId") String collectionId) throws IOException {
+        facade.deleteCollection(collectionId);
+    }
+
     /** Returns a page of the items of a collection, 404 when the collection is missing or not visible. */
     @GetMapping(
             path = "collections/{collectionId}/items",
@@ -239,6 +283,68 @@ public class PgStacService {
         if (item == null) throw notFound("Item not found: " + itemId);
         prepareItem(item);
         return item;
+    }
+
+    /**
+     * Creates one item in a collection and returns it with a 201 and its location; 404 when the collection is missing,
+     * 409 when the id is taken, 400 for an ItemCollection.
+     */
+    @PostMapping(
+            path = "collections/{collectionId}/items",
+            name = "createItem",
+            produces = {GEOJSON, JSON})
+    public ResponseEntity<ObjectNode> createItem(
+            @PathVariable("collectionId") String collectionId, @RequestBody ObjectNode item) throws IOException {
+        if (item.path("type").asString("").equals("FeatureCollection")) {
+            throw badRequest("ItemCollection bodies are not supported, post one item at a time");
+        }
+        String id = requireId(item);
+        claim(item, "collection", collectionId);
+        if (facade.getCollection(collectionId) == null) throw notFound("Collection not found: " + collectionId);
+        facade.createItem(item);
+        return created(itemPath(collectionId, id), item(collectionId, id));
+    }
+
+    /** Replaces an item and returns the stored one; 404 when missing, 400 when the body names another item. */
+    @PutMapping(
+            path = "collections/{collectionId}/items/{itemId:.+}",
+            name = "replaceItem",
+            produces = {GEOJSON, JSON})
+    @ResponseBody
+    public ObjectNode replaceItem(
+            @PathVariable("collectionId") String collectionId,
+            @PathVariable("itemId") String itemId,
+            @RequestBody ObjectNode item)
+            throws IOException {
+        claim(item, "id", itemId);
+        claim(item, "collection", collectionId);
+        facade.updateItem(item);
+        return item(collectionId, itemId);
+    }
+
+    /** Deletes an item; 404 when missing. */
+    @DeleteMapping(path = "collections/{collectionId}/items/{itemId:.+}", name = "deleteItem")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteItem(@PathVariable("collectionId") String collectionId, @PathVariable("itemId") String itemId)
+            throws IOException {
+        facade.deleteItem(collectionId, itemId);
+    }
+
+    private static String requireId(ObjectNode body) {
+        String id = body.path("id").asString("");
+        if (id.isEmpty()) throw badRequest("The body has no id");
+        return id;
+    }
+
+    /** Fills {@code field} with the path value, rejecting a body that states another one (STAC transaction, PUT). */
+    private static void claim(ObjectNode body, String field, String value) {
+        String stated = body.path(field).asString(value);
+        if (!stated.equals(value)) throw badRequest("The body " + field + " " + stated + " does not match the path");
+        body.put(field, value);
+    }
+
+    private static ResponseEntity<ObjectNode> created(String path, ObjectNode body) {
+        return ResponseEntity.created(URI.create(url(path, null))).body(body);
     }
 
     /** Searches the items of all visible collections with the GET parameters of STAC item search. */
@@ -382,10 +488,9 @@ public class PgStacService {
     /** Removes the GeoServer-only metadata and sets the links pointing back at this service. */
     private static void prepareItem(ObjectNode item) {
         ArrayNode links = prepare(item);
-        String collection = collectionPath(item.path("collection").asString());
-        String self =
-                collection + "/items/" + ResponseUtils.urlEncode(item.path("id").asString());
-        addLink(links, "self", GEOJSON, self);
+        String collectionId = item.path("collection").asString();
+        String collection = collectionPath(collectionId);
+        addLink(links, "self", GEOJSON, itemPath(collectionId, item.path("id").asString()));
         addLink(links, "parent", JSON, collection);
         addLink(links, "collection", JSON, collection);
         addLink(links, "root", JSON, "");
@@ -406,6 +511,10 @@ public class PgStacService {
         return "collections/" + ResponseUtils.urlEncode(collectionId);
     }
 
+    private static String itemPath(String collectionId, String itemId) {
+        return collectionPath(collectionId) + "/items/" + ResponseUtils.urlEncode(itemId);
+    }
+
     private static void addLink(ArrayNode links, String rel, String type, String path) {
         links.addObject().put("rel", rel).put("type", type).put("href", url(path, null));
     }
@@ -420,5 +529,9 @@ public class PgStacService {
 
     private static APIException notFound(String message) {
         return new APIException(APIException.NOT_FOUND, message, HttpStatus.NOT_FOUND);
+    }
+
+    private static APIException badRequest(String message) {
+        return new APIException(INVALID_PARAMETER_VALUE, message, HttpStatus.BAD_REQUEST);
     }
 }

@@ -11,6 +11,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import org.geoserver.config.GeoServer;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.ServerErrorMessage;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
@@ -129,27 +131,32 @@ public class DefaultPgStacFacade implements PgStacFacade {
     @Override
     public void createCollection(ObjectNode collection) throws IOException {
         getVersion();
-        call("SELECT pgstac.create_collection(?::jsonb)", mapper.writeValueAsString(collection));
+        String json = mapper.writeValueAsString(collection);
+        String id = collection.path("id").asString();
+        write(409, "Collection " + id + " already exists", "SELECT pgstac.create_collection(?::jsonb)", json);
     }
 
     @Override
     public void updateCollection(ObjectNode collection) throws IOException {
         getVersion();
         // _geoserver never reaches API clients, so a GET-then-PUT round trip would otherwise wipe it
-        GeoServerMetadata.graft(getCollection(collection.path("id").asString()), collection);
-        call("SELECT pgstac.update_collection(?::jsonb)", mapper.writeValueAsString(collection));
+        String id = collection.path("id").asString();
+        GeoServerMetadata.graft(getCollection(id), collection);
+        String json = mapper.writeValueAsString(collection);
+        write(404, "Collection " + id + " not found", "SELECT pgstac.update_collection(?::jsonb)", json);
     }
 
     @Override
     public void deleteCollection(String id) throws IOException {
         getVersion();
-        call("SELECT pgstac.delete_collection(?)", id);
+        write(404, "Collection " + id + " not found", "SELECT pgstac.delete_collection(?)", id);
     }
 
     @Override
     public void createItem(ObjectNode item) throws IOException {
         getVersion();
-        call("SELECT pgstac.create_item(?::jsonb)", mapper.writeValueAsString(item));
+        String json = mapper.writeValueAsString(item);
+        write(409, itemName(item) + " already exists", "SELECT pgstac.create_item(?::jsonb)", json);
     }
 
     @Override
@@ -157,13 +164,36 @@ public class DefaultPgStacFacade implements PgStacFacade {
         getVersion();
         GeoServerMetadata.graft(
                 getItem(item.path("collection").asString(), item.path("id").asString()), item);
-        call("SELECT pgstac.update_item(?::jsonb)", mapper.writeValueAsString(item));
+        String json = mapper.writeValueAsString(item);
+        write(404, itemName(item) + " not found", "SELECT pgstac.update_item(?::jsonb)", json);
     }
 
     @Override
     public void deleteItem(String collectionId, String itemId) throws IOException {
         getVersion();
-        call("SELECT pgstac.delete_item(?, ?)", itemId, collectionId);
+        String notFound = itemName(collectionId, itemId) + " not found";
+        write(404, notFound, "SELECT pgstac.delete_item(?, ?)", itemId, collectionId);
+    }
+
+    private static String itemName(ObjectNode item) {
+        return itemName(item.path("collection").asString(), item.path("id").asString());
+    }
+
+    private static String itemName(String collectionId, String itemId) {
+        return "Item " + itemId + " in collection " + collectionId;
+    }
+
+    /**
+     * Runs a write, replacing the PgSTAC message of the expected failure with one naming the object: PostgreSQL reports
+     * a missing row as "query returned no rows" and a duplicate with the constraint name.
+     */
+    private void write(int status, String message, String sql, Object... params) throws IOException {
+        try {
+            call(sql, params);
+        } catch (PgStacException e) {
+            if (e.getHttpStatus() != status) throw e;
+            throw new PgStacException(status, message, e);
+        }
     }
 
     private ObjectNode callForObject(String sql, Object... params) throws IOException {
@@ -225,7 +255,9 @@ public class DefaultPgStacFacade implements PgStacFacade {
     /** Maps PostgreSQL/PgSTAC errors to HTTP status, per the facade error translation table. */
     static PgStacException translate(SQLException e) {
         String sqlState = e.getSQLState() == null ? "" : e.getSQLState();
-        String message = e.getMessage();
+        // the server message alone: getMessage() appends the PL/pgSQL context, function names and line numbers
+        ServerErrorMessage server = e instanceof PSQLException pe ? pe.getServerErrorMessage() : null;
+        String message = server == null ? e.getMessage() : server.getMessage();
         if (sqlState.equals("23505")) {
             return new PgStacException(409, "Conflict: " + message, e);
         }

@@ -14,19 +14,19 @@ import com.jayway.jsonpath.DocumentContext;
 import io.swagger.v3.core.util.Json;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.media.Schema;
-import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.geoserver.ogcapi.OGCApiTestSupport;
 import org.geoserver.pgstac.PgStacServiceInfo;
 import org.geoserver.platform.Service;
 import org.junit.Test;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 
 /** Checks the service registers with its default name and path. */
 public class PgStacServiceTest extends OGCApiTestSupport {
@@ -72,7 +72,7 @@ public class PgStacServiceTest extends OGCApiTestSupport {
         Schema<?> limit = api.getComponents().getParameters().get("limit").getSchema();
         assertEquals(Integer.valueOf(7), limit.getDefault());
         assertEquals(BigDecimal.valueOf(70), limit.getMaximum());
-        assertEquals(mappedPaths(), api.getPaths().keySet());
+        assertEquals(mappedOperations(), operations(api));
     }
 
     @Test
@@ -83,19 +83,24 @@ public class PgStacServiceTest extends OGCApiTestSupport {
                 contains("http://localhost:8080/geoserver/ogc/stac/v1/openapi"));
     }
 
-    /** The paths the controller maps, as OpenAPI templates: the first of each mapping, without regular expressions. */
-    private static Set<String> mappedPaths() {
+    /** The controller mappings as "METHOD /path name", the path as an OpenAPI template, without regular expressions. */
+    private static Set<String> mappedOperations() {
         return Arrays.stream(PgStacService.class.getMethods())
-                .flatMap(PgStacServiceTest::paths)
-                .map(p -> "/" + p.replaceAll(":[^}]*", ""))
+                .map(m -> AnnotatedElementUtils.findMergedAnnotation(m, RequestMapping.class))
+                .filter(Objects::nonNull)
+                .map(PgStacServiceTest::operation)
                 .collect(Collectors.toSet());
     }
 
-    private static Stream<String> paths(Method method) {
-        GetMapping get = method.getAnnotation(GetMapping.class);
-        PostMapping post = method.getAnnotation(PostMapping.class);
-        String[] paths = get != null ? get.path() : post != null ? post.path() : null;
-        if (paths == null) return Stream.empty();
-        return Stream.of(paths.length == 0 ? "" : paths[0]);
+    private static String operation(RequestMapping mapping) {
+        String path = mapping.path().length == 0 ? "" : mapping.path()[0];
+        return mapping.method()[0] + " /" + path.replaceAll(":[^}]*", "") + " " + mapping.name();
+    }
+
+    private static Set<String> operations(OpenAPI api) {
+        Set<String> operations = new HashSet<>();
+        api.getPaths().forEach((path, item) -> item.readOperationsMap()
+                .forEach((method, op) -> operations.add(method + " " + path + " " + op.getOperationId())));
+        return operations;
     }
 }

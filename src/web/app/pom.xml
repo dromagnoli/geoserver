@@ -1428,6 +1428,21 @@
       </dependencies>
     </profile>
     <profile>
+      <id>pgstac</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.geoserver.community</groupId>
+          <artifactId>gs-pgstac-core</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.geoserver.community</groupId>
+          <artifactId>gs-pgstac-stac</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
       <id>s3-geotiff</id>
       <dependencies>
         <dependency>

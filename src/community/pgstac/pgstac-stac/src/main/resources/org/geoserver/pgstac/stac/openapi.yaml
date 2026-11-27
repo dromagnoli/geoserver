@@ -5,7 +5,7 @@ info:
   description: STAC API backed by PgSTAC. Replaced on each request by the service title and abstract.
 servers:
   - url: http://localhost:8080/geoserver/ogc/stac/v1
-# the response schemas are the official STAC API ones, referenced rather than copied
+# the response schemas are the official STAC API ones, referenced rather than copied; every GET also has HTML
 paths:
   /:
     get:
@@ -14,7 +14,7 @@ paths:
       operationId: getLandingPage
       responses:
         '200':
-          $ref: 'https://api.stacspec.org/v1.0.0/core/openapi.yaml#/components/responses/LandingPage'
+          $ref: '#/components/responses/LandingPage'
         '500':
           $ref: '#/components/responses/Error'
   /conformance:
@@ -24,7 +24,7 @@ paths:
       operationId: getConformanceDeclaration
       responses:
         '200':
-          $ref: 'https://api.stacspec.org/v1.0.0/ogcapi-features/openapi.yaml#/components/responses/ConformanceDeclaration'
+          $ref: '#/components/responses/ConformanceDeclaration'
         '500':
           $ref: '#/components/responses/Error'
   /openapi:
@@ -42,6 +42,9 @@ paths:
             application/yaml:
               schema:
                 type: object
+            text/html:
+              schema:
+                type: string
         '500':
           $ref: '#/components/responses/Error'
   /collections:
@@ -54,8 +57,28 @@ paths:
         - $ref: '#/components/parameters/offset'
       responses:
         '200':
-          $ref: 'https://api.stacspec.org/v1.0.0/ogcapi-features/openapi.yaml#/components/responses/Collections'
+          $ref: '#/components/responses/Collections'
         '400':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+    post:
+      tags: [Transactions]
+      summary: creates a collection
+      operationId: createCollection
+      description: Only while the service level is TRANSACTIONAL, for administrators.
+      security:
+        - basicAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/Collection'
+      responses:
+        '201':
+          $ref: '#/components/responses/CreatedCollection'
+        '400':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '409':
           $ref: '#/components/responses/Error'
         '500':
           $ref: '#/components/responses/Error'
@@ -68,7 +91,47 @@ paths:
         - $ref: '#/components/parameters/collectionId'
       responses:
         '200':
-          $ref: 'https://api.stacspec.org/v1.0.0/ogcapi-features/openapi.yaml#/components/responses/Collection'
+          $ref: '#/components/responses/Collection'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+    put:
+      tags: [Transactions]
+      summary: replaces a collection
+      operationId: replaceCollection
+      description: Only while the service level is TRANSACTIONAL, for administrators.
+      security:
+        - basicAuth: []
+      parameters:
+        - $ref: '#/components/parameters/collectionId'
+      requestBody:
+        $ref: '#/components/requestBodies/Collection'
+      responses:
+        '200':
+          $ref: '#/components/responses/StoredCollection'
+        '400':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [Transactions]
+      summary: deletes a collection and its items
+      operationId: deleteCollection
+      description: Only while the service level is TRANSACTIONAL, for administrators.
+      security:
+        - basicAuth: []
+      parameters:
+        - $ref: '#/components/parameters/collectionId'
+      responses:
+        '204':
+          description: Deleted.
+        '403':
+          $ref: '#/components/responses/Error'
         '404':
           $ref: '#/components/responses/Error'
         '500':
@@ -93,10 +156,34 @@ paths:
         - $ref: '#/components/parameters/filter-crs'
       responses:
         '200':
-          $ref: 'https://api.stacspec.org/v1.0.0/ogcapi-features/openapi.yaml#/components/responses/Features'
+          $ref: '#/components/responses/ItemCollection'
         '400':
           $ref: '#/components/responses/Error'
         '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+    post:
+      tags: [Transactions]
+      summary: creates an item, one at a time
+      operationId: createItem
+      description: Only while the service level is TRANSACTIONAL, for administrators.
+      security:
+        - basicAuth: []
+      parameters:
+        - $ref: '#/components/parameters/collectionId'
+      requestBody:
+        $ref: '#/components/requestBodies/Item'
+      responses:
+        '201':
+          $ref: '#/components/responses/CreatedItem'
+        '400':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
           $ref: '#/components/responses/Error'
         '500':
           $ref: '#/components/responses/Error'
@@ -110,7 +197,49 @@ paths:
         - $ref: '#/components/parameters/itemId'
       responses:
         '200':
-          $ref: 'https://api.stacspec.org/v1.0.0/ogcapi-features/openapi.yaml#/components/responses/Feature'
+          $ref: '#/components/responses/Item'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+    put:
+      tags: [Transactions]
+      summary: replaces an item
+      operationId: replaceItem
+      description: Only while the service level is TRANSACTIONAL, for administrators.
+      security:
+        - basicAuth: []
+      parameters:
+        - $ref: '#/components/parameters/collectionId'
+        - $ref: '#/components/parameters/itemId'
+      requestBody:
+        $ref: '#/components/requestBodies/Item'
+      responses:
+        '200':
+          $ref: '#/components/responses/StoredItem'
+        '400':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [Transactions]
+      summary: deletes an item
+      operationId: deleteItem
+      description: Only while the service level is TRANSACTIONAL, for administrators.
+      security:
+        - basicAuth: []
+      parameters:
+        - $ref: '#/components/parameters/collectionId'
+        - $ref: '#/components/parameters/itemId'
+      responses:
+        '204':
+          description: Deleted.
+        '403':
+          $ref: '#/components/responses/Error'
         '404':
           $ref: '#/components/responses/Error'
         '500':
@@ -192,7 +321,7 @@ paths:
                       default: http://www.opengis.net/def/crs/OGC/1.3/CRS84
       responses:
         '200':
-          $ref: '#/components/responses/ItemCollection'
+          $ref: '#/components/responses/SearchPost'
         '400':
           $ref: '#/components/responses/Error'
         '500':
@@ -328,22 +457,138 @@ components:
       schema:
         type: string
         default: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+  # the official STAC response objects cannot be extended with the HTML representation, so their schemas are used here
   responses:
+    LandingPage:
+      description: The landing page, a STAC catalog.
+      content:
+        application/json:
+          schema:
+            $ref: 'https://api.stacspec.org/v1.0.0/core/openapi.yaml#/components/schemas/landingPage'
+        text/html:
+          schema:
+            type: string
+    ConformanceDeclaration:
+      description: The conformance classes implemented.
+      content:
+        application/json:
+          schema:
+            $ref: 'https://api.stacspec.org/v1.0.0/core/openapi.yaml#/components/schemas/conformanceClasses'
+        text/html:
+          schema:
+            type: string
+    Collections:
+      description: A page of collections.
+      content:
+        application/json:
+          schema:
+            $ref: 'https://api.stacspec.org/v1.0.0/collections/openapi.yaml#/components/schemas/collections'
+        text/html:
+          schema:
+            type: string
+    Collection:
+      description: A collection.
+      content:
+        application/json:
+          schema:
+            $ref: 'https://api.stacspec.org/v1.0.0/collections/openapi.yaml#/components/schemas/collection'
+        text/html:
+          schema:
+            type: string
     ItemCollection:
       description: A page of items.
       content:
         application/geo+json:
           schema:
             $ref: 'https://api.stacspec.org/v1.0.0/item-search/openapi.yaml#/components/schemas/itemCollection'
+        text/html:
+          schema:
+            type: string
+    SearchPost:
+      description: A page of items, the paging links carry the body to post.
+      content:
+        application/geo+json:
+          schema:
+            $ref: 'https://api.stacspec.org/v1.0.0/item-search/openapi.yaml#/components/schemas/itemCollection'
+    Item:
+      description: An item.
+      content:
+        application/geo+json:
+          schema:
+            $ref: 'https://api.stacspec.org/v1.0.0/ogcapi-features/openapi.yaml#/components/schemas/item'
+        text/html:
+          schema:
+            type: string
     Schema:
       description: A JSON Schema listing the properties.
       content:
         application/schema+json:
           schema:
             type: object
+        text/html:
+          schema:
+            type: string
     Error:
       description: An error, with a code and a description.
       content:
         application/json:
           schema:
             $ref: 'https://api.stacspec.org/v1.0.0/core/openapi.yaml#/components/schemas/exception'
+    CreatedCollection:
+      description: The stored collection.
+      headers:
+        Location:
+          description: The URL of the new resource.
+          schema:
+            type: string
+            format: uri
+      content:
+        application/json:
+          schema:
+            $ref: 'https://api.stacspec.org/v1.0.0/collections/openapi.yaml#/components/schemas/collection'
+    StoredCollection:
+      description: The stored collection.
+      content:
+        application/json:
+          schema:
+            $ref: 'https://api.stacspec.org/v1.0.0/collections/openapi.yaml#/components/schemas/collection'
+    CreatedItem:
+      description: The stored item.
+      headers:
+        Location:
+          description: The URL of the new resource.
+          schema:
+            type: string
+            format: uri
+      content:
+        application/geo+json:
+          schema:
+            $ref: 'https://api.stacspec.org/v1.0.0/ogcapi-features/openapi.yaml#/components/schemas/item'
+    StoredItem:
+      description: The stored item.
+      content:
+        application/geo+json:
+          schema:
+            $ref: 'https://api.stacspec.org/v1.0.0/ogcapi-features/openapi.yaml#/components/schemas/item'
+  requestBodies:
+    Collection:
+      description: A collection; on replace, its id is taken from the path when missing.
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: 'https://api.stacspec.org/v1.0.0/collections/openapi.yaml#/components/schemas/collection'
+    Item:
+      description: An item; collection and id are taken from the path when missing.
+      required: true
+      content:
+        application/geo+json:
+          schema:
+            $ref: 'https://api.stacspec.org/v1.0.0/ogcapi-features/openapi.yaml#/components/schemas/item'
+        application/json:
+          schema:
+            $ref: 'https://api.stacspec.org/v1.0.0/ogcapi-features/openapi.yaml#/components/schemas/item'
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic

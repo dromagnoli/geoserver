@@ -8,6 +8,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
@@ -185,6 +186,8 @@ public class SearchTest extends PgStacApiTestSupport {
                 "datetime=not-a-date", "datetime=../..", reversed, "filter=cloud%20%3C", "bbox=1,2,3", "limit=0")) {
             DocumentContext json = getAsJSONPath("ogc/stac/v1/search?" + query, 400);
             assertEquals(query, "InvalidParameterValue", json.read("code"));
+            // the PostgreSQL message alone, without the PL/pgSQL call stack
+            assertThat(query, json.read("description"), not(containsString("PL/pgSQL")));
         }
     }
 
