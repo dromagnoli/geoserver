@@ -29,6 +29,8 @@ public class PgStacXStreamPersisterInitializer implements XStreamPersisterInitia
     @Override
     public void init(XStreamPersister persister) {
         XStream xs = persister.getXStream();
+        // a <pgstac> root in the REST settings and pgstac.xml, the class name otherwise
+        xs.alias("pgstac", PgStacServiceInfo.class, PgStacServiceInfoImpl.class);
         xs.alias("pgstacAccessRule", AccessRule.class);
         xs.allowTypes(new Class[] {AccessRule.class, PgStacServiceInfo.ServiceLevel.class, TimeUnit.class});
         xs.registerLocalConverter(

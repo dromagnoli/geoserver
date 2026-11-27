@@ -5,12 +5,16 @@
 package org.geoserver.pgstac;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.List;
+import java.util.Map;
 import org.geoserver.config.GeoServer;
+import org.geotools.jdbc.JDBCDataStore;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.ServerErrorMessage;
 import org.springframework.stereotype.Component;
@@ -19,7 +23,8 @@ import tools.jackson.databind.node.ObjectNode;
 
 /**
  * JDBC-only {@link PgStacFacade}: every method opens a connection, calls exactly one {@code pgstac.*} function (or, for
- * {@code collections.private}, a direct SQL statement), and translates PostgreSQL errors to HTTP status codes.
+ * {@code collections.private} and the queryable rows, a direct SQL statement), and translates PostgreSQL errors to HTTP
+ * status codes.
  *
  * <p>Each call borrows a connection from the pool and prepares a fresh {@link PreparedStatement};
  */
@@ -46,23 +51,36 @@ public class DefaultPgStacFacade implements PgStacFacade {
     public String getVersion() throws IOException {
         if (cachedVersion == null) {
             String version = queryText("SELECT pgstac.get_version()");
-            if (!isSupportedVersion(version)) {
-                throw new PgStacException(
-                        500,
-                        "Unsupported PgSTAC version "
-                                + version
-                                + ", expected >="
-                                + SUPPORTED_MAJOR
-                                + "."
-                                + SUPPORTED_MINOR
-                                + ", <"
-                                + SUPPORTED_MAJOR
-                                + "."
-                                + (SUPPORTED_MINOR + 1));
-            }
+            if (!isSupportedVersion(version)) throw unsupportedVersion(version);
             cachedVersion = version;
         }
         return cachedVersion;
+    }
+
+    /**
+     * Connects with {@code params} on a pool of its own, closed before returning, and returns the PgSTAC version found
+     * there; fails when the database cannot be reached, has no PgSTAC schema or runs an unsupported version.
+     */
+    public String testConnection(Map<String, Serializable> params) throws IOException {
+        JDBCDataStore store = connectionManager.createStore(params);
+        try (Connection c = store.getDataSource().getConnection();
+                Statement st = c.createStatement();
+                ResultSet rs = st.executeQuery("SELECT pgstac.get_version()")) {
+            rs.next();
+            String version = rs.getString(1);
+            if (!isSupportedVersion(version)) throw unsupportedVersion(version);
+            return version;
+        } catch (SQLException e) {
+            throw translate(e);
+        } finally {
+            store.dispose();
+        }
+    }
+
+    private static PgStacException unsupportedVersion(String version) {
+        String next = SUPPORTED_MAJOR + "." + (SUPPORTED_MINOR + 1);
+        String expected = ">=" + SUPPORTED_MAJOR + "." + SUPPORTED_MINOR + ", <" + next;
+        return new PgStacException(500, "Unsupported PgSTAC version " + version + ", expected " + expected);
     }
 
     static boolean isSupportedVersion(String version) {
@@ -110,6 +128,41 @@ public class DefaultPgStacFacade implements PgStacFacade {
     public ObjectNode getQueryables(String collectionId) throws IOException {
         getVersion();
         return callForObject("SELECT pgstac.get_queryables(?)", collectionId);
+    }
+
+    @Override
+    public ObjectNode getQueryableRows(String name) throws IOException {
+        getVersion();
+        // a table read, as no PgSTAC function returns the rows: get_queryables answers the STAC queryables document,
+        // one schema per property name, without the collections each row applies to or its index settings
+        String sql =
+                """
+                SELECT jsonb_build_object('queryables', coalesce(jsonb_agg(to_jsonb(q) - 'id' ORDER BY name, id), '[]'))
+                FROM pgstac.queryables q
+                WHERE ?::text IS NULL OR name = pgstac.strip_properties_prefix(?)""";
+        return callForObject(sql, name, name);
+    }
+
+    @Override
+    public void upsertQueryable(String name, ObjectNode queryable) throws IOException {
+        getVersion();
+        // a JSON null member reads as a missing one
+        String sql =
+                """
+                SELECT pgstac.upsert_queryable(?, nullif(q->'definition', 'null'), q->>'property_wrapper',
+                    q->>'property_index_type', pgstac.to_text_array(nullif(q->'collection_ids', 'null')),
+                    pgstac.to_text_array(nullif(q->'property_path', 'null')))
+                FROM (SELECT ?::jsonb AS q) body""";
+        call(sql, name, mapper.writeValueAsString(queryable));
+    }
+
+    @Override
+    public void deleteQueryable(String name, List<String> collectionIds) throws IOException {
+        getVersion();
+        String[] ids = collectionIds == null ? null : collectionIds.toArray(String[]::new);
+        String scope = ids == null || ids.length == 0 ? "all collections" : "collections " + String.join(", ", ids);
+        String notFound = "Queryable " + name + " for " + scope + " not found";
+        write(404, notFound, "SELECT pgstac.delete_queryable(?, ?::text[])", name, ids);
     }
 
     /**
@@ -261,7 +314,8 @@ public class DefaultPgStacFacade implements PgStacFacade {
         if (sqlState.equals("23505")) {
             return new PgStacException(409, "Conflict: " + message, e);
         }
-        if (sqlState.equals("23503")) {
+        // the other integrity violations, e.g. 23503 missing collection, 23514 queryable rule
+        if (sqlState.startsWith("23")) {
             return new PgStacException(400, "Bad request: " + message, e);
         }
         // PgSTAC rejects bad input (filters, limit, sortby, datetime) with a plain RAISE (P0001) or a class 22 data

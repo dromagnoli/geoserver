@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~  (c) 2026 Open Source Geospatial Foundation - all rights reserved
+  ~  This code is licensed under the GPL 2.0 license, available at the root
+  ~  application directory.
+  -->
+<html xmlns:wicket="http://wicket.apache.org/">
+<body>
+<wicket:panel>
+    <fieldset>
+        <legend>
+            <span><wicket:message key="connection">connection</wicket:message></span>
+        </legend>
+        <form wicket:id="connectionForm">
+            <div wicket:id="connection"></div>
+            <div class="gs-form">
+                <a href="#" wicket:id="test"><wicket:message key="test">test</wicket:message></a>
+            </div>
+        </form>
+    </fieldset>
+    <fieldset>
+        <legend>
+            <span><wicket:message key="paging">paging</wicket:message></span>
+        </legend>
+        <div class="gs-form">
+            <div class="gs-form-group">
+                <label><wicket:message key="maxFeatures">maxFeatures</wicket:message></label>
+                <input type="text" wicket:id="maxFeatures" class="w-sm"/>
+            </div>
+            <div class="gs-form-group">
+                <label><wicket:message key="defaultPageSize">defaultPageSize</wicket:message></label>
+                <input type="text" wicket:id="defaultPageSize" class="w-sm"/>
+            </div>
+            <div class="gs-form-group">
+                <input type="checkbox" wicket:id="skipNumberMatched"/>
+                <label><wicket:message key="skipNumberMatched">skipNumberMatched</wicket:message></label>
+            </div>
+        </div>
+    </fieldset>
+    <fieldset>
+        <legend>
+            <span><wicket:message key="behaviour">behaviour</wicket:message></span>
+        </legend>
+        <div class="gs-form">
+            <div class="gs-form-group">
+                <input type="checkbox" wicket:id="useApiHydrate"/>
+                <label><wicket:message key="useApiHydrate">useApiHydrate</wicket:message></label>
+            </div>
+            <div class="gs-form-group">
+                <label><wicket:message key="serviceLevel">serviceLevel</wicket:message></label>
+                <select wicket:id="serviceLevel" class="w-md"></select>
+            </div>
+        </div>
+    </fieldset>
+</wicket:panel>
+</body>
+</html>

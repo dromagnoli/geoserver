@@ -22,6 +22,8 @@
   <modules>
     <module>pgstac-core</module>
     <module>pgstac-stac</module>
+    <module>pgstac-rest</module>
+    <module>web-pgstac</module>
   </modules>
 
   <!-- For reliable tests -->

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~  (c) 2026 Open Source Geospatial Foundation - all rights reserved
+  ~  This code is licensed under the GPL 2.0 license, available at the root
+  ~  application directory.
+  -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+  <bean id="pgstacServicePage" class="org.geoserver.web.services.ServiceMenuPageInfo">
+    <property name="id" value="pgstac"/>
+    <property name="titleKey" value="pgstac.title"/>
+    <property name="descriptionKey" value="pgstac.description"/>
+    <property name="componentClass" value="org.geoserver.pgstac.web.PgStacAdminPage"/>
+    <property name="icon" value="gs-icon-database"/>
+    <property name="category" ref="servicesCategory"/>
+    <property name="serviceClass" value="org.geoserver.pgstac.PgStacServiceInfo"/>
+  </bean>
+
+  <bean id="pgstacSecurityPage" class="org.geoserver.web.MenuPageInfo">
+    <property name="id" value="security.pgstac"/>
+    <property name="titleKey" value="pgstac.security.title"/>
+    <property name="descriptionKey" value="pgstac.security.description"/>
+    <property name="componentClass" value="org.geoserver.pgstac.web.PgStacSecurityPage"/>
+    <property name="icon" value="gs-icon-shield"/>
+    <property name="category" ref="securityCategory"/>
+  </bean>
+
+  <bean id="pgstacWebExtension" class="org.geoserver.platform.ModuleStatusImpl">
+    <constructor-arg index="0" value="gs-web-pgstac"/>
+    <constructor-arg index="1" value="PgSTAC web UI"/>
+  </bean>
+</beans>

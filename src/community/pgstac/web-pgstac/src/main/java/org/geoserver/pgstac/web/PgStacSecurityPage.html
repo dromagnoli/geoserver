@@ -1,0 +1,40 @@
+<!--
+  ~  (c) 2026 Open Source Geospatial Foundation - all rights reserved
+  ~  This code is licensed under the GPL 2.0 license, available at the root
+  ~  application directory.
+  -->
+<html xmlns:wicket="http://wicket.apache.org/">
+<body>
+<wicket:extend>
+    <form wicket:id="form" class="pt-3">
+        <fieldset>
+            <legend><span><wicket:message key="collectionRules">collectionRules</wicket:message></span></legend>
+            <div class="gs-form" wicket:id="collectionRules">
+                <div class="gs-list-item-class">
+                    <a class="button outline-primary" href="#" wicket:id="add"><i class="gs-icon gs-icon-add"></i> <wicket:message key="addRule"/></a>
+                </div>
+                <div class="gs-list-item-class">
+                    <div wicket:id="table"></div>
+                </div>
+            </div>
+        </fieldset>
+        <fieldset>
+            <legend><span><wicket:message key="itemRules">itemRules</wicket:message></span></legend>
+            <div class="gs-form" wicket:id="itemRules">
+                <div class="gs-list-item-class">
+                    <a class="button outline-primary" href="#" wicket:id="add"><i class="gs-icon gs-icon-add"></i> <wicket:message key="addRule"/></a>
+                </div>
+                <div class="gs-list-item-class">
+                    <div wicket:id="table"></div>
+                </div>
+            </div>
+        </fieldset>
+        <div class="button-group toolbar-sticky selfclear">
+            <button wicket:id="submit" class="form-button-save primary" type="submit"><wicket:message key="save"/></button>
+            <button wicket:id="apply" class="form-button-apply outline-primary" type="submit"><wicket:message key="apply"/></button>
+            <button wicket:id="cancel" class="form-button-cancel outline-danger" type="submit"><wicket:message key="cancel"/></button>
+        </div>
+    </form>
+</wicket:extend>
+</body>
+</html>

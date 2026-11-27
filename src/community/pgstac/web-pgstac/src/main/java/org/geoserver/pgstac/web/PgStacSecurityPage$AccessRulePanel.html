@@ -1,0 +1,28 @@
+<!--
+  ~  (c) 2026 Open Source Geospatial Foundation - all rights reserved
+  ~  This code is licensed under the GPL 2.0 license, available at the root
+  ~  application directory.
+  -->
+<html xmlns:wicket="http://wicket.apache.org/">
+<body>
+<wicket:panel>
+    <form wicket:id="form">
+        <div class="gs-form">
+            <div class="gs-form-group" wicket:id="collectionContainer">
+                <label><wicket:message key="PgStacSecurityPage.th.collection">collection</wicket:message></label>
+                <select wicket:id="collection"></select>
+            </div>
+            <div class="gs-form-group">
+                <label><wicket:message key="PgStacSecurityPage.th.cqlFilter">cqlFilter</wicket:message></label>
+                <textarea wicket:id="cqlFilter" rows="4"></textarea>
+            </div>
+            <div class="gs-form-group">
+                <label><wicket:message key="PgStacSecurityPage.th.roles">roles</wicket:message></label>
+                <div wicket:id="roles"></div>
+            </div>
+        </div>
+        <div wicket:id="feedback"></div>
+    </form>
+</wicket:panel>
+</body>
+</html>

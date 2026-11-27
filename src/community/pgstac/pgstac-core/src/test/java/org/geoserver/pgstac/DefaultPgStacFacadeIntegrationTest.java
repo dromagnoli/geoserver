@@ -10,8 +10,11 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
+import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.geoserver.config.GeoServer;
 import org.geoserver.data.test.SystemTestData;
 import org.geoserver.test.GeoServerSystemTestSupport;
@@ -81,6 +84,16 @@ public class DefaultPgStacFacadeIntegrationTest extends GeoServerSystemTestSuppo
     @Test
     public void testVersion() throws Exception {
         assertThat(facade().getVersion(), startsWith("0.10."));
+    }
+
+    @Test
+    public void testConnection() throws Exception {
+        DefaultPgStacFacade facade = applicationContext.getBean(DefaultPgStacFacade.class);
+        Map<String, Serializable> params = PGSTAC.getConnectionParameters();
+        assertThat(facade.testConnection(params), startsWith("0.10."));
+
+        params.put("passwd", "wrong");
+        assertThrows(IOException.class, () -> facade.testConnection(params));
     }
 
     @Test

@@ -50,14 +50,29 @@ public class PgStacConnectionManager implements DisposableBean {
             current = state;
             if (current != null && params.equals(current.params()))
                 return current.store().getDataSource();
-            JDBCDataStore store = (JDBCDataStore) DataStoreFinder.getDataStore(params);
-            if (store == null) {
-                throw new IOException("Could not create pgstac connection pool, check connection parameters");
-            }
+            JDBCDataStore store = createStore(params);
             state = new PoolState(params, store);
             if (current != null) current.store().dispose(); // borrowed connections are closed when returned
             return store.getDataSource();
         }
+    }
+
+    /**
+     * Opens a new pool on {@code params}, resolving environment placeholders and data directory paths (a no-op on
+     * already resolved ones); the caller owns the pool and must dispose it.
+     */
+    JDBCDataStore createStore(Map<String, Serializable> params) throws IOException {
+        JDBCDataStore store;
+        try {
+            store = (JDBCDataStore) DataStoreFinder.getDataStore(ResourcePool.getParams(params, resourceLoader));
+        } catch (RuntimeException e) {
+            // the factory opens a first connection and reports a failure, e.g. a wrong password, unchecked
+            throw new IOException(e.getMessage(), e);
+        }
+        if (store == null) {
+            throw new IOException("Could not create pgstac connection pool, check connection parameters");
+        }
+        return store;
     }
 
     private Map<String, Serializable> currentParams() throws IOException {

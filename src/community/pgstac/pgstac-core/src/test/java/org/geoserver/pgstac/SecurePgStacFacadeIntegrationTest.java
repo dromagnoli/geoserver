@@ -161,6 +161,17 @@ public class SecurePgStacFacadeIntegrationTest extends GeoServerSystemTestSuppor
         assertForbidden(() -> facade().deleteItem("open", "clear"));
     }
 
+    @Test
+    public void testQueryableRowsNeedAdmin() throws Exception {
+        login("s2", "pwd", "ROLE_S2");
+        assertForbidden(() -> facade().getQueryableRows(null));
+        assertForbidden(() -> facade().upsertQueryable("sat:orbit_state", MAPPER.createObjectNode()));
+        assertForbidden(() -> facade().deleteQueryable("sat:orbit_state", null));
+
+        loginAsAdmin();
+        assertEquals(1, facade().getQueryableRows("id").path("queryables").size());
+    }
+
     private PgStacFacade facade() {
         return applicationContext.getBean(PgStacFacade.class);
     }

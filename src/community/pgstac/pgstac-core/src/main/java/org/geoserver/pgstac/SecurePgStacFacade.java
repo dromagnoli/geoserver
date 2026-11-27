@@ -191,6 +191,25 @@ public class SecurePgStacFacade implements PgStacFacade {
     }
 
     @Override
+    public ObjectNode getQueryableRows(String name) throws IOException {
+        // the rows name collections the caller may not see
+        checkAdmin();
+        return delegate.getQueryableRows(name);
+    }
+
+    @Override
+    public void upsertQueryable(String name, ObjectNode queryable) throws IOException {
+        checkAdmin();
+        delegate.upsertQueryable(name, queryable);
+    }
+
+    @Override
+    public void deleteQueryable(String name, List<String> collectionIds) throws IOException {
+        checkAdmin();
+        delegate.deleteQueryable(name, collectionIds);
+    }
+
+    @Override
     public String getVersion() throws IOException {
         return delegate.getVersion();
     }
